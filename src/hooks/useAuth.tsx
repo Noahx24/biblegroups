@@ -1,7 +1,5 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 import type { Session } from '@supabase/supabase-js';
-import { Platform } from 'react-native';
-import * as AppleAuthentication from 'expo-apple-authentication';
 import * as WebBrowser from 'expo-web-browser';
 import * as AuthSession from 'expo-auth-session';
 import { supabase } from '@/lib/supabase';
@@ -12,8 +10,8 @@ type AuthContextValue = {
   session: Session | null;
   loading: boolean;
   isLeader: boolean;
+  isAdmin: boolean;
   signInWithGoogle: () => Promise<void>;
-  signInWithApple: () => Promise<void>;
   signOut: () => Promise<void>;
 };
 
@@ -23,6 +21,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [isLeader, setIsLeader] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -38,14 +37,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!session?.user) {
       setIsLeader(false);
+      setIsAdmin(false);
       return;
     }
     supabase
       .from('profiles')
-      .select('is_leader')
+      .select('is_leader, is_admin')
       .eq('id', session.user.id)
       .single()
-      .then(({ data }) => setIsLeader(Boolean(data?.is_leader)));
+      .then(({ data }) => {
+        setIsLeader(Boolean(data?.is_leader));
+        setIsAdmin(Boolean(data?.is_admin));
+      });
   }, [session?.user?.id]);
 
   const signInWithGoogle = async () => {
@@ -68,33 +71,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const signInWithApple = async () => {
-    if (Platform.OS !== 'ios') {
-      throw new Error('Apple sign-in is only available on iOS');
-    }
-    const credential = await AppleAuthentication.signInAsync({
-      requestedScopes: [
-        AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
-        AppleAuthentication.AppleAuthenticationScope.EMAIL,
-      ],
-    });
-    if (!credential.identityToken) {
-      throw new Error('Apple did not return an identity token');
-    }
-    const { error } = await supabase.auth.signInWithIdToken({
-      provider: 'apple',
-      token: credential.identityToken,
-    });
-    if (error) throw error;
-  };
-
   const signOut = async () => {
     await supabase.auth.signOut();
   };
 
   return (
     <AuthContext.Provider
-      value={{ session, loading, isLeader, signInWithGoogle, signInWithApple, signOut }}
+      value={{ session, loading, isLeader, isAdmin, signInWithGoogle, signOut }}
     >
       {children}
     </AuthContext.Provider>
