@@ -86,6 +86,37 @@ create policy "profiles_read_all" on public.profiles
 create policy "profiles_update_self" on public.profiles
   for update using (auth.uid() = id) with check (auth.uid() = id);
 
+-- Defense in depth: the profiles_update_self policy only re-checks row
+-- ownership, so it would otherwise let a user set is_leader = true on their
+-- own row and bypass every leader-only policy below. This trigger rejects any
+-- change to is_leader unless the caller is already a leader. auth.uid() is
+-- null in the SQL editor and for the service_role key, so leader bootstrap
+-- ("update profiles set is_leader = true ...") still works server-side.
+create or replace function public.guard_profile_role()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if new.is_leader is distinct from old.is_leader
+     and auth.uid() is not null
+     and not exists (
+       select 1 from public.profiles
+       where id = auth.uid() and is_leader = true
+     )
+  then
+    raise exception 'only leaders can change is_leader';
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists guard_profile_role on public.profiles;
+create trigger guard_profile_role
+  before update on public.profiles
+  for each row execute function public.guard_profile_role();
+
 create policy "verses_read_all" on public.weekly_verses
   for select using (auth.role() = 'authenticated');
 
