@@ -41,10 +41,11 @@ export function ProfileScreen() {
     if (!userId) return;
     supabase
       .from('profiles')
-      .select('display_name, favorite_verse, favorite_hymn')
-      .eq('id', userId)
-      .single()
-      .then(({ data }) => {
+      .select('display_name')
+      .eq('id', session.user.id)
+      .maybeSingle()
+      .then(({ data, error }) => {
+        if (error) console.warn('profile load failed', error);
         setDisplayName(data?.display_name ?? '');
         setFavoriteVerse(data?.favorite_verse ?? '');
         setFavoriteHymn(data?.favorite_hymn ?? '');

@@ -11,6 +11,7 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { format, parse } from 'date-fns';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
 import { formatWeek, weekStart } from '@/lib/week';
@@ -44,14 +45,21 @@ export function ScheduleScreen() {
   const claim = async (date: string) => {
     if (!userId) return;
     setBusyDate(date);
-    const { error } = await supabase
+    // Chain .select() so we can detect the silent-no-op case where RLS filters
+    // the row out (e.g. someone else just claimed it, so our claim_self USING
+    // clause excludes the row and Postgres returns 0 affected rows + no error).
+    const { data, error } = await supabase
       .from('schedule')
       .update({ leader_id: userId })
-      .eq('week_start', date);
+      .eq('week_start', date)
+      .select();
     setBusyDate(null);
     if (error) {
       Alert.alert('Could not claim', error.message);
       return;
+    }
+    if (!data || data.length === 0) {
+      Alert.alert('Already taken', 'Someone else just claimed this slot.');
     }
     await load();
   };
@@ -177,14 +185,18 @@ function AddDateModal({
   const [saving, setSaving] = useState(false);
 
   const save = async () => {
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+    // Parse rather than regex-match: /^\d{4}-\d{2}-\d{2}$/ would accept
+    // "2026-13-99". date-fns parse rejects invalid month/day combinations.
+    const parsed = parse(date.trim(), 'yyyy-MM-dd', new Date());
+    if (Number.isNaN(parsed.getTime())) {
       Alert.alert('Bad date', 'Use format YYYY-MM-DD (e.g. 2026-06-07)');
       return;
     }
+    const normalized = format(parsed, 'yyyy-MM-dd');
     setSaving(true);
     const { error } = await supabase
       .from('schedule')
-      .insert({ week_start: date, leader_id: null });
+      .insert({ week_start: normalized, leader_id: null });
     setSaving(false);
     if (error) {
       Alert.alert('Could not add date', error.message);

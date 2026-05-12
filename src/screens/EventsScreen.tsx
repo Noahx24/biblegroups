@@ -11,7 +11,7 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { format } from 'date-fns';
+import { format, parse } from 'date-fns';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
 import type { EventRsvp, GroupEvent, RsvpStatus } from '@/types';
@@ -42,6 +42,9 @@ export function EventsScreen() {
     if (eventsRes.error) {
       Alert.alert('Error', eventsRes.error.message);
       return;
+    }
+    if (rsvpsRes.error) {
+      console.warn('rsvp fetch failed', rsvpsRes.error);
     }
     setEvents((eventsRes.data as GroupEvent[]) ?? []);
     setRsvps((rsvpsRes.data as EventRsvp[]) ?? []);
@@ -171,7 +174,9 @@ function NewEventModal({
       Alert.alert('Missing info', 'Title and date/time are required.');
       return;
     }
-    const parsed = new Date(whenISO);
+    // `new Date("YYYY-MM-DD HH:MM")` is not standard JS and returns Invalid
+    // Date on Hermes/JSC. Use date-fns parse for predictable behavior.
+    const parsed = parse(whenISO.trim(), 'yyyy-MM-dd HH:mm', new Date());
     if (Number.isNaN(parsed.getTime())) {
       Alert.alert('Bad date', 'Use format YYYY-MM-DD HH:MM (e.g. 2026-06-01 19:00)');
       return;
