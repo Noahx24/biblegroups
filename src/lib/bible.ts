@@ -4,9 +4,25 @@ export type VerseFetch = {
   translation: string;
 };
 
+const FETCH_TIMEOUT_MS = 10_000;
+
 export async function fetchVerse(reference: string, translation = 'web'): Promise<VerseFetch> {
   const encoded = encodeURIComponent(reference.trim());
-  const res = await fetch(`https://bible-api.com/${encoded}?translation=${translation}`);
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+  let res: Response;
+  try {
+    res = await fetch(`https://bible-api.com/${encoded}?translation=${translation}`, {
+      signal: controller.signal,
+    });
+  } catch (e) {
+    if (e instanceof Error && e.name === 'AbortError') {
+      throw new Error('Verse lookup timed out. Check your connection and try again.');
+    }
+    throw e;
+  } finally {
+    clearTimeout(timer);
+  }
   if (!res.ok) {
     throw new Error(`Could not find passage "${reference}"`);
   }
