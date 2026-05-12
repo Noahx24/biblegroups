@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -7,54 +7,82 @@ import {
   Pressable,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
-import { formatWeek, upcomingWeeks, weekStart } from '@/lib/week';
-import type { Profile, ScheduleEntry } from '@/types';
+import { formatWeek, weekStart } from '@/lib/week';
+import type { ScheduleEntry } from '@/types';
 
 export function ScheduleScreen() {
-  const { isLeader } = useAuth();
-  const [schedule, setSchedule] = useState<Record<string, ScheduleEntry>>({});
-  const [members, setMembers] = useState<Profile[]>([]);
+  const { session, isLeader } = useAuth();
+  const userId = session?.user.id;
+  const [entries, setEntries] = useState<ScheduleEntry[]>([]);
   const [loading, setLoading] = useState(true);
-  const [editingWeek, setEditingWeek] = useState<string | null>(null);
-
-  const weeks = useMemo(() => upcomingWeeks(8), []);
-  const currentWeek = weekStart();
+  const [busyDate, setBusyDate] = useState<string | null>(null);
+  const [addOpen, setAddOpen] = useState(false);
 
   const load = useCallback(async () => {
-    const [scheduleRes, membersRes] = await Promise.all([
-      supabase
-        .from('schedule')
-        .select('week_start, leader_id, notes, leader:profiles(id, display_name, avatar_url)')
-        .gte('week_start', currentWeek),
-      supabase.from('profiles').select('id, display_name, avatar_url, is_leader'),
-    ]);
-    const map: Record<string, ScheduleEntry> = {};
-    for (const row of (scheduleRes.data as ScheduleEntry[] | null) ?? []) {
-      map[row.week_start] = row;
+    const { data, error } = await supabase
+      .from('schedule')
+      .select('week_start, leader_id, notes, leader:profiles(id, display_name, avatar_url)')
+      .gte('week_start', weekStart())
+      .order('week_start', { ascending: true });
+    if (error) {
+      Alert.alert('Error', error.message);
+      return;
     }
-    setSchedule(map);
-    setMembers((membersRes.data as Profile[] | null) ?? []);
-  }, [currentWeek]);
+    setEntries((data as ScheduleEntry[] | null) ?? []);
+  }, []);
 
   useEffect(() => {
     load().finally(() => setLoading(false));
   }, [load]);
 
-  const assign = async (week: string, leaderId: string | null) => {
+  const claim = async (date: string) => {
+    if (!userId) return;
+    setBusyDate(date);
     const { error } = await supabase
       .from('schedule')
-      .upsert({ week_start: week, leader_id: leaderId }, { onConflict: 'week_start' });
+      .update({ leader_id: userId })
+      .eq('week_start', date);
+    setBusyDate(null);
     if (error) {
-      Alert.alert('Error', error.message);
+      Alert.alert('Could not claim', error.message);
       return;
     }
-    setEditingWeek(null);
     await load();
+  };
+
+  const release = async (date: string) => {
+    setBusyDate(date);
+    const { error } = await supabase
+      .from('schedule')
+      .update({ leader_id: null })
+      .eq('week_start', date);
+    setBusyDate(null);
+    if (error) {
+      Alert.alert('Could not release', error.message);
+      return;
+    }
+    await load();
+  };
+
+  const removeDate = (date: string) => {
+    Alert.alert('Remove this date?', formatWeek(date), [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Remove',
+        style: 'destructive',
+        onPress: async () => {
+          const { error } = await supabase.from('schedule').delete().eq('week_start', date);
+          if (error) Alert.alert('Error', error.message);
+          else await load();
+        },
+      },
+    ]);
   };
 
   if (loading) {
@@ -68,25 +96,49 @@ export function ScheduleScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['left', 'right']}>
       <FlatList
-        data={weeks}
-        keyExtractor={(w) => w}
+        data={entries}
+        keyExtractor={(e) => e.week_start}
         contentContainerStyle={styles.list}
+        ListEmptyComponent={
+          <Text style={styles.empty}>
+            {isLeader ? 'Tap + to add a date.' : 'No schedule dates yet.'}
+          </Text>
+        }
         renderItem={({ item }) => {
-          const entry = schedule[item];
+          const mine = item.leader_id && item.leader_id === userId;
+          const claimed = !!item.leader_id;
+          const busy = busyDate === item.week_start;
           return (
             <View style={styles.row}>
               <View style={styles.rowMain}>
-                <Text style={styles.week}>{formatWeek(item)}</Text>
+                <Text style={styles.week}>{formatWeek(item.week_start)}</Text>
                 <Text style={styles.leader}>
-                  {entry?.leader?.display_name ?? 'Unassigned'}
+                  {item.leader?.display_name ?? 'Open — tap to lead'}
                 </Text>
               </View>
+              {mine ? (
+                <Pressable
+                  onPress={() => release(item.week_start)}
+                  disabled={busy}
+                  style={({ pressed }) => [styles.btn, styles.release, pressed && styles.pressed]}
+                >
+                  <Text style={styles.releaseText}>Release</Text>
+                </Pressable>
+              ) : !claimed ? (
+                <Pressable
+                  onPress={() => claim(item.week_start)}
+                  disabled={busy}
+                  style={({ pressed }) => [styles.btn, styles.claim, pressed && styles.pressed]}
+                >
+                  <Text style={styles.claimText}>I'll lead</Text>
+                </Pressable>
+              ) : null}
               {isLeader && (
                 <Pressable
-                  onPress={() => setEditingWeek(item)}
-                  style={({ pressed }) => [styles.assignBtn, pressed && styles.pressed]}
+                  onPress={() => removeDate(item.week_start)}
+                  style={({ pressed }) => [styles.delBtn, pressed && styles.pressed]}
                 >
-                  <Text style={styles.assignText}>Assign</Text>
+                  <Text style={styles.delText}>×</Text>
                 </Pressable>
               )}
             </View>
@@ -94,40 +146,83 @@ export function ScheduleScreen() {
         }}
       />
 
-      <Modal visible={!!editingWeek} animationType="slide" presentationStyle="pageSheet">
-        <SafeAreaView style={styles.container}>
-          <View style={styles.modalHeader}>
-            <Pressable onPress={() => setEditingWeek(null)}>
-              <Text style={styles.cancel}>Close</Text>
-            </Pressable>
-            <Text style={styles.modalTitle}>
-              {editingWeek ? formatWeek(editingWeek) : ''}
-            </Text>
-            <View style={{ width: 50 }} />
-          </View>
-          <FlatList
-            data={members}
-            keyExtractor={(m) => m.id}
-            ListHeaderComponent={
-              <Pressable
-                style={styles.memberRow}
-                onPress={() => editingWeek && assign(editingWeek, null)}
-              >
-                <Text style={styles.memberName}>— Unassigned —</Text>
-              </Pressable>
-            }
-            renderItem={({ item }) => (
-              <Pressable
-                style={styles.memberRow}
-                onPress={() => editingWeek && assign(editingWeek, item.id)}
-              >
-                <Text style={styles.memberName}>{item.display_name ?? 'Unnamed'}</Text>
-              </Pressable>
-            )}
-          />
-        </SafeAreaView>
-      </Modal>
+      {isLeader && (
+        <Pressable style={styles.fab} onPress={() => setAddOpen(true)}>
+          <Text style={styles.fabText}>+</Text>
+        </Pressable>
+      )}
+
+      <AddDateModal
+        visible={addOpen}
+        onClose={() => setAddOpen(false)}
+        onAdded={async () => {
+          setAddOpen(false);
+          await load();
+        }}
+      />
     </SafeAreaView>
+  );
+}
+
+function AddDateModal({
+  visible,
+  onClose,
+  onAdded,
+}: {
+  visible: boolean;
+  onClose: () => void;
+  onAdded: () => void;
+}) {
+  const [date, setDate] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  const save = async () => {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+      Alert.alert('Bad date', 'Use format YYYY-MM-DD (e.g. 2026-06-07)');
+      return;
+    }
+    setSaving(true);
+    const { error } = await supabase
+      .from('schedule')
+      .insert({ week_start: date, leader_id: null });
+    setSaving(false);
+    if (error) {
+      Alert.alert('Could not add date', error.message);
+      return;
+    }
+    setDate('');
+    onAdded();
+  };
+
+  return (
+    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet">
+      <SafeAreaView style={styles.container}>
+        <View style={styles.modalHeader}>
+          <Pressable onPress={onClose}>
+            <Text style={styles.headerAction}>Cancel</Text>
+          </Pressable>
+          <Text style={styles.modalTitle}>Add schedule date</Text>
+          <Pressable onPress={save} disabled={saving}>
+            <Text style={[styles.headerAction, styles.headerSave]}>
+              {saving ? '…' : 'Add'}
+            </Text>
+          </Pressable>
+        </View>
+        <View style={styles.form}>
+          <Text style={styles.label}>Date</Text>
+          <TextInput
+            placeholder="YYYY-MM-DD"
+            value={date}
+            onChangeText={setDate}
+            autoCapitalize="none"
+            style={styles.input}
+          />
+          <Text style={styles.hint}>
+            Members can claim this date themselves from the Schedule tab.
+          </Text>
+        </View>
+      </SafeAreaView>
+    </Modal>
   );
 }
 
@@ -135,6 +230,7 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f6f7f9' },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   list: { padding: 16 },
+  empty: { textAlign: 'center', color: '#888', marginTop: 32 },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -142,18 +238,36 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 16,
     marginBottom: 8,
+    gap: 8,
   },
   rowMain: { flex: 1 },
   week: { fontSize: 13, color: '#888', marginBottom: 2 },
   leader: { fontSize: 17, fontWeight: '600' },
-  assignBtn: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 8,
-    backgroundColor: '#eef2ff',
-  },
-  assignText: { color: '#2c6cf5', fontWeight: '600' },
+  btn: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8 },
+  claim: { backgroundColor: '#eef2ff' },
+  claimText: { color: '#2c6cf5', fontWeight: '600' },
+  release: { backgroundColor: '#fff1f0' },
+  releaseText: { color: '#c0392b', fontWeight: '600' },
+  delBtn: { paddingHorizontal: 8 },
+  delText: { color: '#999', fontSize: 22, lineHeight: 22 },
   pressed: { opacity: 0.7 },
+  fab: {
+    position: 'absolute',
+    right: 24,
+    bottom: 32,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#2c6cf5',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 4,
+  },
+  fabText: { color: '#fff', fontSize: 28, lineHeight: 30 },
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -164,12 +278,17 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
   },
   modalTitle: { fontSize: 16, fontWeight: '600' },
-  cancel: { color: '#2c6cf5', fontSize: 16 },
-  memberRow: {
-    padding: 16,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#eee',
+  headerAction: { fontSize: 16, color: '#2c6cf5' },
+  headerSave: { fontWeight: '700' },
+  form: { padding: 16, gap: 8 },
+  label: { fontSize: 13, color: '#666', textTransform: 'uppercase', fontWeight: '600' },
+  input: {
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 16,
     backgroundColor: '#fff',
   },
-  memberName: { fontSize: 16 },
+  hint: { color: '#888', fontSize: 13, marginTop: 4 },
 });

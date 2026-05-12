@@ -6,8 +6,8 @@ A small mobile app for a single church small group. Built with **Expo (React Nat
 
 - Sign in with **Google** or **Apple**
 - **This Week** tab — verse of the week (auto-fetched from [bible-api.com](https://bible-api.com)) and who's leading
-- **Events** tab — upcoming group events (anyone can view; leader can add)
-- **Schedule** tab — 8-week rotation; leader assigns who leads each week
+- **Events** tab — any member can create events; everyone can RSVP (Going / Maybe / No) with a live count
+- **Schedule** tab — leader appends meeting dates; members claim the date they want to lead (or release their own claim)
 - **Profile** tab — set display name, sign out
 
 Role model: every signed-in user is a group member. One or more users are flagged `is_leader = true` and can edit verses, events, and the schedule.

@@ -37,6 +37,14 @@ create table if not exists public.schedule (
   updated_at timestamptz not null default now()
 );
 
+create table if not exists public.event_rsvps (
+  event_id uuid not null references public.events(id) on delete cascade,
+  user_id uuid not null references public.profiles(id) on delete cascade,
+  status text not null check (status in ('going', 'maybe', 'no')),
+  updated_at timestamptz not null default now(),
+  primary key (event_id, user_id)
+);
+
 -- Auto-create a profile when a new auth.users row is inserted.
 create or replace function public.handle_new_user()
 returns trigger
@@ -70,6 +78,7 @@ alter table public.profiles enable row level security;
 alter table public.weekly_verses enable row level security;
 alter table public.events enable row level security;
 alter table public.schedule enable row level security;
+alter table public.event_rsvps enable row level security;
 
 create policy "profiles_read_all" on public.profiles
   for select using (auth.role() = 'authenticated');
@@ -85,21 +94,59 @@ create policy "verses_write_leader" on public.weekly_verses
   using (exists (select 1 from public.profiles p where p.id = auth.uid() and p.is_leader))
   with check (exists (select 1 from public.profiles p where p.id = auth.uid() and p.is_leader));
 
+-- Events: any signed-in member can create; only the creator (or any leader)
+-- can edit or delete.
 create policy "events_read_all" on public.events
   for select using (auth.role() = 'authenticated');
 
-create policy "events_write_leader" on public.events
-  for all
-  using (exists (select 1 from public.profiles p where p.id = auth.uid() and p.is_leader))
-  with check (exists (select 1 from public.profiles p where p.id = auth.uid() and p.is_leader));
+create policy "events_insert_self" on public.events
+  for insert with check (auth.uid() = created_by);
 
+create policy "events_update_owner_or_leader" on public.events
+  for update
+  using (
+    auth.uid() = created_by
+    or exists (select 1 from public.profiles p where p.id = auth.uid() and p.is_leader)
+  );
+
+create policy "events_delete_owner_or_leader" on public.events
+  for delete
+  using (
+    auth.uid() = created_by
+    or exists (select 1 from public.profiles p where p.id = auth.uid() and p.is_leader)
+  );
+
+-- Schedule: only leaders can add or remove dates. Any member can claim an
+-- open slot (or release their own claim). Leaders can override anyone.
 create policy "schedule_read_all" on public.schedule
   for select using (auth.role() = 'authenticated');
 
-create policy "schedule_write_leader" on public.schedule
-  for all
-  using (exists (select 1 from public.profiles p where p.id = auth.uid() and p.is_leader))
+create policy "schedule_insert_leader" on public.schedule
+  for insert
   with check (exists (select 1 from public.profiles p where p.id = auth.uid() and p.is_leader));
+
+create policy "schedule_delete_leader" on public.schedule
+  for delete
+  using (exists (select 1 from public.profiles p where p.id = auth.uid() and p.is_leader));
+
+create policy "schedule_update_leader" on public.schedule
+  for update
+  using (exists (select 1 from public.profiles p where p.id = auth.uid() and p.is_leader))
+  with check (true);
+
+create policy "schedule_claim_self" on public.schedule
+  for update
+  using (leader_id is null or leader_id = auth.uid())
+  with check (leader_id is null or leader_id = auth.uid());
+
+-- RSVPs: anyone can read; you can only insert/update/delete your own.
+create policy "rsvps_read_all" on public.event_rsvps
+  for select using (auth.role() = 'authenticated');
+
+create policy "rsvps_write_self" on public.event_rsvps
+  for all
+  using (auth.uid() = user_id)
+  with check (auth.uid() = user_id);
 
 -- To promote yourself to leader after signing in once:
 --   update public.profiles set is_leader = true where id = '<your-auth-uid>';

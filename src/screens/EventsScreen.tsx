@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -14,30 +14,63 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { format } from 'date-fns';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
-import type { GroupEvent } from '@/types';
+import type { EventRsvp, GroupEvent, RsvpStatus } from '@/types';
+
+const RSVP_OPTIONS: { value: RsvpStatus; label: string }[] = [
+  { value: 'going', label: 'Going' },
+  { value: 'maybe', label: 'Maybe' },
+  { value: 'no', label: 'No' },
+];
 
 export function EventsScreen() {
-  const { session, isLeader } = useAuth();
+  const { session } = useAuth();
+  const userId = session?.user.id;
   const [events, setEvents] = useState<GroupEvent[]>([]);
+  const [rsvps, setRsvps] = useState<EventRsvp[]>([]);
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
 
   const load = useCallback(async () => {
-    const { data, error } = await supabase
-      .from('events')
-      .select('*')
-      .gte('starts_at', new Date().toISOString())
-      .order('starts_at', { ascending: true });
-    if (error) {
-      Alert.alert('Error', error.message);
+    const [eventsRes, rsvpsRes] = await Promise.all([
+      supabase
+        .from('events')
+        .select('*')
+        .gte('starts_at', new Date().toISOString())
+        .order('starts_at', { ascending: true }),
+      supabase.from('event_rsvps').select('*'),
+    ]);
+    if (eventsRes.error) {
+      Alert.alert('Error', eventsRes.error.message);
       return;
     }
-    setEvents((data as GroupEvent[]) ?? []);
+    setEvents((eventsRes.data as GroupEvent[]) ?? []);
+    setRsvps((rsvpsRes.data as EventRsvp[]) ?? []);
   }, []);
 
   useEffect(() => {
     load().finally(() => setLoading(false));
   }, [load]);
+
+  const setRsvp = async (eventId: string, status: RsvpStatus) => {
+    if (!userId) return;
+    const { error } = await supabase
+      .from('event_rsvps')
+      .upsert(
+        { event_id: eventId, user_id: userId, status, updated_at: new Date().toISOString() },
+        { onConflict: 'event_id,user_id' },
+      );
+    if (error) {
+      Alert.alert('Error', error.message);
+      return;
+    }
+    await load();
+  };
+
+  const rsvpsByEvent = useMemo(() => {
+    const m: Record<string, EventRsvp[]> = {};
+    for (const r of rsvps) (m[r.event_id] ??= []).push(r);
+    return m;
+  }, [rsvps]);
 
   if (loading) {
     return (
@@ -54,25 +87,54 @@ export function EventsScreen() {
         keyExtractor={(e) => e.id}
         contentContainerStyle={styles.list}
         ListEmptyComponent={
-          <Text style={styles.empty}>No upcoming events yet.</Text>
+          <Text style={styles.empty}>No upcoming events yet. Tap + to add one.</Text>
         }
-        renderItem={({ item }) => (
-          <View style={styles.card}>
-            <Text style={styles.title}>{item.title}</Text>
-            <Text style={styles.when}>
-              {format(new Date(item.starts_at), 'EEE, MMM d • h:mm a')}
-            </Text>
-            {item.location ? <Text style={styles.location}>{item.location}</Text> : null}
-            {item.description ? <Text style={styles.description}>{item.description}</Text> : null}
-          </View>
-        )}
+        renderItem={({ item }) => {
+          const eventRsvps = rsvpsByEvent[item.id] ?? [];
+          const mine = eventRsvps.find((r) => r.user_id === userId)?.status ?? null;
+          const goingCount = eventRsvps.filter((r) => r.status === 'going').length;
+          return (
+            <View style={styles.card}>
+              <Text style={styles.title}>{item.title}</Text>
+              <Text style={styles.when}>
+                {format(new Date(item.starts_at), 'EEE, MMM d • h:mm a')}
+              </Text>
+              {item.location ? <Text style={styles.location}>{item.location}</Text> : null}
+              {item.description ? (
+                <Text style={styles.description}>{item.description}</Text>
+              ) : null}
+
+              <View style={styles.rsvpRow}>
+                {RSVP_OPTIONS.map((opt) => {
+                  const active = mine === opt.value;
+                  return (
+                    <Pressable
+                      key={opt.value}
+                      onPress={() => setRsvp(item.id, opt.value)}
+                      style={({ pressed }) => [
+                        styles.rsvpBtn,
+                        active && styles.rsvpBtnActive,
+                        pressed && styles.pressed,
+                      ]}
+                    >
+                      <Text style={[styles.rsvpText, active && styles.rsvpTextActive]}>
+                        {opt.label}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+                <Text style={styles.count}>
+                  {goingCount} going
+                </Text>
+              </View>
+            </View>
+          );
+        }}
       />
 
-      {isLeader && (
-        <Pressable style={styles.fab} onPress={() => setModalOpen(true)}>
-          <Text style={styles.fabText}>+</Text>
-        </Pressable>
-      )}
+      <Pressable style={styles.fab} onPress={() => setModalOpen(true)}>
+        <Text style={styles.fabText}>+</Text>
+      </Pressable>
 
       <NewEventModal
         visible={modalOpen}
@@ -81,7 +143,7 @@ export function EventsScreen() {
           setModalOpen(false);
           await load();
         }}
-        userId={session?.user.id ?? ''}
+        userId={userId ?? ''}
       />
     </SafeAreaView>
   );
@@ -195,6 +257,23 @@ const styles = StyleSheet.create({
   when: { fontSize: 14, color: '#2c6cf5', fontWeight: '600' },
   location: { fontSize: 14, color: '#555' },
   description: { fontSize: 14, color: '#333', marginTop: 4 },
+  rsvpRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 12,
+  },
+  rsvpBtn: {
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 16,
+    backgroundColor: '#f0f1f4',
+  },
+  rsvpBtnActive: { backgroundColor: '#2c6cf5' },
+  rsvpText: { color: '#555', fontWeight: '600', fontSize: 13 },
+  rsvpTextActive: { color: '#fff' },
+  count: { marginLeft: 'auto', color: '#888', fontSize: 13 },
+  pressed: { opacity: 0.7 },
   fab: {
     position: 'absolute',
     right: 24,

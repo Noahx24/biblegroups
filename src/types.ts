@@ -32,3 +32,12 @@ export type ScheduleEntry = {
   notes: string | null;
   leader?: Pick<Profile, 'id' | 'display_name' | 'avatar_url'> | null;
 };
+
+export type RsvpStatus = 'going' | 'maybe' | 'no';
+
+export type EventRsvp = {
+  event_id: string;
+  user_id: string;
+  status: RsvpStatus;
+  updated_at: string;
+};
