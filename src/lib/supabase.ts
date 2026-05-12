@@ -18,5 +18,10 @@ export const supabase = createClient(url, anonKey, {
     autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: false,
+    // Pin PKCE explicitly so the OAuth redirect always returns ?code=... and
+    // matches the completeOAuthRedirect path that calls exchangeCodeForSession.
+    // supabase-js's default has shifted between versions and is ambiguous in
+    // React Native; pinning here makes the flow deterministic.
+    flowType: 'pkce',
   },
 });
