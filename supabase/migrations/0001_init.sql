@@ -120,10 +120,28 @@ create trigger guard_profile_role
 create policy "verses_read_all" on public.weekly_verses
   for select using (auth.role() = 'authenticated');
 
-create policy "verses_write_leader" on public.weekly_verses
+-- Verses are written only by the member scheduled to lead that week. Adding
+-- a verse row requires a matching schedule entry where leader_id = auth.uid().
+-- The is_leader flag is no longer relevant here; leaders' write power is now
+-- limited to schedule date management (insert/delete/override).
+drop policy if exists "verses_write_leader" on public.weekly_verses;
+
+create policy "verses_write_week_leader" on public.weekly_verses
   for all
-  using (exists (select 1 from public.profiles p where p.id = auth.uid() and p.is_leader))
-  with check (exists (select 1 from public.profiles p where p.id = auth.uid() and p.is_leader));
+  using (
+    exists (
+      select 1 from public.schedule s
+      where s.week_start = weekly_verses.week_start
+        and s.leader_id = auth.uid()
+    )
+  )
+  with check (
+    exists (
+      select 1 from public.schedule s
+      where s.week_start = weekly_verses.week_start
+        and s.leader_id = auth.uid()
+    )
+  );
 
 -- Events: any signed-in member can create; only the creator (or any leader)
 -- can edit or delete.

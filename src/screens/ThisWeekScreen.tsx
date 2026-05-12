@@ -18,7 +18,8 @@ import { useAuth } from '@/hooks/useAuth';
 import type { ScheduleEntry, WeeklyVerse } from '@/types';
 
 export function ThisWeekScreen() {
-  const { session, isLeader } = useAuth();
+  const { session } = useAuth();
+  const userId = session?.user.id;
   const [verse, setVerse] = useState<WeeklyVerse | null>(null);
   const [leader, setLeader] = useState<ScheduleEntry | null>(null);
   const [loading, setLoading] = useState(true);
@@ -27,6 +28,7 @@ export function ThisWeekScreen() {
   const [saving, setSaving] = useState(false);
 
   const currentWeek = weekStart();
+  const leadingThisWeek = !!userId && leader?.leader_id === userId;
 
   const load = useCallback(async () => {
     const [verseRes, scheduleRes] = await Promise.all([
@@ -104,7 +106,7 @@ export function ThisWeekScreen() {
             <Text style={styles.muted}>No verse set yet.</Text>
           )}
 
-          {isLeader && (
+          {leadingThisWeek && (
             <View style={styles.editor}>
               <TextInput
                 value={reference}
