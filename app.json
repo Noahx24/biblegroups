@@ -1,0 +1,29 @@
+{
+  "expo": {
+    "name": "BibleGroups",
+    "slug": "biblegroups",
+    "scheme": "biblegroups",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.example.biblegroups",
+      "usesAppleSignIn": true
+    },
+    "android": {
+      "package": "com.example.biblegroups",
+      "adaptiveIcon": {
+        "backgroundColor": "#ffffff"
+      }
+    },
+    "plugins": [
+      "expo-apple-authentication"
+    ],
+    "extra": {
+      "supabaseUrl": "",
+      "supabaseAnonKey": ""
+    }
+  }
+}
