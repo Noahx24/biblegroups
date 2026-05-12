@@ -4,13 +4,21 @@ A small mobile app for a single church small group. Built with **Expo (React Nat
 
 ## Features (v1)
 
-- Sign in with **Google** or **Apple**
+- Sign in with **Google**
 - **This Week** tab — verse of the week (auto-fetched from [bible-api.com](https://bible-api.com)) and who's leading
 - **Events** tab — any member can create events; everyone can RSVP (Going / Maybe / No) with a live count
 - **Schedule** tab — leader appends meeting dates; members claim the date they want to lead (or release their own claim)
-- **Profile** tab — set display name, sign out
+- **Profile** tab — set display name, favorite verse, favorite hymn; admins manage who's a leader
 
-Role model: every signed-in user is a group member. One or more users are flagged `is_leader = true` and can edit verses, events, and the schedule.
+## Roles
+
+| Role     | Granted by   | Can do                                                                        |
+| -------- | ------------ | ----------------------------------------------------------------------------- |
+| Member   | Sign in      | Read everything, claim/release schedule slots, create events, RSVP, edit own profile |
+| Leader   | An admin     | Everything a member can do, plus edit verses, add/remove schedule dates, override claims |
+| Admin    | SQL bootstrap | Promote or demote leaders from the Profile tab                               |
+
+A `BEFORE UPDATE` trigger on `profiles` enforces that only admins can change `is_leader` or `is_admin`, so a member cannot self-promote.
 
 ## Setup
 
@@ -24,9 +32,7 @@ npm install
 
 1. Go to https://supabase.com and create a new project.
 2. In the SQL editor, run [`supabase/migrations/0001_init.sql`](supabase/migrations/0001_init.sql).
-3. In **Authentication → Providers**, enable **Google** and **Apple**.
-   - Google: create OAuth credentials in Google Cloud, paste client ID + secret into Supabase.
-   - Apple: configure a Services ID + key in your Apple Developer account, paste into Supabase.
+3. In **Authentication → Providers**, enable **Google**. Create OAuth credentials in Google Cloud and paste the client ID + secret into Supabase.
 4. In **Authentication → URL Configuration**, add `biblegroups://` as a redirect URL.
 
 ### 3. Configure environment
@@ -45,17 +51,15 @@ npm run android   # Android emulator
 npm start         # Expo Go on a physical device
 ```
 
-> Apple sign-in requires a real iOS device or simulator and a paid Apple Developer account for distribution. Google sign-in works on both platforms.
+### 5. Bootstrap yourself as admin
 
-### 5. Promote yourself to leader
-
-After signing in once, run this in the Supabase SQL editor:
+After signing in once, find your UID under **Authentication → Users** in Supabase, then run this in the SQL editor:
 
 ```sql
-update public.profiles set is_leader = true where id = '<your-auth-uid>';
+update public.profiles set is_admin = true where id = '<your-auth-uid>';
 ```
 
-You can find your UID under **Authentication → Users** in Supabase.
+Now open the app's Profile tab — you'll see a "Manage leaders" section. Toggle the switch next to each group leader to grant them leader powers.
 
 ## Project layout
 
@@ -64,7 +68,7 @@ App.tsx                       Entry — wires AuthProvider + NavigationContainer
 src/lib/supabase.ts           Supabase client (AsyncStorage-backed session)
 src/lib/bible.ts              bible-api.com fetcher
 src/lib/week.ts               Week-start date helpers
-src/hooks/useAuth.tsx         Auth context (Google + Apple OAuth)
+src/hooks/useAuth.tsx         Auth context (Google OAuth)
 src/navigation/RootNavigator  Tab navigator, gated on auth
 src/screens/                  SignIn, ThisWeek, Events, Schedule, Profile
 supabase/migrations/          SQL schema with row-level security

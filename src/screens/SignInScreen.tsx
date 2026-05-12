@@ -1,11 +1,10 @@
 import { useState } from 'react';
-import { Alert, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
-import * as AppleAuthentication from 'expo-apple-authentication';
+import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '@/hooks/useAuth';
 
 export function SignInScreen() {
-  const { signInWithGoogle, signInWithApple } = useAuth();
+  const { signInWithGoogle } = useAuth();
   const [busy, setBusy] = useState(false);
 
   const run = async (fn: () => Promise<void>) => {
@@ -32,16 +31,6 @@ export function SignInScreen() {
         >
           <Text style={styles.googleText}>Continue with Google</Text>
         </Pressable>
-
-        {Platform.OS === 'ios' && (
-          <AppleAuthentication.AppleAuthenticationButton
-            buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN}
-            buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
-            cornerRadius={8}
-            style={styles.appleButton}
-            onPress={() => run(signInWithApple)}
-          />
-        )}
       </View>
     </SafeAreaView>
   );
@@ -56,5 +45,4 @@ const styles = StyleSheet.create({
   pressed: { opacity: 0.7 },
   google: { backgroundColor: '#4285F4' },
   googleText: { color: '#fff', fontWeight: '600', fontSize: 16 },
-  appleButton: { width: '100%', height: 48 },
 });
