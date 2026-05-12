@@ -13,7 +13,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { supabase } from '@/lib/supabase';
 import { fetchVerse } from '@/lib/bible';
-import { formatWeek, weekStart } from '@/lib/week';
+import { formatWeek, nextWeekStart, weekStart } from '@/lib/week';
 import { useAuth } from '@/hooks/useAuth';
 import type { ScheduleEntry, WeeklyVerse } from '@/types';
 
@@ -27,19 +27,38 @@ export function ThisWeekScreen() {
   const [saving, setSaving] = useState(false);
 
   const currentWeek = weekStart();
+  const upcomingWeek = nextWeekStart();
 
   const load = useCallback(async () => {
-    const [verseRes, scheduleRes] = await Promise.all([
-      supabase.from('weekly_verses').select('*').eq('week_start', currentWeek).maybeSingle(),
-      supabase
-        .from('schedule')
-        .select('week_start, leader_id, notes, leader:profiles(id, display_name, avatar_url)')
-        .eq('week_start', currentWeek)
-        .maybeSingle(),
-    ]);
+    // Find the schedule entry for any day inside this Sun-Sat window.
+    // Leaders may add meeting dates that aren't Sundays, so an exact equality
+    // on week_start would miss them.
+    const scheduleRes = await supabase
+      .from('schedule')
+      .select('week_start, leader_id, notes, leader:profiles(id, display_name, avatar_url)')
+      .gte('week_start', currentWeek)
+      .lt('week_start', upcomingWeek)
+      .order('week_start', { ascending: true })
+      .limit(1);
+    if (scheduleRes.error) {
+      console.warn('schedule fetch failed', scheduleRes.error);
+    }
+    const scheduleEntry = (scheduleRes.data?.[0] as ScheduleEntry | undefined) ?? null;
+    setLeader(scheduleEntry);
+
+    // Verses are keyed to a schedule entry's week_start (per RLS), so use the
+    // matched date when one exists; otherwise fall back to the Sunday key.
+    const verseDate = scheduleEntry?.week_start ?? currentWeek;
+    const verseRes = await supabase
+      .from('weekly_verses')
+      .select('*')
+      .eq('week_start', verseDate)
+      .maybeSingle();
+    if (verseRes.error) {
+      console.warn('verse fetch failed', verseRes.error);
+    }
     setVerse((verseRes.data as WeeklyVerse | null) ?? null);
-    setLeader((scheduleRes.data as ScheduleEntry | null) ?? null);
-  }, [currentWeek]);
+  }, [currentWeek, upcomingWeek]);
 
   useEffect(() => {
     load().finally(() => setLoading(false));
@@ -52,13 +71,15 @@ export function ThisWeekScreen() {
   };
 
   const saveVerse = async () => {
-    if (!reference.trim() || !session?.user) return;
+    if (!reference.trim() || !session?.user || !leader) return;
     setSaving(true);
     try {
       const fetched = await fetchVerse(reference);
       const { error } = await supabase.from('weekly_verses').upsert(
         {
-          week_start: currentWeek,
+          // Use the schedule entry's date so the row matches the leader's
+          // schedule slot exactly (required by the RLS write policy).
+          week_start: leader.week_start,
           reference: fetched.reference,
           text: fetched.text,
           translation: fetched.translation,

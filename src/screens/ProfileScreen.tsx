@@ -24,8 +24,9 @@ export function ProfileScreen() {
       .from('profiles')
       .select('display_name')
       .eq('id', session.user.id)
-      .single()
-      .then(({ data }) => {
+      .maybeSingle()
+      .then(({ data, error }) => {
+        if (error) console.warn('profile load failed', error);
         setDisplayName(data?.display_name ?? '');
         setLoading(false);
       });

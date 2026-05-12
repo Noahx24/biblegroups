@@ -16,7 +16,7 @@ create table if not exists public.weekly_verses (
   text text not null,
   translation text not null,
   note text,
-  created_by uuid not null references public.profiles(id),
+  created_by uuid references public.profiles(id) on delete set null,
   created_at timestamptz not null default now()
 );
 
@@ -26,9 +26,23 @@ create table if not exists public.events (
   description text,
   location text,
   starts_at timestamptz not null,
-  created_by uuid not null references public.profiles(id),
+  created_by uuid references public.profiles(id) on delete set null,
   created_at timestamptz not null default now()
 );
+
+-- Idempotent FK + nullability fix for projects upgrading from an earlier run
+-- where created_by was NOT NULL with no ON DELETE clause. Without this,
+-- deleting an auth user cascades to profiles and then errors on these tables.
+alter table public.weekly_verses alter column created_by drop not null;
+alter table public.events alter column created_by drop not null;
+alter table public.weekly_verses drop constraint if exists weekly_verses_created_by_fkey;
+alter table public.weekly_verses
+  add constraint weekly_verses_created_by_fkey
+  foreign key (created_by) references public.profiles(id) on delete set null;
+alter table public.events drop constraint if exists events_created_by_fkey;
+alter table public.events
+  add constraint events_created_by_fkey
+  foreign key (created_by) references public.profiles(id) on delete set null;
 
 create table if not exists public.schedule (
   week_start date primary key,
