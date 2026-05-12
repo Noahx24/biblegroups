@@ -4,7 +4,7 @@ A small mobile app for a single church small group. Built with **Expo (React Nat
 
 ## Features (v1)
 
-- Sign in with **Google**
+- Sign in with **email + password**
 - **This Week** tab — verse of the week (auto-fetched from [bible-api.com](https://bible-api.com)) and who's leading
 - **Events** tab — any member can create events; everyone can RSVP (Going / Maybe / No) with a live count
 - **Schedule** tab — leader appends meeting dates; members claim the date they want to lead (or release their own claim)
@@ -32,8 +32,7 @@ npm install
 
 1. Go to https://supabase.com and create a new project.
 2. In the SQL editor, run [`supabase/migrations/0001_init.sql`](supabase/migrations/0001_init.sql).
-3. In **Authentication → Providers**, enable **Google**. Create OAuth credentials in Google Cloud and paste the client ID + secret into Supabase.
-4. In **Authentication → URL Configuration**, add `biblegroups://` as a redirect URL.
+3. In **Authentication → Providers**, ensure **Email** is enabled (it is by default). No OAuth setup needed.
 
 ### 3. Configure environment
 
@@ -68,7 +67,7 @@ App.tsx                       Entry — wires AuthProvider + NavigationContainer
 src/lib/supabase.ts           Supabase client (AsyncStorage-backed session)
 src/lib/bible.ts              bible-api.com fetcher
 src/lib/week.ts               Week-start date helpers
-src/hooks/useAuth.tsx         Auth context (Google OAuth)
+src/hooks/useAuth.tsx         Auth context (email + password)
 src/navigation/RootNavigator  Tab navigator, gated on auth
 src/screens/                  SignIn, ThisWeek, Events, Schedule, Profile
 supabase/migrations/          SQL schema with row-level security
