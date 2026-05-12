@@ -5,9 +5,17 @@ create table if not exists public.profiles (
   id uuid primary key references auth.users on delete cascade,
   display_name text,
   avatar_url text,
+  favorite_verse text,
+  favorite_hymn text,
   is_leader boolean not null default false,
+  is_admin boolean not null default false,
   created_at timestamptz not null default now()
 );
+
+-- Idempotent column adds for projects upgrading from an earlier run.
+alter table public.profiles add column if not exists favorite_verse text;
+alter table public.profiles add column if not exists favorite_hymn text;
+alter table public.profiles add column if not exists is_admin boolean not null default false;
 
 create table if not exists public.weekly_verses (
   id uuid primary key default gen_random_uuid(),
@@ -100,12 +108,22 @@ create policy "profiles_read_all" on public.profiles
 create policy "profiles_update_self" on public.profiles
   for update using (auth.uid() = id) with check (auth.uid() = id);
 
+-- Admins can update any profile row (used by the "Manage leaders" panel to
+-- toggle is_leader on other members). The guard_profile_role trigger below
+-- still enforces that only admins can change is_leader / is_admin, so this
+-- policy does not weaken the role model.
+create policy "profiles_update_admin" on public.profiles
+  for update
+  using (exists (select 1 from public.profiles p where p.id = auth.uid() and p.is_admin))
+  with check (exists (select 1 from public.profiles p where p.id = auth.uid() and p.is_admin));
+
 -- Defense in depth: the profiles_update_self policy only re-checks row
--- ownership, so it would otherwise let a user set is_leader = true on their
--- own row and bypass every leader-only policy below. This trigger rejects any
--- change to is_leader unless the caller is already a leader. auth.uid() is
--- null in the SQL editor and for the service_role key, so leader bootstrap
--- ("update profiles set is_leader = true ...") still works server-side.
+-- ownership, so it would otherwise let a user set is_leader or is_admin on
+-- their own row and bypass every leader-only policy below. This trigger
+-- rejects any change to is_leader or is_admin unless the caller is already
+-- an admin. auth.uid() is null in the SQL editor and for the service_role
+-- key, so the admin bootstrap ("update profiles set is_admin = true ...")
+-- still works server-side.
 create or replace function public.guard_profile_role()
 returns trigger
 language plpgsql
@@ -113,14 +131,15 @@ security definer
 set search_path = public
 as $$
 begin
-  if new.is_leader is distinct from old.is_leader
+  if (new.is_leader is distinct from old.is_leader
+       or new.is_admin is distinct from old.is_admin)
      and auth.uid() is not null
      and not exists (
        select 1 from public.profiles
-       where id = auth.uid() and is_leader = true
+       where id = auth.uid() and is_admin = true
      )
   then
-    raise exception 'only leaders can change is_leader';
+    raise exception 'only admins can change is_leader or is_admin';
   end if;
   return new;
 end;
@@ -134,10 +153,28 @@ create trigger guard_profile_role
 create policy "verses_read_all" on public.weekly_verses
   for select using (auth.role() = 'authenticated');
 
-create policy "verses_write_leader" on public.weekly_verses
+-- Verses are written only by the member scheduled to lead that week. Adding
+-- a verse row requires a matching schedule entry where leader_id = auth.uid().
+-- The is_leader flag is no longer relevant here; leaders' write power is now
+-- limited to schedule date management (insert/delete/override).
+drop policy if exists "verses_write_leader" on public.weekly_verses;
+
+create policy "verses_write_week_leader" on public.weekly_verses
   for all
-  using (exists (select 1 from public.profiles p where p.id = auth.uid() and p.is_leader))
-  with check (exists (select 1 from public.profiles p where p.id = auth.uid() and p.is_leader));
+  using (
+    exists (
+      select 1 from public.schedule s
+      where s.week_start = weekly_verses.week_start
+        and s.leader_id = auth.uid()
+    )
+  )
+  with check (
+    exists (
+      select 1 from public.schedule s
+      where s.week_start = weekly_verses.week_start
+        and s.leader_id = auth.uid()
+    )
+  );
 
 -- Events: any signed-in member can create; only the creator (or any leader)
 -- can edit or delete.
@@ -193,5 +230,6 @@ create policy "rsvps_write_self" on public.event_rsvps
   using (auth.uid() = user_id)
   with check (auth.uid() = user_id);
 
--- To promote yourself to leader after signing in once:
---   update public.profiles set is_leader = true where id = '<your-auth-uid>';
+-- Bootstrap: after signing in once, run this in the SQL editor to grant
+-- yourself admin (so you can promote group leaders from the app):
+--   update public.profiles set is_admin = true where id = '<your-auth-uid>';
