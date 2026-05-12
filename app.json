@@ -9,8 +9,7 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.example.biblegroups",
-      "usesAppleSignIn": true
+      "bundleIdentifier": "com.example.biblegroups"
     },
     "android": {
       "package": "com.example.biblegroups",
@@ -18,9 +17,6 @@
         "backgroundColor": "#ffffff"
       }
     },
-    "plugins": [
-      "expo-apple-authentication"
-    ],
     "extra": {
       "supabaseUrl": "",
       "supabaseAnonKey": ""

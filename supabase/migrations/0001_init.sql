@@ -5,9 +5,17 @@ create table if not exists public.profiles (
   id uuid primary key references auth.users on delete cascade,
   display_name text,
   avatar_url text,
+  favorite_verse text,
+  favorite_hymn text,
   is_leader boolean not null default false,
+  is_admin boolean not null default false,
   created_at timestamptz not null default now()
 );
+
+-- Idempotent column adds for projects upgrading from an earlier run.
+alter table public.profiles add column if not exists favorite_verse text;
+alter table public.profiles add column if not exists favorite_hymn text;
+alter table public.profiles add column if not exists is_admin boolean not null default false;
 
 create table if not exists public.weekly_verses (
   id uuid primary key default gen_random_uuid(),
@@ -87,11 +95,12 @@ create policy "profiles_update_self" on public.profiles
   for update using (auth.uid() = id) with check (auth.uid() = id);
 
 -- Defense in depth: the profiles_update_self policy only re-checks row
--- ownership, so it would otherwise let a user set is_leader = true on their
--- own row and bypass every leader-only policy below. This trigger rejects any
--- change to is_leader unless the caller is already a leader. auth.uid() is
--- null in the SQL editor and for the service_role key, so leader bootstrap
--- ("update profiles set is_leader = true ...") still works server-side.
+-- ownership, so it would otherwise let a user set is_leader or is_admin on
+-- their own row and bypass every leader-only policy below. This trigger
+-- rejects any change to is_leader or is_admin unless the caller is already
+-- an admin. auth.uid() is null in the SQL editor and for the service_role
+-- key, so the admin bootstrap ("update profiles set is_admin = true ...")
+-- still works server-side.
 create or replace function public.guard_profile_role()
 returns trigger
 language plpgsql
@@ -99,14 +108,15 @@ security definer
 set search_path = public
 as $$
 begin
-  if new.is_leader is distinct from old.is_leader
+  if (new.is_leader is distinct from old.is_leader
+       or new.is_admin is distinct from old.is_admin)
      and auth.uid() is not null
      and not exists (
        select 1 from public.profiles
-       where id = auth.uid() and is_leader = true
+       where id = auth.uid() and is_admin = true
      )
   then
-    raise exception 'only leaders can change is_leader';
+    raise exception 'only admins can change is_leader or is_admin';
   end if;
   return new;
 end;
@@ -179,5 +189,6 @@ create policy "rsvps_write_self" on public.event_rsvps
   using (auth.uid() = user_id)
   with check (auth.uid() = user_id);
 
--- To promote yourself to leader after signing in once:
---   update public.profiles set is_leader = true where id = '<your-auth-uid>';
+-- Bootstrap: after signing in once, run this in the SQL editor to grant
+-- yourself admin (so you can promote group leaders from the app):
+--   update public.profiles set is_admin = true where id = '<your-auth-uid>';

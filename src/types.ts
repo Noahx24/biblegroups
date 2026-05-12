@@ -2,7 +2,10 @@ export type Profile = {
   id: string;
   display_name: string | null;
   avatar_url: string | null;
+  favorite_verse: string | null;
+  favorite_hymn: string | null;
   is_leader: boolean;
+  is_admin: boolean;
 };
 
 export type WeeklyVerse = {
