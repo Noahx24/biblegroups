@@ -28,6 +28,7 @@ export function ThisWeekScreen() {
   const [saving, setSaving] = useState(false);
 
   const currentWeek = weekStart();
+  const upcomingWeek = nextWeekStart();
   const leadingThisWeek = !!userId && leader?.leader_id === userId;
 
   const load = useCallback(async () => {

@@ -16,10 +16,6 @@
       "adaptiveIcon": {
         "backgroundColor": "#ffffff"
       }
-    },
-    "extra": {
-      "supabaseUrl": "",
-      "supabaseAnonKey": ""
     }
   }
 }

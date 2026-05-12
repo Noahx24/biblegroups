@@ -181,6 +181,10 @@ function NewEventModal({
       Alert.alert('Bad date', 'Use format YYYY-MM-DD HH:MM (e.g. 2026-06-01 19:00)');
       return;
     }
+    if (parsed <= new Date()) {
+      Alert.alert('Past date', 'Events must be scheduled in the future.');
+      return;
+    }
     setSaving(true);
     const { error } = await supabase.from('events').insert({
       title: title.trim(),

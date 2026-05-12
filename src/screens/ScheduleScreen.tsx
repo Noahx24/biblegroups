@@ -66,14 +66,18 @@ export function ScheduleScreen() {
 
   const release = async (date: string) => {
     setBusyDate(date);
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('schedule')
       .update({ leader_id: null })
-      .eq('week_start', date);
+      .eq('week_start', date)
+      .select();
     setBusyDate(null);
     if (error) {
       Alert.alert('Could not release', error.message);
       return;
+    }
+    if (!data || data.length === 0) {
+      Alert.alert('Could not release', 'You can only release a slot you own.');
     }
     await load();
   };
@@ -199,7 +203,11 @@ function AddDateModal({
       .insert({ week_start: normalized, leader_id: null });
     setSaving(false);
     if (error) {
-      Alert.alert('Could not add date', error.message);
+      // Postgres unique-violation code: date is already on the schedule.
+      const msg = error.code === '23505'
+        ? `${normalized} is already on the schedule.`
+        : error.message;
+      Alert.alert('Could not add date', msg);
       return;
     }
     setDate('');
