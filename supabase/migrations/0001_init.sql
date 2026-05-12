@@ -94,6 +94,15 @@ create policy "profiles_read_all" on public.profiles
 create policy "profiles_update_self" on public.profiles
   for update using (auth.uid() = id) with check (auth.uid() = id);
 
+-- Admins can update any profile row (used by the "Manage leaders" panel to
+-- toggle is_leader on other members). The guard_profile_role trigger below
+-- still enforces that only admins can change is_leader / is_admin, so this
+-- policy does not weaken the role model.
+create policy "profiles_update_admin" on public.profiles
+  for update
+  using (exists (select 1 from public.profiles p where p.id = auth.uid() and p.is_admin))
+  with check (exists (select 1 from public.profiles p where p.id = auth.uid() and p.is_admin));
+
 -- Defense in depth: the profiles_update_self policy only re-checks row
 -- ownership, so it would otherwise let a user set is_leader or is_admin on
 -- their own row and bypass every leader-only policy below. This trigger
