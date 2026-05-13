@@ -134,17 +134,8 @@ A `BEFORE UPDATE` trigger on `profiles` prevents privilege escalation: only an e
 npm install
 ```
 
-### 2. Create a Supabase project
 
-1. Go to [supabase.com](https://supabase.com) and create a new project.
-2. In the **SQL editor**, run the single migration:
-   [`supabase/migrations/0001_churchflow_complete.sql`](supabase/migrations/0001_churchflow_complete.sql)
-3. In **Authentication → Providers**, ensure **Email** is enabled.
-   For a small private group, turn **"Confirm email" off** to skip the inbox step.
-4. In **Authentication → URL Configuration**, add `churchflow://reset` as a redirect URL so password-reset deep links open the app.
-5. The `avatars` storage bucket (public, 5 MB, images only) is created by the migration automatically.
-
-### 3. Configure environment
+### 2. Configure environment
 
 ```bash
 cp .env.example .env
@@ -157,7 +148,7 @@ EXPO_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
 EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY=your-anon-key
 ```
 
-### 4. Run
+### 3. Run
 
 ```bash
 npm run ios        # iOS Simulator (Mac only)
@@ -165,17 +156,6 @@ npm run android    # Android emulator
 npm start          # Expo Go on a physical device
 ```
 
-### 5. Bootstrap an admin
-
-After signing in once, find your UID under **Authentication → Users**, then run:
-
-```sql
--- Admin (create groups, run CSV import, manage programs)
-update public.profiles set is_admin = true where id = '<your-uid>';
-
--- Super admin (also allows escalating other users to super admin)
-update public.profiles set is_admin = true, is_super_admin = true where id = '<your-uid>';
-```
 
 ---
 
