@@ -8,6 +8,12 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "backgroundColor": "#FAF6EE",
+    "icon": "./assets/icon.png",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#FAF6EE"
+    },
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.example.classmeeting"
@@ -15,6 +21,7 @@
     "android": {
       "package": "com.example.classmeeting",
       "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#A8232E"
       }
     }

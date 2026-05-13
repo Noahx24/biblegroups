@@ -27,13 +27,14 @@ const RSVP_OPTIONS: { value: RsvpStatus; label: string }[] = [
 ];
 
 export function EventsScreen() {
-  const { session } = useAuth();
+  const { session, isLeader, isAdmin } = useAuth();
   const userId = session?.user.id;
   const [events, setEvents] = useState<GroupEvent[]>([]);
   const [rsvps, setRsvps] = useState<EventRsvp[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
+  const [editing, setEditing] = useState<GroupEvent | null>(null);
 
   const load = useCallback(async () => {
     const [eventsRes, rsvpsRes] = await Promise.all([
@@ -80,6 +81,45 @@ export function EventsScreen() {
     await load();
   };
 
+  const deleteEvent = async (ev: GroupEvent) => {
+    const { error } = await supabase.from('events').delete().eq('id', ev.id);
+    if (error) {
+      Alert.alert('Could not delete', error.message);
+      return;
+    }
+    await load();
+  };
+
+  const openMenu = (ev: GroupEvent) => {
+    // Owner OR leader/admin can edit/delete (RLS enforces server-side too).
+    const canManage = ev.created_by === userId || isLeader || isAdmin;
+    if (!canManage) return;
+    Alert.alert(ev.title, undefined, [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Edit',
+        onPress: () => {
+          setEditing(ev);
+          setModalOpen(true);
+        },
+      },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: () =>
+          Alert.alert('Delete event?', 'This cannot be undone.', [
+            { text: 'Cancel', style: 'cancel' },
+            { text: 'Delete', style: 'destructive', onPress: () => deleteEvent(ev) },
+          ]),
+      },
+    ]);
+  };
+
+  const closeModal = () => {
+    setModalOpen(false);
+    setEditing(null);
+  };
+
   const rsvpsByEvent = useMemo(() => {
     const m: Record<string, EventRsvp[]> = {};
     for (const r of rsvps) (m[r.event_id] ??= []).push(r);
@@ -114,9 +154,22 @@ export function EventsScreen() {
           const eventRsvps = rsvpsByEvent[item.id] ?? [];
           const mine = eventRsvps.find((r) => r.user_id === userId)?.status ?? null;
           const goingCount = eventRsvps.filter((r) => r.status === 'going').length;
+          const canManage = item.created_by === userId || isLeader || isAdmin;
           return (
             <View style={styles.card}>
-              <Text style={styles.title}>{item.title}</Text>
+              <View style={styles.cardHead}>
+                <Text style={styles.title} numberOfLines={2}>{item.title}</Text>
+                {canManage && (
+                  <Pressable
+                    onPress={() => openMenu(item)}
+                    hitSlop={12}
+                    accessibilityLabel="Event actions"
+                    style={({ pressed }) => [styles.menuBtn, pressed && styles.pressed]}
+                  >
+                    <Text style={styles.menuText}>⋯</Text>
+                  </Pressable>
+                )}
+              </View>
               <Text style={styles.when}>
                 {format(new Date(item.starts_at), 'EEE, MMM d • h:mm a')}
               </Text>
@@ -132,6 +185,9 @@ export function EventsScreen() {
                     <Pressable
                       key={opt.value}
                       onPress={() => setRsvp(item.id, opt.value)}
+                      accessibilityRole="button"
+                      accessibilityState={{ selected: active }}
+                      accessibilityLabel={`RSVP ${opt.label}`}
                       style={({ pressed }) => [
                         styles.rsvpBtn,
                         active && styles.rsvpBtnActive,
@@ -153,40 +209,64 @@ export function EventsScreen() {
 
       <Pressable
         style={({ pressed }) => [styles.fab, pressed && styles.pressed]}
-        onPress={() => setModalOpen(true)}
+        accessibilityLabel="Create event"
+        onPress={() => {
+          if (modalOpen) return;
+          setEditing(null);
+          setModalOpen(true);
+        }}
       >
         <Text style={styles.fabText}>+</Text>
       </Pressable>
 
-      <NewEventModal
+      <EventModal
         visible={modalOpen}
-        onClose={() => setModalOpen(false)}
-        onCreated={async () => {
-          setModalOpen(false);
+        onClose={closeModal}
+        onSaved={async () => {
+          closeModal();
           await load();
         }}
         userId={userId ?? ''}
+        editing={editing}
       />
     </SafeAreaView>
   );
 }
 
-function NewEventModal({
+function EventModal({
   visible,
   onClose,
-  onCreated,
+  onSaved,
   userId,
+  editing,
 }: {
   visible: boolean;
   onClose: () => void;
-  onCreated: () => void;
+  onSaved: () => void;
   userId: string;
+  editing: GroupEvent | null;
 }) {
   const [title, setTitle] = useState('');
   const [location, setLocation] = useState('');
   const [description, setDescription] = useState('');
   const [whenISO, setWhenISO] = useState('');
   const [saving, setSaving] = useState(false);
+
+  // When opening for an edit, prefill from the row. Convert the ISO timestamp
+  // back to the YYYY-MM-DD HH:mm format the input expects, in local time.
+  const populate = (ev: GroupEvent | null) => {
+    if (ev) {
+      setTitle(ev.title);
+      setLocation(ev.location ?? '');
+      setDescription(ev.description ?? '');
+      setWhenISO(format(new Date(ev.starts_at), 'yyyy-MM-dd HH:mm'));
+    } else {
+      setTitle('');
+      setLocation('');
+      setDescription('');
+      setWhenISO('');
+    }
+  };
 
   const save = async () => {
     if (!title.trim() || !whenISO) {
@@ -203,38 +283,42 @@ function NewEventModal({
       return;
     }
     setSaving(true);
-    const { error } = await supabase.from('events').insert({
+    const payload = {
       title: title.trim(),
       location: location.trim() || null,
       description: description.trim() || null,
       starts_at: parsed.toISOString(),
-      created_by: userId,
-    });
+    };
+    const { error } = editing
+      ? await supabase.from('events').update(payload).eq('id', editing.id)
+      : await supabase.from('events').insert({ ...payload, created_by: userId });
     setSaving(false);
     if (error) {
       Alert.alert('Error', error.message);
       return;
     }
-    setTitle('');
-    setLocation('');
-    setDescription('');
-    setWhenISO('');
-    onCreated();
+    onSaved();
   };
 
   return (
-    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet">
+    <Modal
+      visible={visible}
+      animationType="slide"
+      presentationStyle="pageSheet"
+      onShow={() => populate(editing)}
+      onRequestClose={onClose}
+    >
       <SafeAreaView style={styles.container}>
         <KeyboardAvoidingView
           style={styles.flex}
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         >
           <View style={styles.modalHeader}>
-            <Pressable onPress={onClose}>
+            <Pressable onPress={onClose} accessibilityRole="button">
               <Text style={styles.headerAction}>Cancel</Text>
             </Pressable>
-            <Text style={styles.headerTitle}>New event</Text>
-            <Pressable onPress={save} disabled={saving}>
+            <Text style={styles.headerTitle}>{editing ? 'Edit event' : 'New event'}</Text>
+            <Pressable onPress={save} disabled={saving} accessibilityRole="button">
               <Text style={[styles.headerAction, styles.save]}>{saving ? '…' : 'Save'}</Text>
             </Pressable>
           </View>
@@ -289,7 +373,10 @@ const styles = StyleSheet.create({
     gap: 4,
     marginBottom: spacing.md,
   },
-  title: { fontSize: 17, fontWeight: '700', color: colors.text },
+  cardHead: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.sm },
+  title: { fontSize: 17, fontWeight: '700', color: colors.text, flex: 1 },
+  menuBtn: { paddingHorizontal: spacing.sm, paddingVertical: 2 },
+  menuText: { fontSize: 22, color: colors.textMuted, lineHeight: 22 },
   when: { fontSize: 14, color: colors.primary, fontWeight: '600' },
   location: { fontSize: 14, color: colors.textMuted },
   description: { fontSize: 14, color: colors.text, marginTop: spacing.xs },

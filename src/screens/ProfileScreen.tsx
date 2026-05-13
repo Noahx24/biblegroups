@@ -13,6 +13,7 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { parse } from 'date-fns';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
 import { colors, radius, spacing } from '@/theme';
@@ -25,6 +26,7 @@ export function ProfileScreen() {
   const [displayName, setDisplayName] = useState('');
   const [favoriteVerse, setFavoriteVerse] = useState('');
   const [favoriteHymn, setFavoriteHymn] = useState('');
+  const [birthday, setBirthday] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -44,7 +46,7 @@ export function ProfileScreen() {
     if (!userId) return;
     supabase
       .from('profiles')
-      .select('display_name, favorite_verse, favorite_hymn')
+      .select('display_name, favorite_verse, favorite_hymn, birthday')
       .eq('id', userId)
       .maybeSingle()
       .then(({ data, error }) => {
@@ -52,6 +54,7 @@ export function ProfileScreen() {
         setDisplayName(data?.display_name ?? '');
         setFavoriteVerse(data?.favorite_verse ?? '');
         setFavoriteHymn(data?.favorite_hymn ?? '');
+        setBirthday(data?.birthday ?? '');
         setLoading(false);
       });
   }, [userId]);
@@ -62,6 +65,18 @@ export function ProfileScreen() {
 
   const save = async () => {
     if (!userId) return;
+    // Validate birthday: accept empty (clears it) or YYYY-MM-DD that parses to
+    // a real calendar date. date-fns parse rejects e.g. 2026-13-99.
+    const trimmedBirthday = birthday.trim();
+    let birthdayValue: string | null = null;
+    if (trimmedBirthday) {
+      const parsed = parse(trimmedBirthday, 'yyyy-MM-dd', new Date());
+      if (Number.isNaN(parsed.getTime())) {
+        Alert.alert('Bad birthday', 'Use format YYYY-MM-DD (e.g. 1990-04-15)');
+        return;
+      }
+      birthdayValue = trimmedBirthday;
+    }
     setSaving(true);
     const { error } = await supabase
       .from('profiles')
@@ -69,6 +84,7 @@ export function ProfileScreen() {
         display_name: displayName.trim() || null,
         favorite_verse: favoriteVerse.trim() || null,
         favorite_hymn: favoriteHymn.trim() || null,
+        birthday: birthdayValue,
       })
       .eq('id', userId);
     setSaving(false);
@@ -130,6 +146,17 @@ export function ProfileScreen() {
             onChangeText={setFavoriteHymn}
             placeholder="e.g. How Great Thou Art"
             placeholderTextColor={colors.textMuted}
+            style={styles.input}
+          />
+
+          <Text style={styles.label}>Birthday</Text>
+          <TextInput
+            value={birthday}
+            onChangeText={setBirthday}
+            placeholder="YYYY-MM-DD"
+            placeholderTextColor={colors.textMuted}
+            autoCapitalize="none"
+            keyboardType="numbers-and-punctuation"
             style={styles.input}
           />
 
