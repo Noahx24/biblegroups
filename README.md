@@ -1,6 +1,6 @@
 # Class Meeting
 
-A mobile app for a Methodist Church of Southern Africa class meeting. Built with **Expo (React Native)** + **TypeScript** + **Supabase**. Runs on iOS and Android from one codebase.
+A mobile app for a Methodist Church of Southern Africa (Bryanston Methodist Church Society) class meeting. Built with **Expo (React Native)** + **TypeScript** + **Supabase**. Runs on iOS and Android from one codebase.
 
 ## Features
 
