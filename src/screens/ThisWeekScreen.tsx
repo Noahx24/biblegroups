@@ -50,9 +50,10 @@ export function ThisWeekScreen() {
 
   const currentWeek = weekStart();
   const upcomingWeek = nextWeekStart();
-
-  // Next week's Sunday
-  const nextWeekSunday = upcomingWeek;
+  // Upper bound for the next-week query so we don't accidentally surface a
+  // later scheduled date when next week has no entry yet.
+  const [uy, um, ud] = upcomingWeek.split('-').map(Number);
+  const weekAfterNext = format(addDays(new Date(uy, um - 1, ud), 7), 'yyyy-MM-dd');
 
   const leadingThisWeek = !!userId && leader?.leader_id === userId;
 
@@ -69,6 +70,7 @@ export function ThisWeekScreen() {
         .from('schedule')
         .select('week_start, leader_id, notes, leader:profiles(id, display_name, avatar_url)')
         .gte('week_start', upcomingWeek)
+        .lt('week_start', weekAfterNext)
         .order('week_start', { ascending: true })
         .limit(1),
     ]);
@@ -305,7 +307,7 @@ export function ThisWeekScreen() {
         {isLeader && (
           <View style={styles.card}>
             <Text style={styles.cardLabel}>
-              Next Week · {formatWeek(nextWeekSunday)}
+              Next Week · {formatWeek(upcomingWeek)}
             </Text>
             {nextLeader?.leader_id ? (
               <View style={styles.leaderRow}>
@@ -318,7 +320,7 @@ export function ThisWeekScreen() {
                   {nextLeader.leader?.display_name ?? 'Unknown'}
                 </Text>
               </View>
-            ) : (
+            ) : nextLeader ? (
               <>
                 <Text style={styles.noLeaderTitle}>No leader assigned</Text>
                 <Text style={styles.muted}>The slot is still open.</Text>
@@ -327,9 +329,16 @@ export function ThisWeekScreen() {
                     if (!userId) return;
                     setClaiming(true);
                     try {
-                      await supabase
+                      const { data, error } = await supabase
                         .from('schedule')
-                        .upsert({ week_start: nextWeekSunday, leader_id: userId }, { onConflict: 'week_start' });
+                        .update({ leader_id: userId })
+                        .eq('week_start', nextLeader.week_start)
+                        .is('leader_id', null)
+                        .select();
+                      if (error) throw error;
+                      if (!data || data.length === 0) {
+                        throw new Error('Someone else just claimed this slot.');
+                      }
                       await load();
                     } catch (e) {
                       Alert.alert('Error', e instanceof Error ? e.message : String(e));
@@ -342,6 +351,13 @@ export function ThisWeekScreen() {
                 >
                   <Text style={styles.primaryBtnText}>I'll lead next week</Text>
                 </Pressable>
+              </>
+            ) : (
+              <>
+                <Text style={styles.noLeaderTitle}>No date scheduled yet</Text>
+                <Text style={styles.hint}>
+                  Open the Schedule tab to add next week's meeting date.
+                </Text>
               </>
             )}
           </View>
