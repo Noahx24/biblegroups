@@ -15,10 +15,11 @@ import { supabase } from '@/lib/supabase';
 import { fetchVerse } from '@/lib/bible';
 import { formatWeek, nextWeekStart, weekStart } from '@/lib/week';
 import { useAuth } from '@/hooks/useAuth';
+import { colors, radius, spacing } from '@/theme';
 import type { ScheduleEntry, WeeklyVerse } from '@/types';
 
 export function ThisWeekScreen() {
-  const { session } = useAuth();
+  const { session, isLeader } = useAuth();
   const userId = session?.user.id;
   const [verse, setVerse] = useState<WeeklyVerse | null>(null);
   const [leader, setLeader] = useState<ScheduleEntry | null>(null);
@@ -26,15 +27,13 @@ export function ThisWeekScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [reference, setReference] = useState('');
   const [saving, setSaving] = useState(false);
+  const [claiming, setClaiming] = useState(false);
 
   const currentWeek = weekStart();
   const upcomingWeek = nextWeekStart();
   const leadingThisWeek = !!userId && leader?.leader_id === userId;
 
   const load = useCallback(async () => {
-    // Find the schedule entry for any day inside this Sun-Sat window.
-    // Leaders may add meeting dates that aren't Sundays, so an exact equality
-    // on week_start would miss them.
     const scheduleRes = await supabase
       .from('schedule')
       .select('week_start, leader_id, notes, leader:profiles(id, display_name, avatar_url)')
@@ -48,8 +47,6 @@ export function ThisWeekScreen() {
     const scheduleEntry = (scheduleRes.data?.[0] as ScheduleEntry | undefined) ?? null;
     setLeader(scheduleEntry);
 
-    // Verses are keyed to a schedule entry's week_start (per RLS), so use the
-    // matched date when one exists; otherwise fall back to the Sunday key.
     const verseDate = scheduleEntry?.week_start ?? currentWeek;
     const verseRes = await supabase
       .from('weekly_verses')
@@ -72,6 +69,42 @@ export function ThisWeekScreen() {
     setRefreshing(false);
   };
 
+  // Combined "set me as leader for this week" flow. If there's no schedule
+  // entry yet, insert one keyed to currentWeek (Sunday). If there's one with
+  // no leader, claim it. RLS lets is_leader users insert; lets anyone claim
+  // an open slot.
+  const leadThisWeek = async () => {
+    if (!userId) return;
+    setClaiming(true);
+    try {
+      if (!leader) {
+        const { error } = await supabase
+          .from('schedule')
+          .insert({ week_start: currentWeek, leader_id: userId });
+        if (error) throw error;
+      } else if (!leader.leader_id) {
+        // Filter on leader_id IS NULL so we never overwrite another leader's
+        // claim. The schedule_update_leader RLS policy would otherwise let
+        // any leader silently steal a week from a peer who claimed it first.
+        const { data, error } = await supabase
+          .from('schedule')
+          .update({ leader_id: userId })
+          .eq('week_start', leader.week_start)
+          .is('leader_id', null)
+          .select();
+        if (error) throw error;
+        if (!data || data.length === 0) {
+          throw new Error('Someone else just claimed this slot.');
+        }
+      }
+      await load();
+    } catch (e) {
+      Alert.alert("Couldn't take this week", e instanceof Error ? e.message : String(e));
+    } finally {
+      setClaiming(false);
+    }
+  };
+
   const saveVerse = async () => {
     if (!reference.trim() || !session?.user || !leader) return;
     setSaving(true);
@@ -79,8 +112,6 @@ export function ThisWeekScreen() {
       const fetched = await fetchVerse(reference);
       const { error } = await supabase.from('weekly_verses').upsert(
         {
-          // Use the schedule entry's date so the row matches the leader's
-          // schedule slot exactly (required by the RLS write policy).
           week_start: leader.week_start,
           reference: fetched.reference,
           text: fetched.text,
@@ -102,16 +133,24 @@ export function ThisWeekScreen() {
   if (loading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator />
+        <ActivityIndicator color={colors.primary} />
       </View>
     );
   }
+
+  const showLeadButton = isLeader && (!leader || !leader.leader_id) && !leadingThisWeek;
 
   return (
     <SafeAreaView style={styles.container} edges={['left', 'right']}>
       <ScrollView
         contentContainerStyle={styles.content}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={colors.primary}
+          />
+        }
       >
         <Text style={styles.weekLabel}>Week of {formatWeek(currentWeek)}</Text>
 
@@ -133,6 +172,7 @@ export function ThisWeekScreen() {
                 value={reference}
                 onChangeText={setReference}
                 placeholder="e.g. John 3:16-18"
+                placeholderTextColor={colors.textMuted}
                 autoCapitalize="words"
                 style={styles.input}
               />
@@ -157,6 +197,29 @@ export function ThisWeekScreen() {
             {leader?.leader?.display_name ?? 'Not assigned yet'}
           </Text>
           {leader?.notes ? <Text style={styles.muted}>{leader.notes}</Text> : null}
+
+          {showLeadButton && (
+            <Pressable
+              onPress={leadThisWeek}
+              disabled={claiming}
+              style={({ pressed }) => [
+                styles.primary,
+                styles.leadBtn,
+                claiming && styles.disabled,
+                pressed && styles.pressed,
+              ]}
+            >
+              <Text style={styles.primaryText}>
+                {claiming ? 'Taking…' : "I'll lead this week"}
+              </Text>
+            </Pressable>
+          )}
+
+          {!isLeader && !leader?.leader_id && (
+            <Text style={styles.hint}>
+              A leader needs to take this week before the verse can be set.
+            </Text>
+          )}
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -164,38 +227,52 @@ export function ThisWeekScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f6f7f9' },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  content: { padding: 16, gap: 12 },
-  weekLabel: { fontSize: 14, color: '#666', textAlign: 'center', marginBottom: 4 },
+  container: { flex: 1, backgroundColor: colors.background },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.background },
+  content: { padding: spacing.lg, gap: spacing.md },
+  weekLabel: { fontSize: 14, color: colors.textMuted, textAlign: 'center', marginBottom: spacing.xs },
   card: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 16,
-    gap: 8,
+    backgroundColor: colors.surface,
+    borderRadius: radius.lg,
+    padding: spacing.lg,
+    gap: spacing.sm,
     shadowColor: '#000',
-    shadowOpacity: 0.05,
+    shadowOpacity: 0.04,
     shadowRadius: 6,
     shadowOffset: { width: 0, height: 2 },
     elevation: 1,
   },
-  cardTitle: { fontSize: 13, fontWeight: '600', color: '#888', textTransform: 'uppercase' },
-  verseRef: { fontSize: 18, fontWeight: '700' },
-  verseText: { fontSize: 16, lineHeight: 24 },
-  translation: { fontSize: 12, color: '#888', marginTop: 4 },
-  muted: { color: '#888' },
-  leaderName: { fontSize: 18, fontWeight: '600' },
-  editor: { gap: 8, marginTop: 8 },
+  cardTitle: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: colors.textMuted,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  verseRef: { fontSize: 18, fontWeight: '700', color: colors.primary },
+  verseText: { fontSize: 16, lineHeight: 24, color: colors.text },
+  translation: { fontSize: 12, color: colors.textMuted, marginTop: spacing.xs },
+  muted: { color: colors.textMuted },
+  leaderName: { fontSize: 18, fontWeight: '600', color: colors.text },
+  hint: { fontSize: 13, color: colors.textMuted, marginTop: spacing.xs, fontStyle: 'italic' },
+  editor: { gap: spacing.sm, marginTop: spacing.sm },
   input: {
     borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
-    padding: 12,
+    borderColor: colors.border,
+    borderRadius: radius.md,
+    padding: spacing.md,
     fontSize: 16,
-    backgroundColor: '#fafafa',
+    backgroundColor: colors.background,
+    color: colors.text,
   },
-  primary: { backgroundColor: '#2c6cf5', borderRadius: 8, padding: 12, alignItems: 'center' },
+  primary: {
+    backgroundColor: colors.primary,
+    borderRadius: radius.md,
+    padding: spacing.md,
+    alignItems: 'center',
+  },
+  leadBtn: { marginTop: spacing.sm },
   primaryText: { color: '#fff', fontWeight: '600' },
   disabled: { opacity: 0.5 },
-  pressed: { opacity: 0.8 },
+  pressed: { opacity: 0.85 },
 });

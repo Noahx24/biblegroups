@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '@/hooks/useAuth';
+import { colors, radius, spacing } from '@/theme';
 
 type Mode = 'signIn' | 'signUp' | 'reset';
 
@@ -75,9 +76,12 @@ export function SignInScreen() {
           contentContainerStyle={styles.inner}
           keyboardShouldPersistTaps="handled"
         >
-          <Text style={styles.title}>BibleGroups</Text>
+          <View style={styles.brand}>
+            <Text style={styles.title}>Class Meeting</Text>
+            <Text style={styles.tagline}>Methodist Church of Southern Africa</Text>
+          </View>
           <Text style={styles.subtitle}>
-            {mode === 'signIn' && 'Sign in to join your small group.'}
+            {mode === 'signIn' && 'Sign in to your class.'}
             {mode === 'signUp' && 'Create an account to get started.'}
             {mode === 'reset' && 'Enter your email to reset your password.'}
           </Text>
@@ -89,6 +93,7 @@ export function SignInScreen() {
                 value={displayName}
                 onChangeText={setDisplayName}
                 placeholder="Your name"
+                placeholderTextColor={colors.textMuted}
                 autoCapitalize="words"
                 autoCorrect={false}
                 style={styles.input}
@@ -101,6 +106,7 @@ export function SignInScreen() {
             value={email}
             onChangeText={setEmail}
             placeholder="you@example.com"
+            placeholderTextColor={colors.textMuted}
             keyboardType="email-address"
             autoCapitalize="none"
             autoCorrect={false}
@@ -114,6 +120,7 @@ export function SignInScreen() {
                 value={password}
                 onChangeText={setPassword}
                 placeholder={mode === 'signUp' ? 'At least 6 characters' : '••••••••'}
+                placeholderTextColor={colors.textMuted}
                 secureTextEntry
                 style={styles.input}
               />
@@ -158,29 +165,32 @@ export function SignInScreen() {
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
-  container: { flex: 1, backgroundColor: '#fff' },
-  inner: { paddingHorizontal: 24, paddingVertical: 48, gap: 10 },
-  title: { fontSize: 32, fontWeight: '700', textAlign: 'center', marginBottom: 4 },
-  subtitle: { fontSize: 15, textAlign: 'center', color: '#555', marginBottom: 16 },
-  label: { fontSize: 13, color: '#666', fontWeight: '600', textTransform: 'uppercase' },
+  container: { flex: 1, backgroundColor: colors.background },
+  inner: { paddingHorizontal: spacing.xl, paddingVertical: spacing.xxl, gap: spacing.sm + 2 },
+  brand: { alignItems: 'center', marginBottom: spacing.md, gap: spacing.xs },
+  title: { fontSize: 34, fontWeight: '800', textAlign: 'center', color: colors.primary, letterSpacing: 0.5 },
+  tagline: { fontSize: 12, color: colors.accentDark, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 1 },
+  subtitle: { fontSize: 15, textAlign: 'center', color: colors.textMuted, marginBottom: spacing.lg },
+  label: { fontSize: 12, color: colors.textMuted, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5 },
   input: {
     borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
-    padding: 12,
+    borderColor: colors.border,
+    borderRadius: radius.md,
+    padding: spacing.md,
     fontSize: 16,
-    backgroundColor: '#fafafa',
+    backgroundColor: colors.surface,
+    color: colors.text,
   },
   primary: {
-    backgroundColor: '#2c6cf5',
-    borderRadius: 8,
-    paddingVertical: 14,
+    backgroundColor: colors.primary,
+    borderRadius: radius.md,
+    paddingVertical: spacing.md + 2,
     alignItems: 'center',
-    marginTop: 6,
+    marginTop: spacing.sm,
   },
-  primaryText: { color: '#fff', fontWeight: '600', fontSize: 16 },
+  primaryText: { color: '#fff', fontWeight: '700', fontSize: 16 },
   disabled: { opacity: 0.6 },
-  pressed: { opacity: 0.8 },
-  links: { gap: 12, alignItems: 'center', marginTop: 8 },
-  link: { color: '#2c6cf5', fontSize: 14 },
+  pressed: { opacity: 0.85 },
+  links: { gap: spacing.md, alignItems: 'center', marginTop: spacing.md },
+  link: { color: colors.primary, fontSize: 14, fontWeight: '500' },
 });
