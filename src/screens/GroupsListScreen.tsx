@@ -52,7 +52,8 @@ export function GroupsListScreen() {
   const [allGroups, setAllGroups] = useState<GroupWithLeaders[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
-  const [newName, setNewName] = useState('');
+  const [newClassNumber, setNewClassNumber] = useState('');
+  const [newVolunteerName, setNewVolunteerName] = useState('');
   const [newType, setNewType] = useState<'class' | 'volunteer'>('class');
   const [newDesc, setNewDesc] = useState('');
   const [newMeetingTime, setNewMeetingTime] = useState('');
@@ -106,14 +107,26 @@ export function GroupsListScreen() {
   };
 
   const createGroup = async () => {
-    if (!newName.trim()) return;
+    if (newType === 'class') {
+      const n = parseInt(newClassNumber.trim(), 10);
+      if (!newClassNumber.trim() || isNaN(n) || n <= 0) {
+        setError('Enter a valid class number (e.g. 38)');
+        return;
+      }
+    } else {
+      if (!newVolunteerName.trim()) return;
+    }
     setSaving(true);
     setError(null);
+
+    const groupName = newType === 'class'
+      ? `Class ${parseInt(newClassNumber.trim(), 10)}`
+      : newVolunteerName.trim();
 
     const { data: grp, error: grpErr } = await supabase
       .from('groups')
       .insert({
-        name: newName.trim(),
+        name: groupName,
         type: newType,
         description: newDesc.trim() || null,
         meeting_time: newMeetingTime.trim() || null,
@@ -123,7 +136,11 @@ export function GroupsListScreen() {
       .single();
 
     if (grpErr || !grp) {
-      setError(grpErr?.message ?? 'Failed to create group');
+      setError(
+        grpErr?.message?.includes('duplicate') || grpErr?.message?.includes('unique')
+          ? `${groupName} already exists`
+          : (grpErr?.message ?? 'Failed to create group')
+      );
       setSaving(false);
       return;
     }
@@ -131,7 +148,7 @@ export function GroupsListScreen() {
     await supabase.from('group_members').insert({ group_id: grp.id, user_id: userId, role: 'leader' });
     setSaving(false);
     setShowCreate(false);
-    setNewName(''); setNewType('class'); setNewDesc(''); setNewMeetingTime('');
+    setNewClassNumber(''); setNewVolunteerName(''); setNewType('class'); setNewDesc(''); setNewMeetingTime('');
     load();
   };
 
@@ -236,7 +253,11 @@ export function GroupsListScreen() {
         <SafeAreaView style={styles.modalSafe}>
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>New Group</Text>
-            <TouchableOpacity onPress={() => setShowCreate(false)}>
+            <TouchableOpacity onPress={() => {
+              setShowCreate(false);
+              setNewClassNumber(''); setNewVolunteerName(''); setNewType('class');
+              setNewDesc(''); setNewMeetingTime(''); setError(null);
+            }}>
               <Ionicons name="close" size={24} color={colors.text} />
             </TouchableOpacity>
           </View>
@@ -244,21 +265,42 @@ export function GroupsListScreen() {
           <View style={styles.modalBody}>
             {!!error && <Text style={styles.errorText}>{error}</Text>}
 
-            <Text style={styles.fieldLabel}>Group name *</Text>
-            <TextInput style={styles.textInput} value={newName} onChangeText={setNewName}
-              placeholder="e.g. Tuesday Morning Class" placeholderTextColor={colors.textMuted} />
-
             <Text style={styles.fieldLabel}>Type</Text>
             <View style={styles.typeRow}>
               {(['class', 'volunteer'] as const).map(t => (
                 <Pressable key={t} style={[styles.typeOption, newType === t && styles.typeOptionActive]}
-                  onPress={() => setNewType(t)}>
+                  onPress={() => { setNewType(t); setError(null); }}>
                   <Text style={[styles.typeOptionText, newType === t && styles.typeOptionTextActive]}>
                     {t === 'class' ? 'Class Group' : 'Volunteer Group'}
                   </Text>
                 </Pressable>
               ))}
             </View>
+
+            {newType === 'class' ? (
+              <>
+                <Text style={styles.fieldLabel}>Class number *</Text>
+                <View style={styles.classNumberRow}>
+                  <View style={styles.classPrefix}>
+                    <Text style={styles.classPrefixText}>Class</Text>
+                  </View>
+                  <TextInput
+                    style={[styles.textInput, styles.classNumberInput]}
+                    value={newClassNumber}
+                    onChangeText={v => { setNewClassNumber(v.replace(/[^0-9]/g, '')); setError(null); }}
+                    placeholder="38"
+                    placeholderTextColor={colors.textMuted}
+                    keyboardType="number-pad"
+                  />
+                </View>
+              </>
+            ) : (
+              <>
+                <Text style={styles.fieldLabel}>Group name *</Text>
+                <TextInput style={styles.textInput} value={newVolunteerName} onChangeText={setNewVolunteerName}
+                  placeholder="e.g. Hospitality Team" placeholderTextColor={colors.textMuted} />
+              </>
+            )}
 
             <Text style={styles.fieldLabel}>Description</Text>
             <TextInput style={[styles.textInput, styles.textArea]} value={newDesc} onChangeText={setNewDesc}
@@ -269,8 +311,9 @@ export function GroupsListScreen() {
               placeholder="e.g. Sundays at 9 AM" placeholderTextColor={colors.textMuted} />
 
             <TouchableOpacity
-              style={[styles.createBtn, (!newName.trim() || saving) && styles.createBtnDisabled]}
-              onPress={createGroup} disabled={!newName.trim() || saving}>
+              style={[styles.createBtn, (saving || (newType === 'class' ? !newClassNumber.trim() : !newVolunteerName.trim())) && styles.createBtnDisabled]}
+              onPress={createGroup}
+              disabled={saving || (newType === 'class' ? !newClassNumber.trim() : !newVolunteerName.trim())}>
               {saving ? <ActivityIndicator color={colors.surface} size="small" /> :
                 <Text style={styles.createBtnText}>Create Group</Text>}
             </TouchableOpacity>
@@ -316,6 +359,10 @@ const styles = StyleSheet.create({
   textInput: { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: radius.md, paddingHorizontal: spacing.md, paddingVertical: Platform.OS === 'ios' ? spacing.md : spacing.sm, fontSize: 15, color: colors.text },
   textArea: { minHeight: 80, textAlignVertical: 'top' },
   typeRow: { flexDirection: 'row', gap: spacing.sm },
+  classNumberRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  classPrefix: { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: radius.md, paddingHorizontal: spacing.md, paddingVertical: Platform.OS === 'ios' ? spacing.md : spacing.sm, justifyContent: 'center' },
+  classPrefixText: { fontSize: 15, color: colors.textSoft, fontWeight: '600' },
+  classNumberInput: { flex: 1 },
   typeOption: { flex: 1, paddingVertical: spacing.sm, borderRadius: radius.md, borderWidth: 1, borderColor: colors.border, alignItems: 'center', backgroundColor: colors.surface },
   typeOptionActive: { borderColor: colors.primary, backgroundColor: colors.primaryLight },
   typeOptionText: { fontSize: 13, fontWeight: '600', color: colors.textMuted },

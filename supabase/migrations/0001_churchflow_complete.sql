@@ -167,7 +167,8 @@ create table public.groups (
   description  text,
   meeting_time text,
   created_by   uuid references public.profiles(id) on delete set null,
-  created_at   timestamptz not null default now()
+  created_at   timestamptz not null default now(),
+  unique (name)
 );
 
 alter table public.groups enable row level security;
