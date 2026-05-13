@@ -2,6 +2,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import { useAuth } from '@/hooks/useAuth';
 import { SignInScreen } from '@/screens/SignInScreen';
+import { PasswordResetScreen } from '@/screens/PasswordResetScreen';
 import { ThisWeekScreen } from '@/screens/ThisWeekScreen';
 import { EventsScreen } from '@/screens/EventsScreen';
 import { ScheduleScreen } from '@/screens/ScheduleScreen';
@@ -29,7 +30,7 @@ function TabIcon({ name, focused }: { name: string; focused: boolean }) {
 }
 
 export function RootNavigator() {
-  const { session, loading } = useAuth();
+  const { session, loading, recoveryMode } = useAuth();
 
   if (loading) {
     return (
@@ -37,6 +38,12 @@ export function RootNavigator() {
         <ActivityIndicator color={colors.primary} />
       </View>
     );
+  }
+
+  // Recovery takes precedence over a normal session: the user clicked a
+  // password-reset link and MUST set a new password before doing anything else.
+  if (recoveryMode) {
+    return <PasswordResetScreen />;
   }
 
   if (!session) {

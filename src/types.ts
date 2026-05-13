@@ -4,6 +4,7 @@ export type Profile = {
   avatar_url: string | null;
   favorite_verse: string | null;
   favorite_hymn: string | null;
+  birthday: string | null;
   is_leader: boolean;
   is_admin: boolean;
 };
