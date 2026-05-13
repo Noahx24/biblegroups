@@ -77,11 +77,11 @@ export function SignInScreen() {
           keyboardShouldPersistTaps="handled"
         >
           <View style={styles.brand}>
-            <Text style={styles.title}>Class Meeting</Text>
-            <Text style={styles.tagline}>Methodist Church of Southern Africa</Text>
+            <Text style={styles.title}>ChurchFlow</Text>
+            <Text style={styles.tagline}>Church Community Platform</Text>
           </View>
           <Text style={styles.subtitle}>
-            {mode === 'signIn' && 'Sign in to your class.'}
+            {mode === 'signIn' && 'Sign in to your community.'}
             {mode === 'signUp' && 'Create an account to get started.'}
             {mode === 'reset' && 'Enter your email to reset your password.'}
           </Text>

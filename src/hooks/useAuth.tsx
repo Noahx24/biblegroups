@@ -6,11 +6,8 @@ import { supabase } from '@/lib/supabase';
 type AuthContextValue = {
   session: Session | null;
   loading: boolean;
-  isLeader: boolean;
   isAdmin: boolean;
-  // True while the user is inside the password-recovery flow (just clicked
-  // a reset link). RootNavigator renders PasswordResetScreen in this state
-  // so the user MUST set a new password before doing anything else.
+  isSuperAdmin: boolean;
   recoveryMode: boolean;
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string, displayName?: string) => Promise<void>;
@@ -22,7 +19,7 @@ type AuthContextValue = {
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
-// Parses a deep link of the form `classmeeting://reset#access_token=...&
+// Parses a deep link of the form `churchflow://reset#access_token=...&
 // refresh_token=...&type=recovery`. Returns null if the URL is not a recovery
 // callback so we don't treat normal app launches as resets.
 function parseRecoveryUrl(url: string | null): {
@@ -44,8 +41,8 @@ function parseRecoveryUrl(url: string | null): {
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
-  const [isLeader, setIsLeader] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const [recoveryMode, setRecoveryMode] = useState(false);
 
   useEffect(() => {
@@ -68,14 +65,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (!mounted) return;
       setSession(s);
       setLoading(false);
-      // supabase-js fires PASSWORD_RECOVERY when the recovery URL is processed
-      // by detectSessionInUrl. We have that disabled, so we mirror the same
-      // signal here in case any future code path triggers it.
       if (event === 'PASSWORD_RECOVERY') setRecoveryMode(true);
     });
 
-    // Deep-link handler: catch the recovery callback both at cold-start and
-    // at runtime, exchange the tokens for a session, and flip recoveryMode on.
     const handleUrl = async (url: string | null) => {
       const tokens = parseRecoveryUrl(url);
       if (!tokens) return;
@@ -100,36 +92,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const userId = session?.user?.id;
     if (!userId) {
-      setIsLeader(false);
       setIsAdmin(false);
+      setIsSuperAdmin(false);
       return;
     }
 
     let cancelled = false;
 
-    const loadRoles = async () => {
+    const loadProfile = async () => {
       const { data, error } = await supabase
         .from('profiles')
-        .select('is_leader, is_admin')
+        .select('is_admin, is_super_admin')
         .eq('id', userId)
         .maybeSingle();
       if (cancelled) return;
       if (error) console.warn('profile load failed', error);
-      setIsLeader(Boolean(data?.is_leader));
-      setIsAdmin(Boolean(data?.is_admin));
+      const superAdmin = Boolean(data?.is_super_admin);
+      setIsSuperAdmin(superAdmin);
+      // super admin inherits all admin privileges
+      setIsAdmin(Boolean(data?.is_admin) || superAdmin);
     };
 
-    loadRoles();
+    loadProfile();
 
-    // Subscribe to changes on this user's own profile row so an admin's
-    // is_leader / is_admin toggle propagates without requiring a sign-out.
-    // Realtime publication on `profiles` is enabled by migration 0004.
     const channel = supabase
       .channel(`auth-profile:${userId}`)
       .on(
         'postgres_changes',
         { event: 'UPDATE', schema: 'public', table: 'profiles', filter: `id=eq.${userId}` },
-        () => loadRoles(),
+        () => loadProfile(),
       )
       .subscribe();
 
@@ -153,18 +144,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         : undefined,
     });
     if (error) throw error;
-    // supabase-js returns 200 with an empty identities array when the email
-    // is already registered (anti-enumeration). Surface that to the caller
-    // rather than telling the user to check an email that will never arrive.
     if (data.user && data.user.identities && data.user.identities.length === 0) {
       throw new Error('An account with that email already exists. Try signing in instead.');
     }
   };
 
   const requestPasswordReset = async (email: string) => {
-    // createURL produces the right scheme for both Expo Go (exp://...) and
-    // standalone builds (classmeeting://reset). Supabase will append the
-    // tokens to this URL on click and the OS will route it to our app.
     const redirectTo = Linking.createURL('reset');
     const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo });
     if (error) throw error;
@@ -177,8 +162,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const exitRecovery = async () => {
-    setRecoveryMode(false);
-    await supabase.auth.signOut();
+    const { error } = await supabase.auth.signOut();
+    if (!error) setRecoveryMode(false);
   };
 
   const signOut = async () => {
@@ -191,8 +176,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       value={{
         session,
         loading,
-        isLeader,
         isAdmin,
+        isSuperAdmin,
         recoveryMode,
         signIn,
         signUp,

@@ -17,11 +17,11 @@ import { supabase } from '@/lib/supabase';
 import { fetchVerse } from '@/lib/bible';
 import { formatWeek, nextWeekStart, weekStart } from '@/lib/week';
 import { useAuth } from '@/hooks/useAuth';
+import { useGroup } from '@/context/GroupContext';
 import { useRealtime } from '@/hooks/useRealtime';
 import { colors, fonts, radius, shadow, spacing } from '@/theme';
-import type { ScheduleEntry, WeeklyVerse } from '@/types';
+import type { ScheduleSlot, WeeklyVerse } from '@/types';
 
-// Build Mon–Fri dates for the current week (week starts Sunday).
 function getWeekReadingDays(sundayISO: string) {
   const [y, m, d] = sundayISO.split('-').map(Number);
   const sunday = new Date(y, m - 1, d);
@@ -37,65 +37,68 @@ function getWeekReadingDays(sundayISO: string) {
 }
 
 export function ThisWeekScreen() {
-  const { session, isLeader } = useAuth();
+  const { session } = useAuth();
+  const { group, myRole } = useGroup();
   const userId = session?.user.id;
+  const isLeader = myRole === 'leader';
+
   const [verse, setVerse] = useState<WeeklyVerse | null>(null);
-  const [leader, setLeader] = useState<ScheduleEntry | null>(null);
-  const [nextLeader, setNextLeader] = useState<ScheduleEntry | null>(null);
+  const [slot, setSlot] = useState<ScheduleSlot | null>(null);
+  const [nextSlot, setNextSlot] = useState<ScheduleSlot | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [reference, setReference] = useState('');
+  const [translation, setTranslation] = useState<string>('web');
   const [saving, setSaving] = useState(false);
   const [claiming, setClaiming] = useState(false);
 
   const currentWeek = weekStart();
   const upcomingWeek = nextWeekStart();
-  // Upper bound for the next-week query so we don't accidentally surface a
-  // later scheduled date when next week has no entry yet.
   const [uy, um, ud] = upcomingWeek.split('-').map(Number);
   const weekAfterNext = format(addDays(new Date(uy, um - 1, ud), 7), 'yyyy-MM-dd');
 
-  const leadingThisWeek = !!userId && leader?.leader_id === userId;
+  const leadingThisWeek = !!userId && slot?.assignee_id === userId;
 
   const load = useCallback(async () => {
     const [scheduleRes, nextRes] = await Promise.all([
       supabase
         .from('schedule')
-        .select('week_start, leader_id, notes, leader:profiles(id, display_name, avatar_url)')
-        .gte('week_start', currentWeek)
-        .lt('week_start', upcomingWeek)
-        .order('week_start', { ascending: true })
+        .select('*, assignee:profiles(id, display_name, avatar_url)')
+        .eq('group_id', group.id)
+        .gte('slot_date', currentWeek)
+        .lt('slot_date', upcomingWeek)
+        .order('slot_date', { ascending: true })
         .limit(1),
       supabase
         .from('schedule')
-        .select('week_start, leader_id, notes, leader:profiles(id, display_name, avatar_url)')
-        .gte('week_start', upcomingWeek)
-        .lt('week_start', weekAfterNext)
-        .order('week_start', { ascending: true })
+        .select('*, assignee:profiles(id, display_name, avatar_url)')
+        .eq('group_id', group.id)
+        .gte('slot_date', upcomingWeek)
+        .lt('slot_date', weekAfterNext)
+        .order('slot_date', { ascending: true })
         .limit(1),
     ]);
 
-    const scheduleEntry = (scheduleRes.data?.[0] as ScheduleEntry | undefined) ?? null;
-    setLeader(scheduleEntry);
-    setNextLeader((nextRes.data?.[0] as ScheduleEntry | undefined) ?? null);
+    const currentSlot = (scheduleRes.data?.[0] as ScheduleSlot | undefined) ?? null;
+    setSlot(currentSlot);
+    setNextSlot((nextRes.data?.[0] as ScheduleSlot | undefined) ?? null);
 
-    const verseDate = scheduleEntry?.week_start ?? currentWeek;
+    const verseDate = currentSlot?.slot_date ?? currentWeek;
     const verseRes = await supabase
       .from('weekly_verses')
       .select('*')
+      .eq('group_id', group.id)
       .eq('week_start', verseDate)
       .maybeSingle();
     setVerse((verseRes.data as WeeklyVerse | null) ?? null);
-  }, [currentWeek, upcomingWeek]);
+  }, [group.id, currentWeek, upcomingWeek, weekAfterNext]);
 
   useEffect(() => {
     load().finally(() => setLoading(false));
   }, [load]);
 
   useFocusEffect(
-    useCallback(() => {
-      load();
-    }, [load]),
+    useCallback(() => { load(); }, [load]),
   );
 
   useRealtime('schedule', load);
@@ -107,23 +110,15 @@ export function ThisWeekScreen() {
     setRefreshing(false);
   };
 
-  // Claim an existing open schedule entry for this week. We deliberately do
-  // NOT auto-insert a new schedule row keyed to Sunday: meeting dates are
-  // arbitrary (a class may meet Wednesday), so blindly creating a Sunday
-  // slot from this screen guesses wrong half the time. If no entry exists,
-  // the leader is directed to the Schedule tab to pick the actual date.
-  const claimThisWeek = async () => {
-    if (!userId || !leader) return;
+  const claimSlot = async (targetSlot: ScheduleSlot) => {
+    if (!userId) return;
     setClaiming(true);
     try {
-      // Filter on leader_id IS NULL so we never overwrite another leader's
-      // claim. The schedule_update_leader RLS policy would otherwise let
-      // any leader silently steal a week from a peer who claimed it first.
       const { data, error } = await supabase
         .from('schedule')
-        .update({ leader_id: userId })
-        .eq('week_start', leader.week_start)
-        .is('leader_id', null)
+        .update({ assignee_id: userId, status: 'accepted' })
+        .eq('id', targetSlot.id)
+        .is('assignee_id', null)
         .select();
       if (error) throw error;
       if (!data || data.length === 0) {
@@ -131,26 +126,27 @@ export function ThisWeekScreen() {
       }
       await load();
     } catch (e) {
-      Alert.alert("Couldn't take this week", e instanceof Error ? e.message : String(e));
+      Alert.alert("Couldn't claim slot", e instanceof Error ? e.message : String(e));
     } finally {
       setClaiming(false);
     }
   };
 
   const saveVerse = async () => {
-    if (!reference.trim() || !session?.user || !leader) return;
+    if (!reference.trim() || !session?.user || !slot) return;
     setSaving(true);
     try {
-      const fetched = await fetchVerse(reference);
+      const fetched = await fetchVerse(reference, translation);
       const { error } = await supabase.from('weekly_verses').upsert(
         {
-          week_start: leader.week_start,
+          group_id: group.id,
+          week_start: slot.slot_date,
           reference: fetched.reference,
           text: fetched.text,
           translation: fetched.translation,
           created_by: session.user.id,
         },
-        { onConflict: 'week_start' },
+        { onConflict: 'group_id,week_start' },
       );
       if (error) throw error;
       setReference('');
@@ -170,12 +166,9 @@ export function ThisWeekScreen() {
     );
   }
 
-  // Only offer the claim button when an open schedule entry already exists
-  // for this week. If none exists, the leader needs to add one via the
-  // Schedule tab — we don't guess the meeting date for them.
-  const showClaimButton = isLeader && !!leader && !leader.leader_id && !leadingThisWeek;
-  const showAddDateHint = isLeader && !leader;
-  const showMemberHint = !isLeader && !leader?.leader_id;
+  const showClaimButton = isLeader && !!slot && !slot.assignee_id && !leadingThisWeek;
+  const showAddDateHint = isLeader && !slot;
+  const showMemberHint = !isLeader && !slot?.assignee_id;
   const weekDays = getWeekReadingDays(currentWeek);
 
   return (
@@ -183,14 +176,9 @@ export function ThisWeekScreen() {
       <ScrollView
         contentContainerStyle={styles.content}
         refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            tintColor={colors.primary}
-          />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
         }
       >
-        {/* Section Header */}
         <View style={styles.sectionHeader}>
           <View>
             <Text style={styles.pageTitle}>This Week</Text>
@@ -224,6 +212,7 @@ export function ThisWeekScreen() {
                 autoCapitalize="words"
                 style={styles.input}
               />
+              <TranslationPicker value={translation} onChange={setTranslation} />
               <Pressable
                 onPress={saveVerse}
                 disabled={saving || !reference.trim()}
@@ -242,27 +231,19 @@ export function ThisWeekScreen() {
         {/* Leading This Week */}
         <View style={styles.card}>
           <Text style={styles.cardLabel}>Leading this Week</Text>
-          {leader?.leader_id ? (
+          {slot?.assignee_id ? (
             <>
               <View style={styles.leaderRow}>
-                <InitialsAvatar
-                  name={leader.leader?.display_name ?? '?'}
-                  tone="gold"
-                  size={48}
-                />
+                <InitialsAvatar name={slot.assignee?.display_name ?? '?'} tone="gold" size={48} />
                 <View style={styles.leaderMeta}>
-                  <Text style={styles.leaderName}>
-                    {leader.leader?.display_name ?? 'Unknown'}
-                  </Text>
-                  {leader.notes ? (
-                    <Text style={styles.leaderDetail}>{leader.notes}</Text>
-                  ) : null}
+                  <Text style={styles.leaderName}>{slot.assignee?.display_name ?? 'Unknown'}</Text>
+                  {slot.notes ? <Text style={styles.leaderDetail}>{slot.notes}</Text> : null}
                 </View>
               </View>
-              {leader.notes ? (
+              {slot.notes ? (
                 <View style={styles.themeBox}>
                   <Text style={styles.themeBoxLabel}>Theme</Text>
-                  <Text style={styles.themeBoxText}>{leader.notes}</Text>
+                  <Text style={styles.themeBoxText}>{slot.notes}</Text>
                 </View>
               ) : null}
             </>
@@ -272,14 +253,12 @@ export function ThisWeekScreen() {
               <Text style={styles.muted}>The slot is still open.</Text>
               {showClaimButton && (
                 <Pressable
-                  onPress={claimThisWeek}
+                  onPress={() => claimSlot(slot!)}
                   disabled={claiming}
                   accessibilityRole="button"
                   style={({ pressed }) => [
-                    styles.primaryBtn,
-                    styles.leadBtn,
-                    claiming && styles.disabled,
-                    pressed && styles.pressed,
+                    styles.primaryBtn, styles.leadBtn,
+                    claiming && styles.disabled, pressed && styles.pressed,
                   ]}
                 >
                   <Text style={styles.primaryBtnText}>
@@ -295,7 +274,6 @@ export function ThisWeekScreen() {
               No meeting date set for this week yet. Open the Schedule tab to add one.
             </Text>
           )}
-
           {showMemberHint && (
             <Text style={styles.hint}>
               A leader needs to take this week before the verse can be set.
@@ -306,48 +284,23 @@ export function ThisWeekScreen() {
         {/* Next Week */}
         {isLeader && (
           <View style={styles.card}>
-            <Text style={styles.cardLabel}>
-              Next Week · {formatWeek(upcomingWeek)}
-            </Text>
-            {nextLeader?.leader_id ? (
+            <Text style={styles.cardLabel}>Next Week · {formatWeek(upcomingWeek)}</Text>
+            {nextSlot?.assignee_id ? (
               <View style={styles.leaderRow}>
-                <InitialsAvatar
-                  name={nextLeader.leader?.display_name ?? '?'}
-                  tone="gold"
-                  size={40}
-                />
-                <Text style={styles.leaderName}>
-                  {nextLeader.leader?.display_name ?? 'Unknown'}
-                </Text>
+                <InitialsAvatar name={nextSlot.assignee?.display_name ?? '?'} tone="gold" size={40} />
+                <Text style={styles.leaderName}>{nextSlot.assignee?.display_name ?? 'Unknown'}</Text>
               </View>
-            ) : nextLeader ? (
+            ) : nextSlot ? (
               <>
                 <Text style={styles.noLeaderTitle}>No leader assigned</Text>
                 <Text style={styles.muted}>The slot is still open.</Text>
                 <Pressable
-                  onPress={async () => {
-                    if (!userId) return;
-                    setClaiming(true);
-                    try {
-                      const { data, error } = await supabase
-                        .from('schedule')
-                        .update({ leader_id: userId })
-                        .eq('week_start', nextLeader.week_start)
-                        .is('leader_id', null)
-                        .select();
-                      if (error) throw error;
-                      if (!data || data.length === 0) {
-                        throw new Error('Someone else just claimed this slot.');
-                      }
-                      await load();
-                    } catch (e) {
-                      Alert.alert('Error', e instanceof Error ? e.message : String(e));
-                    } finally {
-                      setClaiming(false);
-                    }
-                  }}
+                  onPress={() => claimSlot(nextSlot)}
                   disabled={claiming}
-                  style={({ pressed }) => [styles.primaryBtn, styles.leadBtn, claiming && styles.disabled, pressed && styles.pressed]}
+                  style={({ pressed }) => [
+                    styles.primaryBtn, styles.leadBtn,
+                    claiming && styles.disabled, pressed && styles.pressed,
+                  ]}
                 >
                   <Text style={styles.primaryBtnText}>I'll lead next week</Text>
                 </Pressable>
@@ -408,28 +361,41 @@ export function ThisWeekScreen() {
   );
 }
 
-// ─── Shared atoms ─────────────────────────────────────────────
+// bible-api.com provides free open-license translations. KJV is public domain.
+// WEB closely mirrors modern English translations. For licensed translations
+// (NIV, NLT, ESV), integrate api.bible with your own API key.
+const TRANSLATIONS: { value: string; label: string; name: string }[] = [
+  { value: 'kjv',    label: 'KJV', name: 'King James Version' },
+  { value: 'web',    label: 'WEB', name: 'World English Bible' },
+  { value: 'oeb-us', label: 'OEB', name: 'Open English Bible' },
+  { value: 'bbe',    label: 'BBE', name: 'Bible in Basic English' },
+];
 
-function InitialsAvatar({
-  name,
-  tone,
-  size = 48,
-}: {
-  name: string;
-  tone: 'scarlet' | 'gold';
-  size?: number;
-}) {
-  const initials = name
-    .split(' ')
-    .map((s) => s[0] ?? '')
-    .join('')
-    .slice(0, 2)
-    .toUpperCase();
+function TranslationPicker({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  return (
+    <View style={styles.translationRow}>
+      <Text style={styles.translationLabel}>Translation</Text>
+      <View style={styles.translationOptions}>
+        {TRANSLATIONS.map(t => (
+          <Pressable
+            key={t.value}
+            onPress={() => onChange(t.value)}
+            accessibilityLabel={t.name}
+            style={[styles.translationPill, value === t.value && styles.translationPillActive]}
+          >
+            <Text style={[styles.translationPillText, value === t.value && styles.translationPillTextActive]}>
+              {t.label}
+            </Text>
+          </Pressable>
+        ))}
+      </View>
+    </View>
+  );
+}
 
-  const bg = tone === 'gold'
-    ? { backgroundColor: colors.accent }
-    : { backgroundColor: colors.primary };
-
+function InitialsAvatar({ name, tone, size = 48 }: { name: string; tone: 'scarlet' | 'gold'; size?: number }) {
+  const initials = name.split(' ').map(s => s[0] ?? '').join('').slice(0, 2).toUpperCase();
+  const bg = tone === 'gold' ? { backgroundColor: colors.accent } : { backgroundColor: colors.primary };
   return (
     <View style={[styles.avatar, { width: size, height: size, borderRadius: size / 2 }, bg]}>
       <Text style={[styles.avatarText, { fontSize: size * 0.38 }]}>{initials}</Text>
@@ -438,19 +404,13 @@ function InitialsAvatar({
 }
 
 function ChevronRight() {
-  return (
-    <Text style={styles.chevron}>›</Text>
-  );
+  return <Text style={styles.chevron}>›</Text>;
 }
-
-// ─── Styles ───────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.background },
   content: { paddingBottom: spacing.xxl },
-
-  // Section header
   sectionHeader: {
     paddingHorizontal: spacing.xl,
     paddingTop: spacing.sm,
@@ -459,21 +419,8 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
     justifyContent: 'space-between',
   },
-  pageTitle: {
-    fontFamily: fonts.serif,
-    fontSize: 32,
-    fontWeight: '600',
-    color: colors.text,
-    letterSpacing: -0.4,
-    lineHeight: 34,
-  },
-  pageSubtitle: {
-    fontSize: 13.5,
-    color: colors.textMuted,
-    marginTop: 4,
-  },
-
-  // Card
+  pageTitle: { fontFamily: fonts.serif, fontSize: 32, fontWeight: '600', color: colors.text, letterSpacing: -0.4, lineHeight: 34 },
+  pageSubtitle: { fontSize: 13.5, color: colors.textMuted, marginTop: 4 },
   card: {
     backgroundColor: colors.surface,
     borderRadius: radius.lg,
@@ -484,188 +431,38 @@ const styles = StyleSheet.create({
     borderColor: colors.borderSoft,
     ...shadow.card,
   },
-  cardLabel: {
-    fontSize: 11,
-    fontWeight: '700',
-    letterSpacing: 1.6,
-    color: colors.textMuted,
-    textTransform: 'uppercase',
-    marginBottom: 10,
-  },
-  cardLabelRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  cardLabelRight: {
-    fontSize: 12,
-    color: colors.textMutedSoft,
-    fontWeight: '600',
-    letterSpacing: 0.3,
-  },
-
-  // Verse
-  verseRef: {
-    fontFamily: fonts.serif,
-    fontSize: 22,
-    fontWeight: '700',
-    color: colors.primary,
-    letterSpacing: -0.2,
-    marginBottom: 10,
-  },
-  verseText: {
-    fontFamily: fonts.serif,
-    fontSize: 18,
-    lineHeight: 27,
-    color: colors.textSoft,
-  },
-  verseDivider: {
-    height: StyleSheet.hairlineWidth,
-    backgroundColor: colors.borderSoft,
-    marginTop: 12,
-    marginBottom: 12,
-  },
-  verseFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  translation: {
-    fontSize: 12,
-    color: colors.textMuted,
-    letterSpacing: 0.4,
-    textTransform: 'uppercase',
-    fontWeight: '600',
-  },
+  cardLabel: { fontSize: 11, fontWeight: '700', letterSpacing: 1.6, color: colors.textMuted, textTransform: 'uppercase', marginBottom: 10 },
+  cardLabelRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
+  cardLabelRight: { fontSize: 12, color: colors.textMutedSoft, fontWeight: '600', letterSpacing: 0.3 },
+  verseRef: { fontFamily: fonts.serif, fontSize: 22, fontWeight: '700', color: colors.primary, letterSpacing: -0.2, marginBottom: 10 },
+  verseText: { fontFamily: fonts.serif, fontSize: 18, lineHeight: 27, color: colors.textSoft },
+  verseDivider: { height: StyleSheet.hairlineWidth, backgroundColor: colors.borderSoft, marginVertical: 12 },
+  verseFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  translation: { fontSize: 12, color: colors.textMuted, letterSpacing: 0.4, textTransform: 'uppercase', fontWeight: '600' },
   muted: { color: colors.textMuted, fontSize: 14 },
-
-  // Leader
-  leaderRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-    marginBottom: 14,
-  },
+  leaderRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, marginBottom: 14 },
   leaderMeta: { flex: 1 },
-  leaderName: {
-    fontFamily: fonts.serif,
-    fontSize: 22,
-    fontWeight: '600',
-    color: colors.text,
-    letterSpacing: -0.2,
-    lineHeight: 26,
-  },
-  leaderDetail: {
-    fontSize: 13,
-    color: colors.textMuted,
-    marginTop: 3,
-  },
-  themeBox: {
-    backgroundColor: colors.background,
-    borderRadius: radius.md,
-    padding: 12,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.borderSoft,
-  },
-  themeBoxLabel: {
-    fontSize: 11,
-    fontWeight: '700',
-    letterSpacing: 1.4,
-    color: colors.textMuted,
-    textTransform: 'uppercase',
-    marginBottom: 4,
-  },
-  themeBoxText: {
-    fontFamily: fonts.serif,
-    fontSize: 16,
-    color: colors.textSoft,
-    lineHeight: 23,
-  },
-  noLeaderTitle: {
-    fontFamily: fonts.serif,
-    fontSize: 18,
-    fontWeight: '600',
-    color: colors.textMuted,
-    letterSpacing: -0.1,
-    marginBottom: 2,
-  },
+  leaderName: { fontFamily: fonts.serif, fontSize: 22, fontWeight: '600', color: colors.text, letterSpacing: -0.2, lineHeight: 26 },
+  leaderDetail: { fontSize: 13, color: colors.textMuted, marginTop: 3 },
+  themeBox: { backgroundColor: colors.background, borderRadius: radius.md, padding: 12, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.borderSoft },
+  themeBoxLabel: { fontSize: 11, fontWeight: '700', letterSpacing: 1.4, color: colors.textMuted, textTransform: 'uppercase', marginBottom: 4 },
+  themeBoxText: { fontFamily: fonts.serif, fontSize: 16, color: colors.textSoft, lineHeight: 23 },
+  noLeaderTitle: { fontFamily: fonts.serif, fontSize: 18, fontWeight: '600', color: colors.textMuted, letterSpacing: -0.1, marginBottom: 2 },
   hint: { fontSize: 13, color: colors.textMuted, marginTop: spacing.xs, fontStyle: 'italic' },
-
-  // Reading plan
-  planRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    paddingVertical: 10,
-  },
-  planRowBorder: {
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: colors.borderSoft,
-  },
-  planDayBadge: {
-    width: 44,
-    paddingVertical: 6,
-    borderRadius: 8,
-    backgroundColor: colors.background,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.borderSoft,
-    alignItems: 'center',
-  },
-  planDayBadgeActive: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
-  },
-  planDayLabel: {
-    fontSize: 9.5,
-    fontWeight: '700',
-    letterSpacing: 0.8,
-    textTransform: 'uppercase',
-    color: colors.textSoft,
-    opacity: 0.7,
-  },
+  planRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 10 },
+  planRowBorder: { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.borderSoft },
+  planDayBadge: { width: 44, paddingVertical: 6, borderRadius: 8, backgroundColor: colors.background, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.borderSoft, alignItems: 'center' },
+  planDayBadgeActive: { backgroundColor: colors.primary, borderColor: colors.primary },
+  planDayLabel: { fontSize: 9.5, fontWeight: '700', letterSpacing: 0.8, textTransform: 'uppercase', color: colors.textSoft, opacity: 0.7 },
   planDayLabelActive: { color: '#fff', opacity: 0.85 },
-  planDayNum: {
-    fontFamily: fonts.serif,
-    fontSize: 14,
-    fontWeight: '700',
-    lineHeight: 18,
-    color: colors.textSoft,
-  },
+  planDayNum: { fontFamily: fonts.serif, fontSize: 14, fontWeight: '700', lineHeight: 18, color: colors.textSoft },
   planDayNumActive: { color: '#fff' },
   planMeta: { flex: 1, minWidth: 0 },
-  planRef: {
-    fontFamily: fonts.serif,
-    fontSize: 14.5,
-    fontWeight: '700',
-    color: colors.text,
-    letterSpacing: -0.1,
-  },
-  planTitle: {
-    fontSize: 12.5,
-    color: colors.textMuted,
-    marginTop: 1,
-  },
-  chevron: {
-    fontSize: 20,
-    color: colors.textMutedSoft,
-    lineHeight: 22,
-  },
-
-  // Avatar
-  avatar: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexShrink: 0,
-  },
-  avatarText: {
-    color: '#fff',
-    fontFamily: fonts.serif,
-    fontWeight: '600',
-    letterSpacing: 0.5,
-  },
-
-  // Buttons
+  planRef: { fontFamily: fonts.serif, fontSize: 14.5, fontWeight: '700', color: colors.text, letterSpacing: -0.1 },
+  planTitle: { fontSize: 12.5, color: colors.textMuted, marginTop: 1 },
+  chevron: { fontSize: 20, color: colors.textMutedSoft, lineHeight: 22 },
+  avatar: { alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
+  avatarText: { color: '#fff', fontFamily: fonts.serif, fontWeight: '600', letterSpacing: 0.5 },
   primaryBtn: {
     backgroundColor: colors.primary,
     borderRadius: radius.md,
@@ -683,16 +480,13 @@ const styles = StyleSheet.create({
   primaryBtnText: { color: '#fff', fontWeight: '600', fontSize: 15, letterSpacing: 0.1 },
   disabled: { opacity: 0.5 },
   pressed: { opacity: 0.85 },
-
-  // Verse editor
   editor: { gap: spacing.sm, marginTop: spacing.sm },
-  input: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radius.md,
-    padding: spacing.md,
-    fontSize: 16,
-    backgroundColor: colors.background,
-    color: colors.text,
-  },
+  input: { borderWidth: 1, borderColor: colors.border, borderRadius: radius.md, padding: spacing.md, fontSize: 16, backgroundColor: colors.background, color: colors.text },
+  translationRow: { gap: 6 },
+  translationLabel: { fontSize: 10.5, fontWeight: '700', letterSpacing: 1.2, color: colors.textMuted, textTransform: 'uppercase' },
+  translationOptions: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs },
+  translationPill: { paddingVertical: 5, paddingHorizontal: 10, borderRadius: radius.pill, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.background },
+  translationPillActive: { backgroundColor: colors.primary, borderColor: colors.primary },
+  translationPillText: { fontSize: 12, fontWeight: '700', color: colors.textMuted, letterSpacing: 0.4 },
+  translationPillTextActive: { color: '#fff' },
 });

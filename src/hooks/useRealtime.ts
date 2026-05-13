@@ -1,31 +1,36 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 
-// Subscribe to all writes (insert/update/delete) on a Postgres table and
-// invoke `onChange` for any of them. The callback should be wrapped in
-// useCallback so the subscription isn't torn down + recreated on every
-// render.
-//
-// The Realtime publication must include the table — see migration 0004.
-// Without that, postgres_changes events never fire and onChange never runs.
+// Subscribe to all writes on a Postgres table and call onChange.
+// The callback is stored in a ref so a new function reference (e.g. from a
+// parent re-render) never tears down and rebuilds the channel — only changes
+// to table or filter do that.
 export function useRealtime(
-  table: 'schedule' | 'weekly_verses' | 'events' | 'event_rsvps' | 'profiles',
+  table: 'schedule' | 'weekly_verses' | 'events' | 'event_rsvps' | 'profiles' | 'announcements',
   onChange: () => void,
   filter?: string,
 ) {
+  const idRef = useRef<string | null>(null);
+  if (!idRef.current) {
+    idRef.current = Math.random().toString(36).slice(2, 8);
+  }
+
+  // Always keep the latest callback without re-subscribing
+  const onChangeRef = useRef(onChange);
+  useEffect(() => { onChangeRef.current = onChange; });
+
   useEffect(() => {
+    const channelName = `realtime:${table}:${filter ?? 'all'}:${idRef.current}`;
     const channel = supabase
-      .channel(`realtime:${table}:${filter ?? 'all'}`)
+      .channel(channelName)
       .on(
         'postgres_changes',
         filter
           ? { event: '*', schema: 'public', table, filter }
           : { event: '*', schema: 'public', table },
-        () => onChange(),
+        () => onChangeRef.current(),
       )
       .subscribe();
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [table, filter, onChange]);
+    return () => { supabase.removeChannel(channel); };
+  }, [table, filter]); // onChange intentionally excluded — handled via ref
 }

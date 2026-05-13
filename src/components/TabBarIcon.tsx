@@ -7,11 +7,14 @@ interface Props {
 }
 
 const ICON_MAP: Record<string, { outline: string; filled: string }> = {
-  'This Week':   { outline: 'book-outline',          filled: 'book' },
-  'Events':      { outline: 'calendar-outline',      filled: 'calendar' },
-  'Schedule':    { outline: 'time-outline',           filled: 'time' },
-  'Church News': { outline: 'notifications-outline', filled: 'notifications' },
-  'Profile':     { outline: 'person-outline',        filled: 'person' },
+  'Groups':        { outline: 'people-outline',    filled: 'people' },
+  'News':          { outline: 'newspaper-outline', filled: 'newspaper' },
+  'Profile':       { outline: 'person-outline',    filled: 'person' },
+  'Family':        { outline: 'heart-outline',     filled: 'heart' },
+  'This Week':     { outline: 'book-outline',      filled: 'book' },
+  'Events':        { outline: 'calendar-outline',  filled: 'calendar' },
+  'Schedule':      { outline: 'time-outline',      filled: 'time' },
+  'Announcements': { outline: 'megaphone-outline', filled: 'megaphone' },
 };
 
 export function TabBarIcon({ name, focused }: Props) {

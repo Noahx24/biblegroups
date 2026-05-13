@@ -85,7 +85,7 @@ export function ChurchNewsScreen() {
           ListHeaderComponent={
             <View style={styles.sectionHeader}>
               <Text style={styles.pageTitle}>Church News</Text>
-              <Text style={styles.pageSubtitle}>BMC In Touch Newsletter</Text>
+              <Text style={styles.pageSubtitle}>BMC News & Newsletters</Text>
             </View>
           }
           ListEmptyComponent={
@@ -109,12 +109,6 @@ export function ChurchNewsScreen() {
                 )}
                 <Text style={styles.cardDate}>{dateLabel}</Text>
                 <Text style={styles.cardTitle}>{item.title}</Text>
-                {item.snippet ? (
-                  <Text style={styles.cardSnippet} numberOfLines={3}>
-                    {item.snippet}
-                  </Text>
-                ) : null}
-                <Text style={styles.cardCta}>Read newsletter ›</Text>
               </Pressable>
             );
           }}

@@ -1,29 +1,37 @@
 {
   "expo": {
-    "name": "Class Meeting",
-    "slug": "class-meeting",
-    "scheme": "classmeeting",
-    "version": "0.1.0",
+    "name": "ChurchFlow",
+    "slug": "churchflow",
+    "scheme": "churchflow",
+    "version": "0.2.0",
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
-    "backgroundColor": "#FAF6EE",
+    "backgroundColor": "#FAF6EC",
     "icon": "./assets/icon.png",
     "splash": {
       "image": "./assets/splash.png",
       "resizeMode": "contain",
-      "backgroundColor": "#FAF6EE"
+      "backgroundColor": "#FAF6EC"
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.example.classmeeting"
+      "bundleIdentifier": "com.example.churchflow"
     },
     "android": {
-      "package": "com.example.classmeeting",
+      "package": "com.example.churchflow",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#A8232E"
+        "backgroundColor": "#B0202C"
       }
-    }
+    },
+    "plugins": [
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "ChurchFlow needs access to your photos to let you set a profile picture."
+        }
+      ]
+    ]
   }
 }

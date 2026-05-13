@@ -1,39 +1,36 @@
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { useAuth } from '@/hooks/useAuth';
 import { SignInScreen } from '@/screens/SignInScreen';
 import { PasswordResetScreen } from '@/screens/PasswordResetScreen';
-import { ThisWeekScreen } from '@/screens/ThisWeekScreen';
-import { EventsScreen } from '@/screens/EventsScreen';
-import { ScheduleScreen } from '@/screens/ScheduleScreen';
+import { GroupsListScreen } from '@/screens/GroupsListScreen';
 import { ChurchNewsScreen } from '@/screens/ChurchNewsScreen';
 import { ProfileScreen } from '@/screens/ProfileScreen';
+import { GroupNavigator } from '@/navigation/GroupNavigator';
+import { AdminScreen } from '@/screens/AdminScreen';
+import { FamilyScreen } from '@/screens/FamilyScreen';
 import { colors } from '@/theme';
 import { TabBarIcon } from '@/components/TabBarIcon';
+import type { Group, MemberRole } from '@/types';
 
-const Tabs = createBottomTabNavigator();
+export type AppStackParamList = {
+  MainTabs: undefined;
+  GroupDetail: { group: Group; myRole: MemberRole };
+  Admin: undefined;
+};
 
-export function RootNavigator() {
-  const { session, loading, recoveryMode } = useAuth();
+export type MainTabsParamList = {
+  Groups: undefined;
+  News: undefined;
+  Family: undefined;
+  Profile: undefined;
+};
 
-  if (loading) {
-    return (
-      <View style={styles.loader}>
-        <ActivityIndicator color={colors.primary} />
-      </View>
-    );
-  }
+const Stack = createNativeStackNavigator<AppStackParamList>();
+const Tabs = createBottomTabNavigator<MainTabsParamList>();
 
-  // Recovery takes precedence over a normal session: the user clicked a
-  // password-reset link and MUST set a new password before doing anything else.
-  if (recoveryMode) {
-    return <PasswordResetScreen />;
-  }
-
-  if (!session) {
-    return <SignInScreen />;
-  }
-
+function MainTabs() {
   return (
     <Tabs.Navigator
       screenOptions={({ route }) => ({
@@ -49,12 +46,47 @@ export function RootNavigator() {
         tabBarIcon: ({ focused }) => <TabBarIcon name={route.name} focused={focused} />,
       })}
     >
-      <Tabs.Screen name="This Week" component={ThisWeekScreen} />
-      <Tabs.Screen name="Events" component={EventsScreen} />
-      <Tabs.Screen name="Schedule" component={ScheduleScreen} />
-      <Tabs.Screen name="Church News" component={ChurchNewsScreen} />
+      <Tabs.Screen name="Groups" component={GroupsListScreen} />
+      <Tabs.Screen name="News" component={ChurchNewsScreen} />
+      <Tabs.Screen name="Family" component={FamilyScreen} />
       <Tabs.Screen name="Profile" component={ProfileScreen} />
     </Tabs.Navigator>
+  );
+}
+
+export function RootNavigator() {
+  const { session, loading, recoveryMode } = useAuth();
+
+  if (loading) {
+    return (
+      <View style={styles.loader}>
+        <ActivityIndicator color={colors.primary} />
+      </View>
+    );
+  }
+
+  if (recoveryMode) {
+    return <PasswordResetScreen />;
+  }
+
+  if (!session) {
+    return <SignInScreen />;
+  }
+
+  return (
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="MainTabs" component={MainTabs} />
+      <Stack.Screen
+        name="GroupDetail"
+        component={GroupNavigator}
+        options={{ animation: 'slide_from_right' }}
+      />
+      <Stack.Screen
+        name="Admin"
+        component={AdminScreen}
+        options={{ animation: 'slide_from_right' }}
+      />
+    </Stack.Navigator>
   );
 }
 
