@@ -40,7 +40,7 @@ export function AnnouncementsScreen() {
       .select('*, author:profiles(id, display_name, avatar_url)')
       .eq('group_id', group.id)
       .order('created_at', { ascending: false });
-    if (error) { console.warn('announcements load failed', error); return; }
+    if (error) { Alert.alert('Could not load announcements', error.message); return; }
     setAnnouncements((data as Announcement[]) ?? []);
   }, [group.id]);
 

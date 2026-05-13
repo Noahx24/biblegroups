@@ -194,7 +194,7 @@ export function EventsScreen() {
         <Pressable
           style={({ pressed }) => [styles.fab, pressed && styles.pressed]}
           accessibilityLabel="Create event"
-          onPress={() => { if (modalOpen) return; setEditing(null); setModalOpen(true); }}
+          onPress={() => { if (modalOpen || !userId) return; setEditing(null); setModalOpen(true); }}
         >
           <Text style={styles.fabIcon}>+</Text>
         </Pressable>

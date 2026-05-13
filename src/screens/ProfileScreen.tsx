@@ -59,6 +59,7 @@ export function ProfileScreen() {
   }, [userId]);
 
   const pickAvatar = async () => {
+    if (!userId) return;
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
       Alert.alert('Permission needed', 'Please allow photo library access in Settings to change your photo.');
