@@ -107,7 +107,12 @@ async function importRows(rows: CsvRow[]): Promise<ImportResult[]> {
           { onConflict: 'group_id,user_id' },
         );
 
-      if (memberErr) throw new Error(memberErr.message);
+      if (memberErr) {
+        const msg = memberErr.message.includes('one class group')
+          ? `${row.email} is already in a different class group — a user can only belong to one class group`
+          : memberErr.message;
+        throw new Error(msg);
+      }
 
       results.push({ row, status: 'ok', message: `Added as ${row.role} in "${row.group_name}"` });
     } catch (e) {

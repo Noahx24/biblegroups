@@ -3,13 +3,16 @@
 -- Run this once on a new Supabase project or after wiping the database.
 
 -- ─── drop all existing objects ────────────────────────────────────────────────
-drop trigger  if exists guard_profile_role        on public.profiles;
-drop trigger  if exists on_auth_user_created      on auth.users;
-drop trigger  if exists on_auth_user_email_change on auth.users;
-drop function if exists public.guard_profile_role()    cascade;
-drop function if exists public.handle_new_user()       cascade;
-drop function if exists public.sync_profile_email()    cascade;
-drop function if exists public.is_leader_or_admin(uuid) cascade;
+drop trigger  if exists guard_profile_role         on public.profiles;
+drop trigger  if exists enforce_one_class_group    on public.group_members;
+drop trigger  if exists on_auth_user_created       on auth.users;
+drop trigger  if exists on_auth_user_email_change  on auth.users;
+drop function if exists public.guard_profile_role()        cascade;
+drop function if exists public.enforce_one_class_group()   cascade;
+drop function if exists public.handle_new_user()           cascade;
+drop function if exists public.sync_profile_email()        cascade;
+drop function if exists public.has_admin_role(uuid)        cascade;
+drop function if exists public.is_leader_or_admin(uuid)    cascade;
 
 drop table if exists public.program_registrations cascade;
 drop table if exists public.youth_programs        cascade;
@@ -73,26 +76,45 @@ create policy "profiles_update_self" on public.profiles
 
 create policy "profiles_update_admin" on public.profiles
   for update
-  using  (exists (select 1 from public.profiles p where p.id = auth.uid() and p.is_admin))
-  with check (exists (select 1 from public.profiles p where p.id = auth.uid() and p.is_admin));
+  using  (public.has_admin_role(auth.uid()))
+  with check (public.has_admin_role(auth.uid()));
 
--- Guard: only admins can escalate is_admin or is_super_admin.
--- auth.uid() is null when called from the SQL editor or service-role key,
--- so the bootstrap UPDATE (set is_admin = true) still works server-side.
+-- Helper: true when the calling user is an admin OR super admin.
+-- Used by all RLS policies so super admins automatically inherit admin access.
+create or replace function public.has_admin_role(uid uuid)
+returns boolean language sql security definer stable set search_path = public as $$
+  select exists (
+    select 1 from public.profiles
+    where id = uid and (is_admin = true or is_super_admin = true)
+  )
+$$;
+
+-- Guard: enforces role escalation rules.
+--   • Only an admin or super admin can change is_admin on another row.
+--   • Only a super admin can change is_super_admin on any row.
+-- auth.uid() is null in the SQL editor / service-role key so the bootstrap
+-- UPDATE (set is_admin = true) still works server-side.
 create or replace function public.guard_profile_role()
 returns trigger language plpgsql security definer set search_path = public as $$
 begin
-  if (
-       new.is_admin       is distinct from old.is_admin
-    or new.is_super_admin is distinct from old.is_super_admin
-  )
-  and auth.uid() is not null
-  and not exists (
-    select 1 from public.profiles where id = auth.uid() and is_admin = true
-  )
+  -- Changing is_admin requires caller to be admin or super admin
+  if new.is_admin is distinct from old.is_admin
+     and auth.uid() is not null
+     and not public.has_admin_role(auth.uid())
   then
-    raise exception 'only admins can change is_admin or is_super_admin';
+    raise exception 'only admins can change is_admin';
   end if;
+
+  -- Changing is_super_admin requires caller to be a super admin
+  if new.is_super_admin is distinct from old.is_super_admin
+     and auth.uid() is not null
+     and not exists (
+       select 1 from public.profiles where id = auth.uid() and is_super_admin = true
+     )
+  then
+    raise exception 'only super admins can change is_super_admin';
+  end if;
+
   return new;
 end;
 $$;
@@ -153,17 +175,17 @@ alter table public.groups enable row level security;
 -- Insert/update/delete: admins only
 create policy "admins_insert_groups" on public.groups
   for insert with check (
-    exists (select 1 from public.profiles where id = auth.uid() and is_admin)
+    public.has_admin_role(auth.uid())
   );
 
 create policy "admins_update_groups" on public.groups
   for update using (
-    exists (select 1 from public.profiles where id = auth.uid() and is_admin)
+    public.has_admin_role(auth.uid())
   );
 
 create policy "admins_delete_groups" on public.groups
   for delete using (
-    exists (select 1 from public.profiles where id = auth.uid() and is_admin)
+    public.has_admin_role(auth.uid())
   );
 
 -- ─── group_members ────────────────────────────────────────────────────────────
@@ -187,7 +209,7 @@ create policy "all_authenticated_read_memberships" on public.group_members
 
 create policy "admins_manage_memberships" on public.group_members
   for all using (
-    exists (select 1 from public.profiles where id = auth.uid() and is_admin)
+    public.has_admin_role(auth.uid())
   );
 
 -- ─── weekly_verses ────────────────────────────────────────────────────────────
@@ -217,7 +239,7 @@ create policy "leaders_manage_verses" on public.weekly_verses
       select user_id from public.group_members
       where group_id = weekly_verses.group_id and role = 'leader'
     )
-    or exists (select 1 from public.profiles where id = auth.uid() and is_admin)
+    or public.has_admin_role(auth.uid())
   );
 
 -- ─── schedule ─────────────────────────────────────────────────────────────────
@@ -246,7 +268,7 @@ create policy "leaders_manage_schedule" on public.schedule
       select user_id from public.group_members
       where group_id = schedule.group_id and role = 'leader'
     )
-    or exists (select 1 from public.profiles where id = auth.uid() and is_admin)
+    or public.has_admin_role(auth.uid())
   );
 
 -- Members can claim an open slot for themselves.
@@ -298,7 +320,7 @@ create policy "leaders_manage_events" on public.events
       select user_id from public.group_members
       where group_id = events.group_id and role = 'leader'
     )
-    or exists (select 1 from public.profiles where id = auth.uid() and is_admin)
+    or public.has_admin_role(auth.uid())
     or auth.uid() = created_by
   );
 
@@ -349,7 +371,7 @@ create policy "leaders_manage_announcements" on public.announcements
       select user_id from public.group_members
       where group_id = announcements.group_id and role = 'leader'
     )
-    or exists (select 1 from public.profiles where id = auth.uid() and is_admin)
+    or public.has_admin_role(auth.uid())
   );
 
 -- ─── family_members ───────────────────────────────────────────────────────────
@@ -369,7 +391,7 @@ create policy "parents_manage_own_family" on public.family_members
 
 create policy "admins_read_family" on public.family_members
   for select using (
-    exists (select 1 from public.profiles where id = auth.uid() and is_admin)
+    public.has_admin_role(auth.uid())
   );
 
 -- ─── youth_programs ───────────────────────────────────────────────────────────
@@ -397,7 +419,7 @@ create policy "all_users_select_programs" on public.youth_programs
 
 create policy "admins_manage_programs" on public.youth_programs
   for all using (
-    exists (select 1 from public.profiles where id = auth.uid() and is_admin)
+    public.has_admin_role(auth.uid())
   );
 
 -- ─── program_registrations ────────────────────────────────────────────────────
@@ -420,8 +442,35 @@ create policy "parents_manage_registrations" on public.program_registrations
 
 create policy "admins_read_registrations" on public.program_registrations
   for select using (
-    exists (select 1 from public.profiles where id = auth.uid() and is_admin)
+    public.has_admin_role(auth.uid())
   );
+
+-- ─── one-class-group constraint ──────────────────────────────────────────────
+-- A user may belong to any number of volunteer groups but at most ONE class
+-- group at a time. Enforced at the DB level so it holds regardless of whether
+-- a member is added via CSV import, the app UI, or direct SQL.
+create or replace function public.enforce_one_class_group()
+returns trigger language plpgsql security definer set search_path = public as $$
+begin
+  if (select type from public.groups where id = new.group_id) = 'class' then
+    if exists (
+      select 1
+      from   public.group_members gm
+      join   public.groups        g  on g.id = gm.group_id
+      where  gm.user_id   = new.user_id
+        and  g.type        = 'class'
+        and  gm.group_id  != new.group_id
+    ) then
+      raise exception 'A user can only belong to one class group at a time';
+    end if;
+  end if;
+  return new;
+end;
+$$;
+
+create trigger enforce_one_class_group
+  before insert or update on public.group_members
+  for each row execute function public.enforce_one_class_group();
 
 -- ─── avatar storage bucket ────────────────────────────────────────────────────
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)

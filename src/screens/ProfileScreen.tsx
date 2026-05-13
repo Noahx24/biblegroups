@@ -27,7 +27,7 @@ import type { AppStackParamList } from '@/navigation/RootNavigator';
 type Nav = NativeStackNavigationProp<AppStackParamList>;
 
 export function ProfileScreen() {
-  const { session, signOut, isAdmin } = useAuth();
+  const { session, signOut, isAdmin, isSuperAdmin } = useAuth();
   const navigation = useNavigation<Nav>();
   const userId = session?.user.id;
 
@@ -206,7 +206,9 @@ export function ProfileScreen() {
 
           {isAdmin && (
             <View style={styles.badgeRow}>
-              <RoleBadge label="Admin" tone="gold" />
+              {isSuperAdmin
+                ? <RoleBadge label="Super Admin" tone="gold" />
+                : <RoleBadge label="Admin" tone="gold" />}
             </View>
           )}
 

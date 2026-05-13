@@ -7,6 +7,7 @@ type AuthContextValue = {
   session: Session | null;
   loading: boolean;
   isAdmin: boolean;
+  isSuperAdmin: boolean;
   recoveryMode: boolean;
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string, displayName?: string) => Promise<void>;
@@ -41,6 +42,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const [recoveryMode, setRecoveryMode] = useState(false);
 
   useEffect(() => {
@@ -91,6 +93,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const userId = session?.user?.id;
     if (!userId) {
       setIsAdmin(false);
+      setIsSuperAdmin(false);
       return;
     }
 
@@ -99,12 +102,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const loadProfile = async () => {
       const { data, error } = await supabase
         .from('profiles')
-        .select('is_admin')
+        .select('is_admin, is_super_admin')
         .eq('id', userId)
         .maybeSingle();
       if (cancelled) return;
       if (error) console.warn('profile load failed', error);
-      setIsAdmin(Boolean(data?.is_admin));
+      const superAdmin = Boolean(data?.is_super_admin);
+      setIsSuperAdmin(superAdmin);
+      // super admin inherits all admin privileges
+      setIsAdmin(Boolean(data?.is_admin) || superAdmin);
     };
 
     loadProfile();
@@ -171,6 +177,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         session,
         loading,
         isAdmin,
+        isSuperAdmin,
         recoveryMode,
         signIn,
         signUp,
