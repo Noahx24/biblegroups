@@ -13,9 +13,11 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
 import { parse } from 'date-fns';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
+import { useRealtime } from '@/hooks/useRealtime';
 import { colors, radius, spacing } from '@/theme';
 import type { Profile } from '@/types';
 
@@ -62,6 +64,16 @@ export function ProfileScreen() {
   useEffect(() => {
     loadMembers();
   }, [loadMembers]);
+
+  // Refresh the admin members list whenever any profile row changes (live
+  // is_leader toggles from another admin's device, name updates from members).
+  useRealtime('profiles', loadMembers);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadMembers();
+    }, [loadMembers]),
+  );
 
   const save = async () => {
     if (!userId) return;

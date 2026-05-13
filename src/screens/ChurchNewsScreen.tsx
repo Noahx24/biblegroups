@@ -10,6 +10,7 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
 import { WebView } from 'react-native-webview';
 import { format, isValid } from 'date-fns';
 import { fetchNewsletters, type NewsletterItem } from '@/lib/newsletter';
@@ -35,6 +36,14 @@ export function ChurchNewsScreen() {
   useEffect(() => {
     load().finally(() => setLoading(false));
   }, [load]);
+
+  // No realtime here (RSS is external) — but a focus refresh catches new
+  // editions sent while the app was on a different tab.
+  useFocusEffect(
+    useCallback(() => {
+      load();
+    }, [load]),
+  );
 
   const onRefresh = async () => {
     setRefreshing(true);

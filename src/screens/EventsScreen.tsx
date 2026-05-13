@@ -14,9 +14,11 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
 import { format, parse } from 'date-fns';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
+import { useRealtime } from '@/hooks/useRealtime';
 import { colors, radius, spacing } from '@/theme';
 import type { EventRsvp, GroupEvent, RsvpStatus } from '@/types';
 
@@ -59,6 +61,19 @@ export function EventsScreen() {
   useEffect(() => {
     load().finally(() => setLoading(false));
   }, [load]);
+
+  // Re-fetch every time this tab gains focus so promotions, fresh RSVPs and
+  // new events appear without a manual pull-to-refresh.
+  useFocusEffect(
+    useCallback(() => {
+      load();
+    }, [load]),
+  );
+
+  // Live updates while the screen is open: any insert/update/delete on
+  // either table re-runs the load callback. Realtime is enabled by 0004.
+  useRealtime('events', load);
+  useRealtime('event_rsvps', load);
 
   const onRefresh = async () => {
     setRefreshing(true);

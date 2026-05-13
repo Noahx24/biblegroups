@@ -9,10 +9,12 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
 import { Calendar, type DateData } from 'react-native-calendars';
 import { format } from 'date-fns';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
+import { useRealtime } from '@/hooks/useRealtime';
 import { formatWeek, weekStart } from '@/lib/week';
 import { colors, radius, spacing } from '@/theme';
 import type { ScheduleEntry } from '@/types';
@@ -49,6 +51,16 @@ export function ScheduleScreen() {
   useEffect(() => {
     load().finally(() => setLoading(false));
   }, [load]);
+
+  useFocusEffect(
+    useCallback(() => {
+      load();
+    }, [load]),
+  );
+
+  // Live: another leader's claim or a new schedule date appears without
+  // a manual refresh.
+  useRealtime('schedule', load);
 
   const onRefresh = async () => {
     setRefreshing(true);
