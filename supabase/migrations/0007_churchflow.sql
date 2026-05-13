@@ -22,6 +22,25 @@ exception when duplicate_object then null; end $$;
 alter table public.profiles
   add column if not exists is_admin boolean not null default false;
 
+-- P1 fix: rewrite guard_profile_role to remove the is_leader reference before
+-- dropping the column. The trigger exists from 0001_init.sql; if left unchanged
+-- it references NEW.is_leader / OLD.is_leader and breaks every profile update
+-- after the column is gone.
+create or replace function public.guard_profile_role()
+returns trigger language plpgsql security definer set search_path = public as $$
+begin
+  if (new.is_admin is distinct from old.is_admin)
+     and auth.uid() is not null
+     and not exists (
+       select 1 from public.profiles where id = auth.uid() and is_admin = true
+     )
+  then
+    raise exception 'only admins can change is_admin';
+  end if;
+  return new;
+end;
+$$;
+
 -- drop legacy leader flag if it survived
 alter table public.profiles
   drop column if exists is_leader;
@@ -39,16 +58,9 @@ create table if not exists public.groups (
 
 alter table public.groups enable row level security;
 
--- members can see groups they belong to; admins see all
-create policy "members_select_own_groups" on public.groups
-  for select using (
-    auth.uid() in (
-      select user_id from public.group_members where group_id = id
-    )
-    or exists (
-      select 1 from public.profiles where id = auth.uid() and is_admin
-    )
-  );
+-- P0 fix: members_select_own_groups references group_members which does not
+-- exist yet at this point — it is created below. The policy is created after
+-- the group_members table so the relation exists at compilation time.
 
 create policy "admins_insert_groups" on public.groups
   for insert with check (
@@ -75,6 +87,18 @@ create table if not exists public.group_members (
 );
 
 alter table public.group_members enable row level security;
+
+-- P0 fix: now that group_members exists, create the groups select policy that
+-- references it. This must come after the table is defined.
+create policy "members_select_own_groups" on public.groups
+  for select using (
+    auth.uid() in (
+      select user_id from public.group_members where group_id = id
+    )
+    or exists (
+      select 1 from public.profiles where id = auth.uid() and is_admin
+    )
+  );
 
 create policy "members_select_own_memberships" on public.group_members
   for select using (

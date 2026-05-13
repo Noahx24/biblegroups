@@ -67,16 +67,20 @@ export function ScheduleScreen() {
         .gte('slot_date', weekStart())
         .order('slot_date', { ascending: true }),
       supabase
-        .from('profiles')
-        .select('id, display_name, birthday')
-        .not('birthday', 'is', null),
+        .from('group_members')
+        .select('profiles(id, display_name, birthday)')
+        .eq('group_id', group.id)
+        .not('profiles.birthday', 'is', null),
     ]);
     if (scheduleRes.error) {
       Alert.alert('Error', scheduleRes.error.message);
       return;
     }
     setSlots((scheduleRes.data as unknown as ScheduleSlot[] | null) ?? []);
-    setBirthdays((profileRes.data as BirthdayProfile[] | null) ?? []);
+    const bdays = ((profileRes.data ?? []) as unknown as { profiles: BirthdayProfile[] }[])
+      .flatMap(r => r.profiles)
+      .filter((p): p is BirthdayProfile => !!p && p.birthday !== null);
+    setBirthdays(bdays);
   }, [group.id]);
 
   useEffect(() => {
