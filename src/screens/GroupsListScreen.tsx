@@ -68,8 +68,12 @@ export function GroupsListScreen() {
       supabase
         .from('group_members')
         .select('group_id, role, profiles(id, display_name, avatar_url)')
-        .eq('role', 'leader'),
+        .eq('role', 'leader')
+        .limit(200),
     ]);
+
+    if (myRes.error) console.warn('myGroups load failed', myRes.error);
+    if (membersRes.error) console.warn('members load failed', membersRes.error);
 
     const myGroupIds = new Set<string>();
     const mapped: GroupWithRole[] = (myRes.data ?? []).map((row: any) => {

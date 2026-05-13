@@ -249,8 +249,9 @@ function AddChildModal({ visible, userId, onClose, onSaved }: {
   const save = async () => {
     if (!name.trim()) { Alert.alert('Name required'); return; }
     const yearNum = birthYear.trim() ? parseInt(birthYear.trim(), 10) : null;
-    if (birthYear.trim() && (isNaN(yearNum!) || yearNum! < 1990 || yearNum! > new Date().getFullYear())) {
-      Alert.alert('Invalid birth year'); return;
+    const currentYear = new Date().getFullYear();
+    if (birthYear.trim() && (isNaN(yearNum!) || yearNum! < currentYear - 18 || yearNum! > currentYear)) {
+      Alert.alert('Invalid birth year', `Please enter a birth year for a child under 18 (${currentYear - 18}–${currentYear}).`); return;
     }
     setSaving(true);
     const { error } = await supabase.from('family_members').insert({ parent_user_id: userId, name: name.trim(), birth_year: yearNum });
@@ -358,8 +359,21 @@ function CreateProgramModal({ visible, userId, onClose, onSaved }: {
   const [name, setName] = useState('');
   const [type, setType] = useState<'youth' | 'childrens' | 'holiday_club'>('youth');
   const [desc, setDesc] = useState('');
-  const [ageMin, setAgeMin] = useState('');
-  const [ageMax, setAgeMax] = useState('');
+  const [ageMin, setAgeMin] = useState('13');
+  const [ageMax, setAgeMax] = useState('18');
+
+  const AGE_DEFAULTS: Record<string, [string, string]> = {
+    youth: ['13', '18'],
+    childrens: ['4', '12'],
+    holiday_club: ['', ''],
+  };
+
+  const handleTypeChange = (t: 'youth' | 'childrens' | 'holiday_club') => {
+    setType(t);
+    const [min, max] = AGE_DEFAULTS[t];
+    setAgeMin(min);
+    setAgeMax(max);
+  };
   const [location, setLocation] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
@@ -367,12 +381,17 @@ function CreateProgramModal({ visible, userId, onClose, onSaved }: {
 
   const save = async () => {
     if (!name.trim()) { Alert.alert('Name required'); return; }
+    const parsedMin = ageMin.trim() ? parseInt(ageMin, 10) : null;
+    const parsedMax = ageMax.trim() ? parseInt(ageMax, 10) : null;
+    if (parsedMin !== null && parsedMax !== null && parsedMin > parsedMax) {
+      Alert.alert('Invalid age range', 'Minimum age cannot exceed maximum age.'); return;
+    }
     setSaving(true);
     const { error } = await supabase.from('youth_programs').insert({
       name: name.trim(), type,
       description: desc.trim() || null,
-      age_min: ageMin.trim() ? parseInt(ageMin, 10) : null,
-      age_max: ageMax.trim() ? parseInt(ageMax, 10) : null,
+      age_min: parsedMin,
+      age_max: parsedMax,
       location: location.trim() || null,
       start_date: startDate.trim() || null,
       end_date: endDate.trim() || null,
@@ -380,7 +399,7 @@ function CreateProgramModal({ visible, userId, onClose, onSaved }: {
     });
     setSaving(false);
     if (error) { Alert.alert('Error', error.message); return; }
-    setName(''); setType('youth'); setDesc(''); setAgeMin(''); setAgeMax('');
+    setName(''); setType('youth'); setDesc(''); setAgeMin('13'); setAgeMax('18');
     setLocation(''); setStartDate(''); setEndDate('');
     onSaved();
   };
@@ -403,7 +422,7 @@ function CreateProgramModal({ visible, userId, onClose, onSaved }: {
           <Text style={styles.fieldLabel}>Type</Text>
           <View style={styles.typeRow}>
             {(['youth', 'childrens', 'holiday_club'] as const).map(t => (
-              <Pressable key={t} style={[styles.typeOption, type === t && styles.typeOptionActive]} onPress={() => setType(t)}>
+              <Pressable key={t} style={[styles.typeOption, type === t && styles.typeOptionActive]} onPress={() => handleTypeChange(t)}>
                 <Text style={[styles.typeOptionText, type === t && styles.typeOptionTextActive]}>
                   {PROGRAM_TYPE_LABEL[t]}
                 </Text>

@@ -14,6 +14,7 @@ export type ClassTabsParamList = {
   'This Week': undefined;
   Events: undefined;
   Schedule: undefined;
+  Announcements: undefined;
 };
 
 export type VolunteerTabsParamList = {
@@ -53,6 +54,7 @@ export function GroupNavigator({ route }: Props) {
           <ClassTabs.Screen name="This Week" component={ThisWeekScreen} />
           <ClassTabs.Screen name="Events" component={EventsScreen} />
           <ClassTabs.Screen name="Schedule" component={ScheduleScreen} />
+          <ClassTabs.Screen name="Announcements" component={AnnouncementsScreen} />
         </ClassTabs.Navigator>
       ) : (
         <VolunteerTabs.Navigator

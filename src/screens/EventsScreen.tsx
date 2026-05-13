@@ -43,35 +43,28 @@ export function EventsScreen() {
   const [editing, setEditing] = useState<GroupEvent | null>(null);
 
   const load = useCallback(async () => {
-    const [eventsRes, rsvpsRes] = await Promise.all([
-      supabase
-        .from('events')
-        .select('*')
-        .eq('group_id', group.id)
-        .gte('starts_at', new Date().toISOString())
-        .order('starts_at', { ascending: true }),
-      supabase
-        .from('event_rsvps')
-        .select('*')
-        .in(
-          'event_id',
-          // Will be replaced with actual ids after events load; keep simple
-          ['00000000-0000-0000-0000-000000000000'],
-        ),
-    ]);
-    if (eventsRes.error) {
-      Alert.alert('Error', eventsRes.error.message);
+    const { data: eventsData, error: eventsError } = await supabase
+      .from('events')
+      .select('*')
+      .eq('group_id', group.id)
+      .gte('starts_at', new Date().toISOString())
+      .order('starts_at', { ascending: true })
+      .limit(50);
+
+    if (eventsError) {
+      Alert.alert('Error', eventsError.message);
       return;
     }
-    const loadedEvents = (eventsRes.data as GroupEvent[]) ?? [];
+    const loadedEvents = (eventsData as GroupEvent[]) ?? [];
     setEvents(loadedEvents);
 
     if (loadedEvents.length > 0) {
       const ids = loadedEvents.map(e => e.id);
-      const { data: rsvpData } = await supabase
+      const { data: rsvpData, error: rsvpError } = await supabase
         .from('event_rsvps')
         .select('*')
         .in('event_id', ids);
+      if (rsvpError) console.warn('rsvp load failed', rsvpError);
       setRsvps((rsvpData as EventRsvp[]) ?? []);
     } else {
       setRsvps([]);

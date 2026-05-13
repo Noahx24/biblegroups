@@ -65,7 +65,8 @@ export function ScheduleScreen() {
         .select('*, assignee:profiles(id, display_name, avatar_url)')
         .eq('group_id', group.id)
         .gte('slot_date', weekStart())
-        .order('slot_date', { ascending: true }),
+        .order('slot_date', { ascending: true })
+        .limit(52),
       supabase
         .from('group_members')
         .select('profiles(id, display_name, birthday)')
@@ -79,7 +80,7 @@ export function ScheduleScreen() {
     setSlots((scheduleRes.data as unknown as ScheduleSlot[] | null) ?? []);
     const bdays = ((profileRes.data ?? []) as unknown as { profiles: BirthdayProfile[] }[])
       .flatMap(r => r.profiles)
-      .filter((p): p is BirthdayProfile => !!p && p.birthday !== null);
+      .filter((p): p is BirthdayProfile => !!p && !!p.birthday && p.birthday.trim().length > 0);
     setBirthdays(bdays);
   }, [group.id]);
 
