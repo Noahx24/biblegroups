@@ -7,6 +7,7 @@ export type RegistrationStatus = 'active' | 'waitlisted' | 'cancelled';
 
 export type Profile = {
   id: string;
+  email: string | null;
   display_name: string | null;
   avatar_url: string | null;
   favorite_verse: string | null;
