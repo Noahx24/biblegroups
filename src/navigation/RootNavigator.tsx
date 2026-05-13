@@ -5,7 +5,7 @@ import { SignInScreen } from '@/screens/SignInScreen';
 import { ThisWeekScreen } from '@/screens/ThisWeekScreen';
 import { EventsScreen } from '@/screens/EventsScreen';
 import { ScheduleScreen } from '@/screens/ScheduleScreen';
-import { AnnouncementsScreen } from '@/screens/AnnouncementsScreen';
+import { ChurchNewsScreen } from '@/screens/ChurchNewsScreen';
 import { ProfileScreen } from '@/screens/ProfileScreen';
 import { colors } from '@/theme';
 
@@ -16,7 +16,7 @@ const TAB_ICONS: Record<string, string> = {
   'This Week': '✝',
   Events: '✦',
   Schedule: '◷',
-  Announcements: '✉',
+  'Church News': '✉',
   Profile: '○',
 };
 
@@ -67,7 +67,7 @@ export function RootNavigator() {
       <Tabs.Screen name="This Week" component={ThisWeekScreen} />
       <Tabs.Screen name="Events" component={EventsScreen} />
       <Tabs.Screen name="Schedule" component={ScheduleScreen} />
-      <Tabs.Screen name="Announcements" component={AnnouncementsScreen} />
+      <Tabs.Screen name="Church News" component={ChurchNewsScreen} />
       <Tabs.Screen name="Profile" component={ProfileScreen} />
     </Tabs.Navigator>
   );

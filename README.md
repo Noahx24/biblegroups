@@ -8,7 +8,7 @@ A mobile app for a Methodist Church of Southern Africa class meeting. Built with
 - **This Week** tab — verse of the week (auto-fetched from [bible-api.com](https://bible-api.com)), who's leading, and a one-tap "I'll lead this week" button for leaders
 - **Events** tab — any member can create events; everyone can RSVP (Going / Maybe / No) with a live count
 - **Schedule** tab — month-view calendar; leaders tap any date to add it, members tap an open date to claim it
-- **Announcements** tab — embedded view of [bmc.org.za](https://bmc.org.za/) for circuit-wide announcements
+- **Church News** tab — auto-pulls the BMC *In Touch* newsletter from Mailchimp's public RSS feed; latest edition pinned at the top, full content rendered in-app
 - **Profile** tab — set display name, favorite verse, favorite hymn; admins manage who's a class leader
 
 ## Roles
@@ -75,7 +75,8 @@ src/lib/bible.ts                 bible-api.com fetcher
 src/lib/week.ts                  Week-start date helpers
 src/hooks/useAuth.tsx            Auth context (email + password)
 src/navigation/RootNavigator     Tab navigator, gated on auth
-src/screens/                     SignIn, ThisWeek, Events, Schedule, Announcements, Profile
+src/lib/newsletter.ts            BMC In Touch RSS fetcher + parser
+src/screens/                     SignIn, ThisWeek, Events, Schedule, ChurchNews, Profile
 supabase/migrations/             SQL schema with row-level security
 ```
 
