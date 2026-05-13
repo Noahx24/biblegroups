@@ -286,6 +286,14 @@ function AddChildModal({ visible, userId, onClose, onSaved }: {
 
 // ─── Register Modal ───────────────────────────────────────────────────────────
 
+function ageEligible(child: FamilyMember, program: YouthProgram): boolean {
+  if (!child.birth_year) return true; // no age on file — allow
+  const age = new Date().getFullYear() - child.birth_year;
+  if (program.age_min != null && age < program.age_min) return false;
+  if (program.age_max != null && age > program.age_max) return false;
+  return true;
+}
+
 function RegisterModal({ visible, child, programs, existingRegs, userId, onClose, onSaved }: {
   visible: boolean; child: FamilyMember | null; programs: YouthProgram[];
   existingRegs: ProgramRegistration[]; userId: string; onClose: () => void; onSaved: () => void;
@@ -307,12 +315,19 @@ function RegisterModal({ visible, child, programs, existingRegs, userId, onClose
     onSaved();
   };
 
+  const childAge = child?.birth_year ? new Date().getFullYear() - child.birth_year : null;
+
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
       <SafeAreaView style={styles.modalSafe}>
         <View style={styles.modalHeader}>
           <Pressable onPress={onClose}><Text style={styles.modalCancel}>Close</Text></Pressable>
-          <Text style={styles.modalTitle}>Register {child?.name ?? ''}</Text>
+          <View style={{ alignItems: 'center' }}>
+            <Text style={styles.modalTitle}>Register {child?.name ?? ''}</Text>
+            {childAge != null && (
+              <Text style={styles.modalSubtitle}>Age {childAge}</Text>
+            )}
+          </View>
           <View style={{ width: 50 }} />
         </View>
         {programs.length === 0 ? (
@@ -326,21 +341,36 @@ function RegisterModal({ visible, child, programs, existingRegs, userId, onClose
             contentContainerStyle={styles.modalBody}
             renderItem={({ item: p }) => {
               const already = registeredIds.has(p.id);
+              const eligible = child ? ageEligible(child, p) : true;
+              const ageLabel = p.age_min != null && p.age_max != null
+                ? `Ages ${p.age_min}–${p.age_max}`
+                : p.age_min != null ? `Ages ${p.age_min}+`
+                : p.age_max != null ? `Up to age ${p.age_max}` : null;
               return (
-                <View style={styles.programRow}>
+                <View style={[styles.programRow, !eligible && styles.programRowIneligible]}>
+                  <View style={[styles.programRowAccent, { backgroundColor: PROGRAM_TYPE_COLOR[p.type] }]} />
                   <View style={styles.flex1}>
-                    <Text style={styles.programRowName}>{p.name}</Text>
-                    <Text style={styles.programRowType}>{PROGRAM_TYPE_LABEL[p.type]}</Text>
-                  </View>
-                  <TouchableOpacity
-                    style={[styles.registerRowBtn, already && styles.registerRowBtnDone]}
-                    onPress={() => !already && register(p)}
-                    disabled={already || saving}
-                  >
-                    <Text style={[styles.registerRowBtnText, already && styles.registerRowBtnTextDone]}>
-                      {already ? 'Registered ✓' : 'Register'}
+                    <Text style={[styles.programRowName, !eligible && styles.textMuted]}>{p.name}</Text>
+                    <Text style={styles.programRowType}>
+                      {PROGRAM_TYPE_LABEL[p.type]}{ageLabel ? ` · ${ageLabel}` : ''}
                     </Text>
-                  </TouchableOpacity>
+                    {!eligible && (
+                      <Text style={styles.ineligibleText}>
+                        Not age-eligible{childAge != null ? ` (age ${childAge})` : ''}
+                      </Text>
+                    )}
+                  </View>
+                  {eligible && (
+                    <TouchableOpacity
+                      style={[styles.registerRowBtn, already && styles.registerRowBtnDone]}
+                      onPress={() => !already && register(p)}
+                      disabled={already || saving}
+                    >
+                      <Text style={styles.registerRowBtnText}>
+                        {already ? 'Registered ✓' : 'Register'}
+                      </Text>
+                    </TouchableOpacity>
+                  )}
                 </View>
               );
             }}
@@ -523,11 +553,15 @@ const styles = StyleSheet.create({
   typeOptionActive: { borderColor: colors.primary, backgroundColor: colors.primaryLight },
   typeOptionText: { fontSize: 12, fontWeight: '600', color: colors.textMuted },
   typeOptionTextActive: { color: colors.primary },
-  programRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: spacing.md, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border, gap: spacing.md },
+  modalSubtitle: { fontSize: 12, color: colors.textMuted, marginTop: 1 },
+  programRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: spacing.md, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border, gap: spacing.md, overflow: 'hidden' },
+  programRowIneligible: { opacity: 0.45 },
+  programRowAccent: { width: 3, alignSelf: 'stretch', borderRadius: 2 },
   programRowName: { fontSize: 15, fontWeight: '600', color: colors.text },
+  textMuted: { color: colors.textMuted },
   programRowType: { fontSize: 12, color: colors.textMuted, marginTop: 2 },
+  ineligibleText: { fontSize: 11, color: colors.danger, marginTop: 2, fontStyle: 'italic' },
   registerRowBtn: { paddingHorizontal: spacing.md, paddingVertical: 7, borderRadius: radius.md, backgroundColor: colors.primary },
   registerRowBtnDone: { backgroundColor: colors.success },
   registerRowBtnText: { fontSize: 13, color: '#fff', fontWeight: '700' },
-  registerRowBtnTextDone: { color: '#fff' },
 });
