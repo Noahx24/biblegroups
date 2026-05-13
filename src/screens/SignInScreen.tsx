@@ -78,7 +78,7 @@ export function SignInScreen() {
         >
           <View style={styles.brand}>
             <Text style={styles.title}>ChurchFlow</Text>
-            <Text style={styles.tagline}>Connect · Serve · Grow</Text>
+            <Text style={styles.tagline}>Church Community Platform</Text>
           </View>
           <Text style={styles.subtitle}>
             {mode === 'signIn' && 'Sign in to your community.'}

@@ -10,6 +10,7 @@ const ICON_MAP: Record<string, { outline: string; filled: string }> = {
   'Groups':        { outline: 'people-outline',    filled: 'people' },
   'News':          { outline: 'newspaper-outline', filled: 'newspaper' },
   'Profile':       { outline: 'person-outline',    filled: 'person' },
+  'Family':        { outline: 'heart-outline',     filled: 'heart' },
   'This Week':     { outline: 'book-outline',      filled: 'book' },
   'Events':        { outline: 'calendar-outline',  filled: 'calendar' },
   'Schedule':      { outline: 'time-outline',      filled: 'time' },

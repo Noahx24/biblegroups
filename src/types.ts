@@ -2,6 +2,8 @@ export type GroupType = 'class' | 'volunteer';
 export type MemberRole = 'member' | 'leader';
 export type SlotStatus = 'open' | 'pending' | 'accepted' | 'declined';
 export type RsvpStatus = 'going' | 'not_going' | 'maybe';
+export type ProgramType = 'youth' | 'childrens' | 'holiday_club';
+export type RegistrationStatus = 'active' | 'waitlisted' | 'cancelled';
 
 export type Profile = {
   id: string;
@@ -11,7 +13,43 @@ export type Profile = {
   favorite_hymn: string | null;
   birthday: string | null;
   is_admin: boolean;
+  is_super_admin: boolean;
   created_at: string;
+};
+
+export type FamilyMember = {
+  id: string;
+  parent_user_id: string;
+  name: string;
+  birth_year: number | null;
+  created_at: string;
+};
+
+export type YouthProgram = {
+  id: string;
+  name: string;
+  type: ProgramType;
+  description: string | null;
+  age_min: number | null;
+  age_max: number | null;
+  location: string | null;
+  start_date: string | null;
+  end_date: string | null;
+  is_active: boolean;
+  created_by: string | null;
+  created_at: string;
+};
+
+export type ProgramRegistration = {
+  id: string;
+  family_member_id: string;
+  program_id: string;
+  registered_by: string;
+  status: RegistrationStatus;
+  notes: string | null;
+  registered_at: string;
+  program?: YouthProgram | null;
+  family_member?: FamilyMember | null;
 };
 
 export type Group = {

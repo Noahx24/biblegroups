@@ -361,12 +361,14 @@ export function ThisWeekScreen() {
   );
 }
 
-const TRANSLATIONS: { value: string; label: string }[] = [
-  { value: 'web', label: 'WEB' },
-  { value: 'kjv', label: 'KJV' },
-  { value: 'bbe', label: 'BBE' },
-  { value: 'oeb-us', label: 'OEB' },
-  { value: 'webbe', label: 'WEBBE' },
+// bible-api.com provides free open-license translations. KJV is public domain.
+// WEB closely mirrors modern English translations. For licensed translations
+// (NIV, NLT, ESV), integrate api.bible with your own API key.
+const TRANSLATIONS: { value: string; label: string; name: string }[] = [
+  { value: 'kjv',    label: 'KJV', name: 'King James Version' },
+  { value: 'web',    label: 'WEB', name: 'World English Bible' },
+  { value: 'oeb-us', label: 'OEB', name: 'Open English Bible' },
+  { value: 'bbe',    label: 'BBE', name: 'Bible in Basic English' },
 ];
 
 function TranslationPicker({ value, onChange }: { value: string; onChange: (v: string) => void }) {
@@ -378,6 +380,7 @@ function TranslationPicker({ value, onChange }: { value: string; onChange: (v: s
           <Pressable
             key={t.value}
             onPress={() => onChange(t.value)}
+            accessibilityLabel={t.name}
             style={[styles.translationPill, value === t.value && styles.translationPillActive]}
           >
             <Text style={[styles.translationPillText, value === t.value && styles.translationPillTextActive]}>

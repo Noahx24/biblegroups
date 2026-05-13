@@ -8,6 +8,8 @@ import { GroupsListScreen } from '@/screens/GroupsListScreen';
 import { ChurchNewsScreen } from '@/screens/ChurchNewsScreen';
 import { ProfileScreen } from '@/screens/ProfileScreen';
 import { GroupNavigator } from '@/navigation/GroupNavigator';
+import { AdminScreen } from '@/screens/AdminScreen';
+import { FamilyScreen } from '@/screens/FamilyScreen';
 import { colors } from '@/theme';
 import { TabBarIcon } from '@/components/TabBarIcon';
 import type { Group, MemberRole } from '@/types';
@@ -15,11 +17,13 @@ import type { Group, MemberRole } from '@/types';
 export type AppStackParamList = {
   MainTabs: undefined;
   GroupDetail: { group: Group; myRole: MemberRole };
+  Admin: undefined;
 };
 
 export type MainTabsParamList = {
   Groups: undefined;
   News: undefined;
+  Family: undefined;
   Profile: undefined;
 };
 
@@ -44,6 +48,7 @@ function MainTabs() {
     >
       <Tabs.Screen name="Groups" component={GroupsListScreen} />
       <Tabs.Screen name="News" component={ChurchNewsScreen} />
+      <Tabs.Screen name="Family" component={FamilyScreen} />
       <Tabs.Screen name="Profile" component={ProfileScreen} />
     </Tabs.Navigator>
   );
@@ -74,6 +79,11 @@ export function RootNavigator() {
       <Stack.Screen
         name="GroupDetail"
         component={GroupNavigator}
+        options={{ animation: 'slide_from_right' }}
+      />
+      <Stack.Screen
+        name="Admin"
+        component={AdminScreen}
         options={{ animation: 'slide_from_right' }}
       />
     </Stack.Navigator>

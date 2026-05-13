@@ -24,6 +24,14 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#B0202C"
       }
-    }
+    },
+    "plugins": [
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "ChurchFlow needs access to your photos to let you set a profile picture."
+        }
+      ]
+    ]
   }
 }
