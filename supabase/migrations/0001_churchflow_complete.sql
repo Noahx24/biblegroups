@@ -507,6 +507,23 @@ create policy "avatars_delete_own" on storage.objects
     and (storage.foldername(name))[1] = auth.uid()::text
   );
 
+-- ─── indexes ──────────────────────────────────────────────────────────────────
+-- RLS policies do subqueries on these FK columns — without indexes every
+-- request causes a full table scan.
+create index on public.group_members(user_id);
+create index on public.group_members(group_id);
+create index on public.weekly_verses(group_id);
+create index on public.schedule(group_id);
+create index on public.schedule(assignee_id);
+create index on public.events(group_id);
+create index on public.events(starts_at);
+create index on public.event_rsvps(event_id);
+create index on public.event_rsvps(user_id);
+create index on public.announcements(group_id);
+create index on public.family_members(parent_user_id);
+create index on public.program_registrations(family_member_id);
+create index on public.program_registrations(registered_by);
+
 -- ─── realtime ─────────────────────────────────────────────────────────────────
 do $$
 declare t text;

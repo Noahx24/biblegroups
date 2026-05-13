@@ -87,9 +87,10 @@ async function importRows(rows: CsvRow[]): Promise<ImportResult[]> {
         if (existing) {
           groupCache[row.group_name] = existing.id;
         } else {
+          const inferredType = /^class\s+\d+$/i.test(row.group_name.trim()) ? 'class' : 'volunteer';
           const { data: created, error: createErr } = await supabase
             .from('groups')
-            .insert({ name: row.group_name, type: 'class' })
+            .insert({ name: row.group_name, type: inferredType })
             .select('id')
             .single();
           if (createErr || !created) throw new Error(createErr?.message ?? 'Could not create group');

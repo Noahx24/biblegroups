@@ -199,8 +199,8 @@ export function ProfileScreen() {
                 placeholderTextColor={colors.textMuted} style={styles.fieldInput} />
             </ProfileField>
 
-            <Pressable onPress={save} disabled={saving}
-              style={({ pressed }) => [styles.saveBtn, saving && styles.disabled, pressed && styles.pressed]}>
+            <Pressable onPress={save} disabled={saving || uploadingAvatar}
+              style={({ pressed }) => [styles.saveBtn, (saving || uploadingAvatar) && styles.disabled, pressed && styles.pressed]}>
               <Text style={styles.saveBtnText}>{saving ? 'Saving…' : 'Save'}</Text>
             </Pressable>
           </View>

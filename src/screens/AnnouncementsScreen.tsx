@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -162,6 +162,15 @@ function CreateModal({
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
   const [saving, setSaving] = useState(false);
+
+  const prevVisible = useRef(visible);
+  useEffect(() => {
+    if (prevVisible.current && !visible) {
+      setTitle('');
+      setBody('');
+    }
+    prevVisible.current = visible;
+  }, [visible]);
 
   const save = async () => {
     if (!title.trim() || !body.trim()) {

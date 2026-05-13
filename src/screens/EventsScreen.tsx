@@ -304,9 +304,24 @@ function EventModal({
       Alert.alert('Missing info', 'Title and date/time are required.');
       return;
     }
-    const parsed = parse(whenISO.trim(), 'yyyy-MM-dd HH:mm', new Date());
+    const trimmed = whenISO.trim();
+    const parsed = parse(trimmed, 'yyyy-MM-dd HH:mm', new Date());
     if (Number.isNaN(parsed.getTime())) {
       Alert.alert('Bad date', 'Use format YYYY-MM-DD HH:MM (e.g. 2026-06-01 19:00)');
+      return;
+    }
+    // Catch overflow dates like Feb 30 or month 13 — date-fns rolls them forward silently
+    const [datePart, timePart] = trimmed.split(' ');
+    const [y, mo, d] = (datePart ?? '').split('-').map(Number);
+    const [h, mi] = (timePart ?? '').split(':').map(Number);
+    if (
+      parsed.getFullYear() !== y ||
+      parsed.getMonth() + 1 !== mo ||
+      parsed.getDate() !== d ||
+      parsed.getHours() !== h ||
+      parsed.getMinutes() !== mi
+    ) {
+      Alert.alert('Bad date', 'Invalid date — check day, month and time values.');
       return;
     }
     if (parsed <= new Date()) {
@@ -320,11 +335,21 @@ function EventModal({
       description: description.trim() || null,
       starts_at: parsed.toISOString(),
     };
-    const { error } = editing
-      ? await supabase.from('events').update(payload).eq('id', editing.id)
-      : await supabase.from('events').insert({ ...payload, group_id: groupId, created_by: userId });
-    setSaving(false);
-    if (error) { Alert.alert('Error', error.message); return; }
+    if (editing) {
+      const { data: updated, error } = await supabase
+        .from('events').update(payload).eq('id', editing.id).select();
+      setSaving(false);
+      if (error) { Alert.alert('Error', error.message); return; }
+      if (!updated || updated.length === 0) {
+        Alert.alert('Not found', 'This event may have been deleted. Please close and refresh.');
+        return;
+      }
+    } else {
+      const { error } = await supabase
+        .from('events').insert({ ...payload, group_id: groupId, created_by: userId });
+      setSaving(false);
+      if (error) { Alert.alert('Error', error.message); return; }
+    }
     onSaved();
   };
 
