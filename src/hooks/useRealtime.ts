@@ -9,7 +9,7 @@ import { supabase } from '@/lib/supabase';
 // The Realtime publication must include the table — see migration 0004.
 // Without that, postgres_changes events never fire and onChange never runs.
 export function useRealtime(
-  table: 'schedule' | 'weekly_verses' | 'events' | 'event_rsvps' | 'profiles',
+  table: 'schedule' | 'weekly_verses' | 'events' | 'event_rsvps' | 'profiles' | 'announcements',
   onChange: () => void,
   filter?: string,
 ) {

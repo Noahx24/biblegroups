@@ -85,7 +85,7 @@ export function ChurchNewsScreen() {
           ListHeaderComponent={
             <View style={styles.sectionHeader}>
               <Text style={styles.pageTitle}>Church News</Text>
-              <Text style={styles.pageSubtitle}>BMC In Touch Newsletter</Text>
+              <Text style={styles.pageSubtitle}>BMC News & Newsletters</Text>
             </View>
           }
           ListEmptyComponent={

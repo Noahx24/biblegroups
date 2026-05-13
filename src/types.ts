@@ -1,3 +1,8 @@
+export type GroupType = 'class' | 'volunteer';
+export type MemberRole = 'member' | 'leader';
+export type SlotStatus = 'open' | 'pending' | 'accepted' | 'declined';
+export type RsvpStatus = 'going' | 'not_going' | 'maybe';
+
 export type Profile = {
   id: string;
   display_name: string | null;
@@ -5,43 +10,77 @@ export type Profile = {
   favorite_verse: string | null;
   favorite_hymn: string | null;
   birthday: string | null;
-  is_leader: boolean;
   is_admin: boolean;
+  created_at: string;
+};
+
+export type Group = {
+  id: string;
+  name: string;
+  type: GroupType;
+  description: string | null;
+  meeting_time: string | null;
+  created_by: string | null;
+  created_at: string;
+};
+
+export type GroupMember = {
+  group_id: string;
+  user_id: string;
+  role: MemberRole;
+  joined_at: string;
+  profile?: Pick<Profile, 'id' | 'display_name' | 'avatar_url'> | null;
 };
 
 export type WeeklyVerse = {
   id: string;
+  group_id: string;
   week_start: string;
   reference: string;
   text: string;
   translation: string;
   note: string | null;
-  created_by: string;
+  created_by: string | null;
   created_at: string;
+};
+
+export type ScheduleSlot = {
+  id: string;
+  group_id: string;
+  slot_date: string;
+  assignee_id: string | null;
+  status: SlotStatus;
+  notes: string | null;
+  created_by: string | null;
+  created_at: string;
+  assignee?: Pick<Profile, 'id' | 'display_name' | 'avatar_url'> | null;
 };
 
 export type GroupEvent = {
   id: string;
+  group_id: string;
   title: string;
   description: string | null;
   location: string | null;
   starts_at: string;
-  created_by: string;
+  ends_at: string | null;
+  created_by: string | null;
   created_at: string;
 };
-
-export type ScheduleEntry = {
-  week_start: string;
-  leader_id: string | null;
-  notes: string | null;
-  leader?: Pick<Profile, 'id' | 'display_name' | 'avatar_url'> | null;
-};
-
-export type RsvpStatus = 'going' | 'maybe' | 'no';
 
 export type EventRsvp = {
   event_id: string;
   user_id: string;
   status: RsvpStatus;
   updated_at: string;
+};
+
+export type Announcement = {
+  id: string;
+  group_id: string;
+  title: string;
+  body: string;
+  created_by: string | null;
+  created_at: string;
+  author?: Pick<Profile, 'id' | 'display_name' | 'avatar_url'> | null;
 };
