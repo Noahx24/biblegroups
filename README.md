@@ -1,22 +1,23 @@
-# BibleGroups
+# Class Meeting
 
-A small mobile app for a single church small group. Built with **Expo (React Native)** + **TypeScript** + **Supabase**. Runs on iOS and Android from one codebase.
+A mobile app for a Methodist Church of Southern Africa class meeting. Built with **Expo (React Native)** + **TypeScript** + **Supabase**. Runs on iOS and Android from one codebase.
 
-## Features (v1)
+## Features
 
 - Sign in with **email + password**
-- **This Week** tab — verse of the week (auto-fetched from [bible-api.com](https://bible-api.com)) and who's leading
+- **This Week** tab — verse of the week (auto-fetched from [bible-api.com](https://bible-api.com)), who's leading, and a one-tap "I'll lead this week" button for leaders
 - **Events** tab — any member can create events; everyone can RSVP (Going / Maybe / No) with a live count
-- **Schedule** tab — leader appends meeting dates; members claim the date they want to lead (or release their own claim)
-- **Profile** tab — set display name, favorite verse, favorite hymn; admins manage who's a leader
+- **Schedule** tab — month-view calendar; leaders tap any date to add it, members tap an open date to claim it
+- **Announcements** tab — embedded view of [bmc.org.za](https://bmc.org.za/) for circuit-wide announcements
+- **Profile** tab — set display name, favorite verse, favorite hymn; admins manage who's a class leader
 
 ## Roles
 
-| Role     | Granted by   | Can do                                                                        |
-| -------- | ------------ | ----------------------------------------------------------------------------- |
-| Member   | Sign in      | Read everything, claim/release schedule slots, create events, RSVP, edit own profile |
-| Leader   | An admin     | Everything a member can do, plus edit verses, add/remove schedule dates, override claims |
-| Admin    | SQL bootstrap | Promote or demote leaders from the Profile tab                               |
+| Role        | Granted by    | Can do                                                                            |
+| ----------- | ------------- | --------------------------------------------------------------------------------- |
+| Member      | Sign in       | Read everything, claim/release schedule slots, create events, RSVP, edit own profile |
+| Class leader| An admin      | Everything a member can do, plus edit verses, add/remove schedule dates, override claims |
+| Admin       | SQL bootstrap | Promote or demote class leaders from the Profile tab                              |
 
 A `BEFORE UPDATE` trigger on `profiles` enforces that only admins can change `is_leader` or `is_admin`, so a member cannot self-promote.
 
@@ -32,7 +33,7 @@ npm install
 
 1. Go to https://supabase.com and create a new project.
 2. In the SQL editor, run [`supabase/migrations/0001_init.sql`](supabase/migrations/0001_init.sql).
-3. In **Authentication → Providers**, ensure **Email** is enabled (it is by default). No OAuth setup needed.
+3. In **Authentication → Providers**, ensure **Email** is enabled. For a small private class, turn **"Confirm email"** OFF to skip the inbox round-trip.
 
 ### 3. Configure environment
 
@@ -40,7 +41,7 @@ npm install
 cp .env.example .env
 ```
 
-Fill in `EXPO_PUBLIC_SUPABASE_URL` and `EXPO_PUBLIC_SUPABASE_ANON_KEY` from your Supabase project's **Project Settings → API** page.
+Fill in `EXPO_PUBLIC_SUPABASE_URL` and `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY` from your Supabase project's **Project Settings → API** page.
 
 ### 4. Run the app
 
@@ -55,22 +56,27 @@ npm start         # Expo Go on a physical device
 After signing in once, find your UID under **Authentication → Users** in Supabase, then run this in the SQL editor:
 
 ```sql
-update public.profiles set is_admin = true where id = '<your-auth-uid>';
+update public.profiles set is_admin = true, is_leader = true where id = '<your-auth-uid>';
 ```
 
-Now open the app's Profile tab — you'll see a "Manage leaders" section. Toggle the switch next to each group leader to grant them leader powers.
+Now open the app's Profile tab — you'll see a "Manage leaders" section. Toggle the switch next to each class leader to grant them leader powers.
+
+## Theme
+
+Methodist scarlet primary (`#A8232E`) with gold accents (`#C9A961`) on a cream background. Defined centrally in [`src/theme.ts`](src/theme.ts).
 
 ## Project layout
 
 ```
-App.tsx                       Entry — wires AuthProvider + NavigationContainer
-src/lib/supabase.ts           Supabase client (AsyncStorage-backed session)
-src/lib/bible.ts              bible-api.com fetcher
-src/lib/week.ts               Week-start date helpers
-src/hooks/useAuth.tsx         Auth context (email + password)
-src/navigation/RootNavigator  Tab navigator, gated on auth
-src/screens/                  SignIn, ThisWeek, Events, Schedule, Profile
-supabase/migrations/          SQL schema with row-level security
+App.tsx                          Entry — wires AuthProvider + NavigationContainer
+src/theme.ts                     Methodist palette + shared style tokens
+src/lib/supabase.ts              Supabase client (AsyncStorage-backed session)
+src/lib/bible.ts                 bible-api.com fetcher
+src/lib/week.ts                  Week-start date helpers
+src/hooks/useAuth.tsx            Auth context (email + password)
+src/navigation/RootNavigator     Tab navigator, gated on auth
+src/screens/                     SignIn, ThisWeek, Events, Schedule, Announcements, Profile
+supabase/migrations/             SQL schema with row-level security
 ```
 
 ## Building for the app stores

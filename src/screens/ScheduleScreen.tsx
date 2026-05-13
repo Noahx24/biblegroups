@@ -1,29 +1,37 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
-  FlatList,
-  Modal,
-  Pressable,
+  RefreshControl,
+  ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { format, parse } from 'date-fns';
+import { Calendar, type DateData } from 'react-native-calendars';
+import { format } from 'date-fns';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
 import { formatWeek, weekStart } from '@/lib/week';
+import { colors, radius, spacing } from '@/theme';
 import type { ScheduleEntry } from '@/types';
+
+type Marked = Record<string, {
+  selected?: boolean;
+  selectedColor?: string;
+  marked?: boolean;
+  dotColor?: string;
+  customStyles?: object;
+}>;
 
 export function ScheduleScreen() {
   const { session, isLeader } = useAuth();
   const userId = session?.user.id;
   const [entries, setEntries] = useState<ScheduleEntry[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [busyDate, setBusyDate] = useState<string | null>(null);
-  const [addOpen, setAddOpen] = useState(false);
 
   const load = useCallback(async () => {
     const { data, error } = await supabase
@@ -42,12 +50,57 @@ export function ScheduleScreen() {
     load().finally(() => setLoading(false));
   }, [load]);
 
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await load();
+    setRefreshing(false);
+  };
+
+  // Build the date-keyed markers consumed by react-native-calendars.
+  // Three states: open (blue dot), mine (burgundy), taken (gold).
+  const markedDates = useMemo<Marked>(() => {
+    const m: Marked = {};
+    for (const e of entries) {
+      const isMine = e.leader_id && e.leader_id === userId;
+      const isTaken = e.leader_id && e.leader_id !== userId;
+      const dotColor = isMine ? colors.primary : isTaken ? colors.accentDark : colors.open;
+      m[e.week_start] = {
+        marked: true,
+        dotColor,
+        customStyles: {
+          container: {
+            backgroundColor: isMine ? colors.primaryLight : 'transparent',
+            borderRadius: radius.sm,
+          },
+          text: {
+            color: colors.text,
+            fontWeight: '600',
+          },
+        },
+      };
+    }
+    return m;
+  }, [entries, userId]);
+
+  const addDate = async (date: string) => {
+    setBusyDate(date);
+    const { error } = await supabase
+      .from('schedule')
+      .insert({ week_start: date, leader_id: null });
+    setBusyDate(null);
+    if (error) {
+      const msg = error.code === '23505'
+        ? `${date} is already on the schedule.`
+        : error.message;
+      Alert.alert('Could not add date', msg);
+      return;
+    }
+    await load();
+  };
+
   const claim = async (date: string) => {
     if (!userId) return;
     setBusyDate(date);
-    // Chain .select() so we can detect the silent-no-op case where RLS filters
-    // the row out (e.g. someone else just claimed it, so our claim_self USING
-    // clause excludes the row and Postgres returns 0 affected rows + no error).
     const { data, error } = await supabase
       .from('schedule')
       .update({ leader_id: userId })
@@ -97,218 +150,177 @@ export function ScheduleScreen() {
     ]);
   };
 
+  const onDayPress = (day: DateData) => {
+    const date = day.dateString;
+    if (date < weekStart()) {
+      Alert.alert('Past date', 'Pick a date this week or later.');
+      return;
+    }
+    const entry = entries.find((e) => e.week_start === date);
+
+    if (!entry) {
+      if (!isLeader) {
+        Alert.alert('Not scheduled', 'A leader needs to add this date first.');
+        return;
+      }
+      Alert.alert('Add to schedule?', formatWeek(date), [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Add', onPress: () => addDate(date) },
+      ]);
+      return;
+    }
+
+    const mine = entry.leader_id === userId;
+    const open = !entry.leader_id;
+
+    const buttons: Array<{ text: string; style?: 'cancel' | 'destructive'; onPress?: () => void }> = [
+      { text: 'Close', style: 'cancel' },
+    ];
+    if (open) {
+      buttons.push({ text: "I'll lead", onPress: () => claim(date) });
+    } else if (mine) {
+      buttons.push({ text: 'Release', style: 'destructive', onPress: () => release(date) });
+    }
+    if (isLeader) {
+      buttons.push({ text: 'Remove from schedule', style: 'destructive', onPress: () => removeDate(date) });
+    }
+
+    const leaderLabel = open ? 'Open — no leader yet' : `Leader: ${entry.leader?.display_name ?? 'Unknown'}`;
+    Alert.alert(formatWeek(date), leaderLabel, buttons);
+  };
+
   if (loading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator />
+        <ActivityIndicator color={colors.primary} />
       </View>
     );
   }
 
+  const today = format(new Date(), 'yyyy-MM-dd');
+  const markedWithToday: Marked = {
+    ...markedDates,
+    [today]: {
+      ...(markedDates[today] ?? {}),
+      selected: true,
+      selectedColor: markedDates[today] ? colors.primaryLight : colors.background,
+    },
+  };
+
   return (
     <SafeAreaView style={styles.container} edges={['left', 'right']}>
-      <FlatList
-        data={entries}
-        keyExtractor={(e) => e.week_start}
-        contentContainerStyle={styles.list}
-        ListEmptyComponent={
-          <Text style={styles.empty}>
-            {isLeader ? 'Tap + to add a date.' : 'No schedule dates yet.'}
-          </Text>
+      <ScrollView
+        contentContainerStyle={styles.scroll}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={colors.primary}
+          />
         }
-        renderItem={({ item }) => {
-          const mine = item.leader_id && item.leader_id === userId;
-          const claimed = !!item.leader_id;
-          const busy = busyDate === item.week_start;
-          return (
-            <View style={styles.row}>
-              <View style={styles.rowMain}>
-                <Text style={styles.week}>{formatWeek(item.week_start)}</Text>
-                <Text style={styles.leader}>
-                  {item.leader?.display_name ?? 'Open — tap to lead'}
-                </Text>
+      >
+        <Calendar
+          minDate={weekStart()}
+          markingType="custom"
+          markedDates={markedWithToday}
+          onDayPress={onDayPress}
+          theme={{
+            calendarBackground: colors.surface,
+            textSectionTitleColor: colors.textMuted,
+            todayTextColor: colors.primary,
+            dayTextColor: colors.text,
+            textDisabledColor: colors.border,
+            arrowColor: colors.primary,
+            monthTextColor: colors.text,
+            textMonthFontWeight: '700',
+            textDayFontWeight: '500',
+            textDayHeaderFontWeight: '600',
+          }}
+          style={styles.calendar}
+        />
+
+        <View style={styles.legend}>
+          <LegendDot color={colors.open} label="Open" />
+          <LegendDot color={colors.primary} label="You" />
+          <LegendDot color={colors.accentDark} label="Taken" />
+        </View>
+
+        <Text style={styles.sectionTitle}>Upcoming</Text>
+        {entries.length === 0 ? (
+          <Text style={styles.empty}>
+            {isLeader
+              ? 'Tap any date on the calendar to add it to the schedule.'
+              : 'No dates scheduled yet.'}
+          </Text>
+        ) : (
+          entries.map((e) => {
+            const mine = e.leader_id === userId;
+            const open = !e.leader_id;
+            const busy = busyDate === e.week_start;
+            return (
+              <View key={e.week_start} style={styles.row}>
+                <View style={styles.rowMain}>
+                  <Text style={styles.rowDate}>{formatWeek(e.week_start)}</Text>
+                  <Text style={[styles.rowLeader, mine && styles.rowLeaderMine]}>
+                    {open ? 'Open — tap on the calendar to lead' : e.leader?.display_name ?? 'Unknown'}
+                  </Text>
+                </View>
+                {busy && <ActivityIndicator color={colors.primary} />}
               </View>
-              {mine ? (
-                <Pressable
-                  onPress={() => release(item.week_start)}
-                  disabled={busy}
-                  style={({ pressed }) => [styles.btn, styles.release, pressed && styles.pressed]}
-                >
-                  <Text style={styles.releaseText}>Release</Text>
-                </Pressable>
-              ) : !claimed ? (
-                <Pressable
-                  onPress={() => claim(item.week_start)}
-                  disabled={busy}
-                  style={({ pressed }) => [styles.btn, styles.claim, pressed && styles.pressed]}
-                >
-                  <Text style={styles.claimText}>I'll lead</Text>
-                </Pressable>
-              ) : null}
-              {isLeader && (
-                <Pressable
-                  onPress={() => removeDate(item.week_start)}
-                  style={({ pressed }) => [styles.delBtn, pressed && styles.pressed]}
-                >
-                  <Text style={styles.delText}>×</Text>
-                </Pressable>
-              )}
-            </View>
-          );
-        }}
-      />
-
-      {isLeader && (
-        <Pressable style={styles.fab} onPress={() => setAddOpen(true)}>
-          <Text style={styles.fabText}>+</Text>
-        </Pressable>
-      )}
-
-      <AddDateModal
-        visible={addOpen}
-        onClose={() => setAddOpen(false)}
-        onAdded={async () => {
-          setAddOpen(false);
-          await load();
-        }}
-      />
+            );
+          })
+        )}
+      </ScrollView>
     </SafeAreaView>
   );
 }
 
-function AddDateModal({
-  visible,
-  onClose,
-  onAdded,
-}: {
-  visible: boolean;
-  onClose: () => void;
-  onAdded: () => void;
-}) {
-  const [date, setDate] = useState('');
-  const [saving, setSaving] = useState(false);
-
-  const save = async () => {
-    // Parse rather than regex-match: /^\d{4}-\d{2}-\d{2}$/ would accept
-    // "2026-13-99". date-fns parse rejects invalid month/day combinations.
-    const parsed = parse(date.trim(), 'yyyy-MM-dd', new Date());
-    if (Number.isNaN(parsed.getTime())) {
-      Alert.alert('Bad date', 'Use format YYYY-MM-DD (e.g. 2026-06-07)');
-      return;
-    }
-    const normalized = format(parsed, 'yyyy-MM-dd');
-    setSaving(true);
-    const { error } = await supabase
-      .from('schedule')
-      .insert({ week_start: normalized, leader_id: null });
-    setSaving(false);
-    if (error) {
-      // Postgres unique-violation code: date is already on the schedule.
-      const msg = error.code === '23505'
-        ? `${normalized} is already on the schedule.`
-        : error.message;
-      Alert.alert('Could not add date', msg);
-      return;
-    }
-    setDate('');
-    onAdded();
-  };
-
+function LegendDot({ color, label }: { color: string; label: string }) {
   return (
-    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet">
-      <SafeAreaView style={styles.container}>
-        <View style={styles.modalHeader}>
-          <Pressable onPress={onClose}>
-            <Text style={styles.headerAction}>Cancel</Text>
-          </Pressable>
-          <Text style={styles.modalTitle}>Add schedule date</Text>
-          <Pressable onPress={save} disabled={saving}>
-            <Text style={[styles.headerAction, styles.headerSave]}>
-              {saving ? '…' : 'Add'}
-            </Text>
-          </Pressable>
-        </View>
-        <View style={styles.form}>
-          <Text style={styles.label}>Date</Text>
-          <TextInput
-            placeholder="YYYY-MM-DD"
-            value={date}
-            onChangeText={setDate}
-            autoCapitalize="none"
-            style={styles.input}
-          />
-          <Text style={styles.hint}>
-            Members can claim this date themselves from the Schedule tab.
-          </Text>
-        </View>
-      </SafeAreaView>
-    </Modal>
+    <View style={styles.legendItem}>
+      <View style={[styles.legendSwatch, { backgroundColor: color }]} />
+      <Text style={styles.legendLabel}>{label}</Text>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f6f7f9' },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  list: { padding: 16 },
-  empty: { textAlign: 'center', color: '#888', marginTop: 32 },
+  container: { flex: 1, backgroundColor: colors.background },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.background },
+  scroll: { padding: spacing.md, gap: spacing.md, paddingBottom: spacing.xxl },
+  calendar: {
+    borderRadius: radius.lg,
+    paddingVertical: spacing.sm,
+    overflow: 'hidden',
+  },
+  legend: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: spacing.lg,
+    paddingVertical: spacing.sm,
+  },
+  legendItem: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
+  legendSwatch: { width: 10, height: 10, borderRadius: 5 },
+  legendLabel: { fontSize: 12, color: colors.textMuted },
+  sectionTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: colors.textMuted,
+    textTransform: 'uppercase',
+    marginTop: spacing.sm,
+    marginLeft: spacing.xs,
+  },
+  empty: { textAlign: 'center', color: colors.textMuted, marginTop: spacing.md, paddingHorizontal: spacing.lg },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 8,
-    gap: 8,
+    backgroundColor: colors.surface,
+    borderRadius: radius.md,
+    padding: spacing.md,
+    gap: spacing.sm,
   },
   rowMain: { flex: 1 },
-  week: { fontSize: 13, color: '#888', marginBottom: 2 },
-  leader: { fontSize: 17, fontWeight: '600' },
-  btn: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8 },
-  claim: { backgroundColor: '#eef2ff' },
-  claimText: { color: '#2c6cf5', fontWeight: '600' },
-  release: { backgroundColor: '#fff1f0' },
-  releaseText: { color: '#c0392b', fontWeight: '600' },
-  delBtn: { paddingHorizontal: 8 },
-  delText: { color: '#999', fontSize: 22, lineHeight: 22 },
-  pressed: { opacity: 0.7 },
-  fab: {
-    position: 'absolute',
-    right: 24,
-    bottom: 32,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: '#2c6cf5',
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOpacity: 0.2,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 3 },
-    elevation: 4,
-  },
-  fabText: { color: '#fff', fontSize: 28, lineHeight: 30 },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 16,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#ddd',
-    backgroundColor: '#fff',
-  },
-  modalTitle: { fontSize: 16, fontWeight: '600' },
-  headerAction: { fontSize: 16, color: '#2c6cf5' },
-  headerSave: { fontWeight: '700' },
-  form: { padding: 16, gap: 8 },
-  label: { fontSize: 13, color: '#666', textTransform: 'uppercase', fontWeight: '600' },
-  input: {
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 16,
-    backgroundColor: '#fff',
-  },
-  hint: { color: '#888', fontSize: 13, marginTop: 4 },
+  rowDate: { fontSize: 13, color: colors.textMuted, marginBottom: 2 },
+  rowLeader: { fontSize: 16, fontWeight: '600', color: colors.text },
+  rowLeaderMine: { color: colors.primary },
 });

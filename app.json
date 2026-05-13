@@ -1,20 +1,21 @@
 {
   "expo": {
-    "name": "BibleGroups",
-    "slug": "biblegroups",
-    "scheme": "biblegroups",
+    "name": "Class Meeting",
+    "slug": "class-meeting",
+    "scheme": "classmeeting",
     "version": "0.1.0",
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
+    "backgroundColor": "#FAF6EE",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.example.biblegroups"
+      "bundleIdentifier": "com.example.classmeeting"
     },
     "android": {
-      "package": "com.example.biblegroups",
+      "package": "com.example.classmeeting",
       "adaptiveIcon": {
-        "backgroundColor": "#ffffff"
+        "backgroundColor": "#A8232E"
       }
     }
   }

@@ -2,6 +2,8 @@ import { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  KeyboardAvoidingView,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -13,6 +15,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
+import { colors, radius, spacing } from '@/theme';
 import type { Profile } from '@/types';
 
 export function ProfileScreen() {
@@ -41,8 +44,8 @@ export function ProfileScreen() {
     if (!userId) return;
     supabase
       .from('profiles')
-      .select('display_name')
-      .eq('id', session.user.id)
+      .select('display_name, favorite_verse, favorite_hymn')
+      .eq('id', userId)
       .maybeSingle()
       .then(({ data, error }) => {
         if (error) console.warn('profile load failed', error);
@@ -90,130 +93,147 @@ export function ProfileScreen() {
   if (loading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator />
+        <ActivityIndicator color={colors.primary} />
       </View>
     );
   }
 
   return (
     <SafeAreaView style={styles.container} edges={['left', 'right']}>
-      <ScrollView contentContainerStyle={styles.content}>
-        <Text style={styles.label}>Display name</Text>
-        <TextInput
-          value={displayName}
-          onChangeText={setDisplayName}
-          placeholder="Your name"
-          style={styles.input}
-        />
+      <KeyboardAvoidingView
+        style={styles.flex}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
+        <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+          <Text style={styles.label}>Display name</Text>
+          <TextInput
+            value={displayName}
+            onChangeText={setDisplayName}
+            placeholder="Your name"
+            placeholderTextColor={colors.textMuted}
+            style={styles.input}
+          />
 
-        <Text style={styles.label}>Favorite verse</Text>
-        <TextInput
-          value={favoriteVerse}
-          onChangeText={setFavoriteVerse}
-          placeholder="e.g. Philippians 4:13"
-          multiline
-          style={[styles.input, styles.multiline]}
-        />
+          <Text style={styles.label}>Favorite verse</Text>
+          <TextInput
+            value={favoriteVerse}
+            onChangeText={setFavoriteVerse}
+            placeholder="e.g. Philippians 4:13"
+            placeholderTextColor={colors.textMuted}
+            multiline
+            style={[styles.input, styles.multiline]}
+          />
 
-        <Text style={styles.label}>Favorite hymn</Text>
-        <TextInput
-          value={favoriteHymn}
-          onChangeText={setFavoriteHymn}
-          placeholder="e.g. How Great Thou Art"
-          style={styles.input}
-        />
+          <Text style={styles.label}>Favorite hymn</Text>
+          <TextInput
+            value={favoriteHymn}
+            onChangeText={setFavoriteHymn}
+            placeholder="e.g. How Great Thou Art"
+            placeholderTextColor={colors.textMuted}
+            style={styles.input}
+          />
 
-        <Pressable
-          onPress={save}
-          disabled={saving}
-          style={({ pressed }) => [styles.primary, pressed && styles.pressed]}
-        >
-          <Text style={styles.primaryText}>{saving ? 'Saving…' : 'Save'}</Text>
-        </Pressable>
+          <Pressable
+            onPress={save}
+            disabled={saving}
+            style={({ pressed }) => [styles.primary, saving && styles.disabled, pressed && styles.pressed]}
+          >
+            <Text style={styles.primaryText}>{saving ? 'Saving…' : 'Save'}</Text>
+          </Pressable>
 
-        <Text style={styles.email}>{session?.user.email}</Text>
-        <View style={styles.badges}>
-          {isAdmin && <Text style={[styles.badge, styles.adminBadge]}>Admin</Text>}
-          {isLeader && <Text style={styles.badge}>Group leader</Text>}
-        </View>
-
-        {isAdmin && (
-          <View style={styles.adminPanel}>
-            <Text style={styles.sectionTitle}>Manage leaders</Text>
-            <Text style={styles.sectionHint}>
-              Toggle on to let a member edit verses, schedule, and override claims.
-            </Text>
-            {members.map((m) => (
-              <View key={m.id} style={styles.memberRow}>
-                <View style={styles.memberInfo}>
-                  <Text style={styles.memberName}>
-                    {m.display_name ?? 'Unnamed'}
-                    {m.is_admin ? ' (admin)' : ''}
-                  </Text>
-                </View>
-                <Switch
-                  value={m.is_leader}
-                  disabled={togglingId === m.id}
-                  onValueChange={(v) => toggleLeader(m.id, v)}
-                />
-              </View>
-            ))}
+          <Text style={styles.email}>{session?.user.email}</Text>
+          <View style={styles.badges}>
+            {isAdmin && <Text style={[styles.badge, styles.adminBadge]}>Admin</Text>}
+            {isLeader && <Text style={styles.badge}>Class leader</Text>}
           </View>
-        )}
 
-        <Pressable
-          onPress={signOut}
-          style={({ pressed }) => [styles.signOut, pressed && styles.pressed]}
-        >
-          <Text style={styles.signOutText}>Sign out</Text>
-        </Pressable>
-      </ScrollView>
+          {isAdmin && (
+            <View style={styles.adminPanel}>
+              <Text style={styles.sectionTitle}>Manage leaders</Text>
+              <Text style={styles.sectionHint}>
+                Toggle on to let a member edit verses, add schedule dates, and override claims.
+              </Text>
+              {members.map((m) => (
+                <View key={m.id} style={styles.memberRow}>
+                  <View style={styles.memberInfo}>
+                    <Text style={styles.memberName}>
+                      {m.display_name ?? 'Unnamed'}
+                      {m.is_admin ? ' (admin)' : ''}
+                    </Text>
+                  </View>
+                  <Switch
+                    value={m.is_leader}
+                    disabled={togglingId === m.id}
+                    onValueChange={(v) => toggleLeader(m.id, v)}
+                    trackColor={{ false: colors.border, true: colors.primary }}
+                  />
+                </View>
+              ))}
+            </View>
+          )}
+
+          <Pressable
+            onPress={signOut}
+            style={({ pressed }) => [styles.signOut, pressed && styles.pressed]}
+          >
+            <Text style={styles.signOutText}>Sign out</Text>
+          </Pressable>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f6f7f9' },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  content: { padding: 16, gap: 12 },
-  label: { fontSize: 13, color: '#666', textTransform: 'uppercase', fontWeight: '600' },
+  flex: { flex: 1 },
+  container: { flex: 1, backgroundColor: colors.background },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.background },
+  content: { padding: spacing.lg, gap: spacing.md },
+  label: { fontSize: 12, color: colors.textMuted, textTransform: 'uppercase', fontWeight: '700', letterSpacing: 0.5 },
   input: {
     borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
-    padding: 12,
+    borderColor: colors.border,
+    borderRadius: radius.md,
+    padding: spacing.md,
     fontSize: 16,
-    backgroundColor: '#fff',
+    backgroundColor: colors.surface,
+    color: colors.text,
   },
   multiline: { minHeight: 80, textAlignVertical: 'top' },
-  primary: { backgroundColor: '#2c6cf5', borderRadius: 8, padding: 12, alignItems: 'center' },
+  primary: {
+    backgroundColor: colors.primary,
+    borderRadius: radius.md,
+    padding: spacing.md,
+    alignItems: 'center',
+  },
   primaryText: { color: '#fff', fontWeight: '600' },
-  pressed: { opacity: 0.8 },
-  email: { textAlign: 'center', color: '#666', marginTop: 24 },
-  badges: { flexDirection: 'row', justifyContent: 'center', gap: 8 },
+  disabled: { opacity: 0.5 },
+  pressed: { opacity: 0.85 },
+  email: { textAlign: 'center', color: colors.textMuted, marginTop: spacing.xl },
+  badges: { flexDirection: 'row', justifyContent: 'center', gap: spacing.sm },
   badge: {
-    backgroundColor: '#eef2ff',
-    color: '#2c6cf5',
+    backgroundColor: colors.primaryLight,
+    color: colors.primary,
     fontWeight: '600',
-    paddingHorizontal: 12,
+    paddingHorizontal: spacing.md,
     paddingVertical: 4,
-    borderRadius: 12,
+    borderRadius: radius.pill,
     overflow: 'hidden',
   },
-  adminBadge: { backgroundColor: '#fff4e5', color: '#a26200' },
-  adminPanel: { marginTop: 24, gap: 4 },
-  sectionTitle: { fontSize: 16, fontWeight: '700' },
-  sectionHint: { color: '#666', fontSize: 13, marginBottom: 8 },
+  adminBadge: { backgroundColor: '#FCEFD5', color: colors.accentDark },
+  adminPanel: { marginTop: spacing.xl, gap: spacing.xs },
+  sectionTitle: { fontSize: 16, fontWeight: '700', color: colors.text },
+  sectionHint: { color: colors.textMuted, fontSize: 13, marginBottom: spacing.sm },
   memberRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#fff',
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 8,
+    backgroundColor: colors.surface,
+    borderRadius: radius.md,
+    padding: spacing.md,
+    marginBottom: spacing.sm,
   },
   memberInfo: { flex: 1 },
-  memberName: { fontSize: 15 },
-  signOut: { marginTop: 32, padding: 12, alignItems: 'center' },
-  signOutText: { color: '#c0392b', fontWeight: '600' },
+  memberName: { fontSize: 15, color: colors.text },
+  signOut: { marginTop: spacing.xxl, padding: spacing.md, alignItems: 'center' },
+  signOutText: { color: colors.primary, fontWeight: '600' },
 });
