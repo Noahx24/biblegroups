@@ -83,10 +83,14 @@ export function ThisWeekScreen() {
           .insert({ week_start: currentWeek, leader_id: userId });
         if (error) throw error;
       } else if (!leader.leader_id) {
+        // Filter on leader_id IS NULL so we never overwrite another leader's
+        // claim. The schedule_update_leader RLS policy would otherwise let
+        // any leader silently steal a week from a peer who claimed it first.
         const { data, error } = await supabase
           .from('schedule')
           .update({ leader_id: userId })
           .eq('week_start', leader.week_start)
+          .is('leader_id', null)
           .select();
         if (error) throw error;
         if (!data || data.length === 0) {

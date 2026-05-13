@@ -101,10 +101,14 @@ export function ScheduleScreen() {
   const claim = async (date: string) => {
     if (!userId) return;
     setBusyDate(date);
+    // Filter on leader_id IS NULL so the claim only succeeds on a truly open
+    // slot. Without this, the schedule_update_leader RLS policy lets any
+    // leader overwrite another leader's existing claim under concurrency.
     const { data, error } = await supabase
       .from('schedule')
       .update({ leader_id: userId })
       .eq('week_start', date)
+      .is('leader_id', null)
       .select();
     setBusyDate(null);
     if (error) {
