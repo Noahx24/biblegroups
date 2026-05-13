@@ -9,6 +9,7 @@ import { ChurchNewsScreen } from '@/screens/ChurchNewsScreen';
 import { ProfileScreen } from '@/screens/ProfileScreen';
 import { GroupNavigator } from '@/navigation/GroupNavigator';
 import { AdminScreen } from '@/screens/AdminScreen';
+import { AdminGroupMembersScreen } from '@/screens/AdminGroupMembersScreen';
 import { FamilyScreen } from '@/screens/FamilyScreen';
 import { colors } from '@/theme';
 import { TabBarIcon } from '@/components/TabBarIcon';
@@ -18,6 +19,7 @@ export type AppStackParamList = {
   MainTabs: undefined;
   GroupDetail: { group: Group; myRole: MemberRole };
   Admin: undefined;
+  AdminGroupMembers: { group: Group };
 };
 
 export type MainTabsParamList = {
@@ -84,6 +86,11 @@ export function RootNavigator() {
       <Stack.Screen
         name="Admin"
         component={AdminScreen}
+        options={{ animation: 'slide_from_right' }}
+      />
+      <Stack.Screen
+        name="AdminGroupMembers"
+        component={AdminGroupMembersScreen}
         options={{ animation: 'slide_from_right' }}
       />
     </Stack.Navigator>

@@ -120,6 +120,54 @@ export function ChurchNewsScreen() {
   );
 }
 
+// CSS + DOM scrub that strips Mailchimp's Subscribe / Past Issues bar and
+// the "View this email in your browser" preheader so the in-app reader shows
+// just the newsletter body. Runs on every load and after a short delay in
+// case Mailchimp adds the chrome with a script tag.
+const HIDE_MAILCHIMP_CHROME = `
+  (function () {
+    var css = \`
+      #awesomebar-sandbox,
+      #awesomebar,
+      div[id^="awesomebar"],
+      .campaign-info,
+      .preheader,
+      #templatePreheader {
+        display: none !important;
+        height: 0 !important;
+        overflow: hidden !important;
+      }
+    \`;
+    var style = document.getElementById('cf-hide-mc');
+    if (!style) {
+      style = document.createElement('style');
+      style.id = 'cf-hide-mc';
+      style.appendChild(document.createTextNode(css));
+      (document.head || document.documentElement).appendChild(style);
+    }
+    function scrubViewInBrowser() {
+      var nodes = document.querySelectorAll('a, span, td, p, div');
+      for (var i = 0; i < nodes.length; i++) {
+        var el = nodes[i];
+        var text = (el.innerText || el.textContent || '').trim().toLowerCase();
+        if (text === 'view this email in your browser' ||
+            text.indexOf('view this email in your browser') !== -1 && text.length < 80) {
+          var target = el;
+          for (var j = 0; j < 5 && target.parentElement; j++) {
+            if (target.tagName === 'TR') break;
+            target = target.parentElement;
+          }
+          target.style.display = 'none';
+        }
+      }
+    }
+    scrubViewInBrowser();
+    setTimeout(scrubViewInBrowser, 300);
+    setTimeout(scrubViewInBrowser, 1000);
+    true;
+  })();
+`;
+
 function NewsletterReader({
   item,
   onClose,
@@ -153,7 +201,6 @@ function NewsletterReader({
             <Text style={styles.toolbarTitle} numberOfLines={1}>
               BMC Announcements
             </Text>
-            <Text style={styles.toolbarDomain}>mailchi.mp</Text>
           </View>
 
           <Pressable
@@ -171,6 +218,12 @@ function NewsletterReader({
               ref={webRef}
               source={{ uri: item.link }}
               onLoadEnd={() => setReaderLoading(false)}
+              injectedJavaScript={HIDE_MAILCHIMP_CHROME}
+              onLoadProgress={({ nativeEvent }) => {
+                if (nativeEvent.progress > 0.4) {
+                  webRef.current?.injectJavaScript(HIDE_MAILCHIMP_CHROME);
+                }
+              }}
             />
             {readerLoading && (
               <View pointerEvents="none" style={styles.loaderOverlay}>
@@ -273,13 +326,6 @@ const styles = StyleSheet.create({
     color: colors.text,
     letterSpacing: -0.1,
     lineHeight: 20,
-  },
-  toolbarDomain: {
-    fontSize: 10.5,
-    fontWeight: '500',
-    color: colors.textMuted,
-    marginTop: 2,
-    letterSpacing: 0.2,
   },
   loaderOverlay: { position: 'absolute', top: spacing.md, right: spacing.md },
 
