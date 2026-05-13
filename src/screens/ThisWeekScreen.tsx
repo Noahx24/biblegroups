@@ -81,33 +81,27 @@ export function ThisWeekScreen() {
     setRefreshing(false);
   };
 
-  // Combined "set me as leader for this week" flow. If there's no schedule
-  // entry yet, insert one keyed to currentWeek (Sunday). If there's one with
-  // no leader, claim it. RLS lets is_leader users insert; lets anyone claim
-  // an open slot.
-  const leadThisWeek = async () => {
-    if (!userId) return;
+  // Claim an existing open schedule entry for this week. We deliberately do
+  // NOT auto-insert a new schedule row keyed to Sunday: meeting dates are
+  // arbitrary (a class may meet Wednesday), so blindly creating a Sunday
+  // slot from this screen guesses wrong half the time. If no entry exists,
+  // the leader is directed to the Schedule tab to pick the actual date.
+  const claimThisWeek = async () => {
+    if (!userId || !leader) return;
     setClaiming(true);
     try {
-      if (!leader) {
-        const { error } = await supabase
-          .from('schedule')
-          .insert({ week_start: currentWeek, leader_id: userId });
-        if (error) throw error;
-      } else if (!leader.leader_id) {
-        // Filter on leader_id IS NULL so we never overwrite another leader's
-        // claim. The schedule_update_leader RLS policy would otherwise let
-        // any leader silently steal a week from a peer who claimed it first.
-        const { data, error } = await supabase
-          .from('schedule')
-          .update({ leader_id: userId })
-          .eq('week_start', leader.week_start)
-          .is('leader_id', null)
-          .select();
-        if (error) throw error;
-        if (!data || data.length === 0) {
-          throw new Error('Someone else just claimed this slot.');
-        }
+      // Filter on leader_id IS NULL so we never overwrite another leader's
+      // claim. The schedule_update_leader RLS policy would otherwise let
+      // any leader silently steal a week from a peer who claimed it first.
+      const { data, error } = await supabase
+        .from('schedule')
+        .update({ leader_id: userId })
+        .eq('week_start', leader.week_start)
+        .is('leader_id', null)
+        .select();
+      if (error) throw error;
+      if (!data || data.length === 0) {
+        throw new Error('Someone else just claimed this slot.');
       }
       await load();
     } catch (e) {
@@ -150,7 +144,12 @@ export function ThisWeekScreen() {
     );
   }
 
-  const showLeadButton = isLeader && (!leader || !leader.leader_id) && !leadingThisWeek;
+  // Only offer the claim button when an open schedule entry already exists
+  // for this week. If none exists, the leader needs to add one via the
+  // Schedule tab — we don't guess the meeting date for them.
+  const showClaimButton = isLeader && !!leader && !leader.leader_id && !leadingThisWeek;
+  const showAddDateHint = isLeader && !leader;
+  const showMemberHint = !isLeader && !leader?.leader_id;
 
   return (
     <SafeAreaView style={styles.container} edges={['left', 'right']}>
@@ -210,10 +209,11 @@ export function ThisWeekScreen() {
           </Text>
           {leader?.notes ? <Text style={styles.muted}>{leader.notes}</Text> : null}
 
-          {showLeadButton && (
+          {showClaimButton && (
             <Pressable
-              onPress={leadThisWeek}
+              onPress={claimThisWeek}
               disabled={claiming}
+              accessibilityRole="button"
               style={({ pressed }) => [
                 styles.primary,
                 styles.leadBtn,
@@ -227,7 +227,14 @@ export function ThisWeekScreen() {
             </Pressable>
           )}
 
-          {!isLeader && !leader?.leader_id && (
+          {showAddDateHint && (
+            <Text style={styles.hint}>
+              No meeting date set for this week yet. Open the Schedule tab to
+              add one.
+            </Text>
+          )}
+
+          {showMemberHint && (
             <Text style={styles.hint}>
               A leader needs to take this week before the verse can be set.
             </Text>

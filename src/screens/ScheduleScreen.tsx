@@ -28,12 +28,16 @@ type Marked = Record<string, {
 }>;
 
 export function ScheduleScreen() {
-  const { session, isLeader } = useAuth();
+  const { session, isLeader, isAdmin } = useAuth();
   const userId = session?.user.id;
   const [entries, setEntries] = useState<ScheduleEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [busyDate, setBusyDate] = useState<string | null>(null);
+  // Tracked so we can disable the left arrow when the user is already at the
+  // earliest reachable month (this week's month). Initialised from today so
+  // it matches the calendar's initial render.
+  const [displayMonth, setDisplayMonth] = useState(() => format(new Date(), 'yyyy-MM'));
 
   const load = useCallback(async () => {
     const { data, error } = await supabase
@@ -133,6 +137,45 @@ export function ScheduleScreen() {
     await load();
   };
 
+  // Admin-only: take a slot already claimed by someone else. RLS policy
+  // schedule_update_leader's WITH CHECK only permits leader_id reassignment
+  // for admins, so non-admin leaders calling this would hit a 0-row update
+  // and the silent-fail guard below would surface a clear message.
+  const overrideClaim = async (date: string, currentLeaderName: string | null) => {
+    if (!userId) return;
+    Alert.alert(
+      'Override claim?',
+      `Take this slot from ${currentLeaderName ?? 'the current leader'}?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Override',
+          style: 'destructive',
+          onPress: async () => {
+            setBusyDate(date);
+            const { data, error } = await supabase
+              .from('schedule')
+              .update({ leader_id: userId })
+              .eq('week_start', date)
+              .select();
+            setBusyDate(null);
+            if (error) {
+              Alert.alert('Could not override', error.message);
+              return;
+            }
+            if (!data || data.length === 0) {
+              Alert.alert(
+                'Could not override',
+                'Only admins can take a slot already claimed by someone else.',
+              );
+            }
+            await load();
+          },
+        },
+      ],
+    );
+  };
+
   const release = async (date: string) => {
     setBusyDate(date);
     const { data, error } = await supabase
@@ -152,18 +195,25 @@ export function ScheduleScreen() {
   };
 
   const removeDate = (date: string) => {
-    Alert.alert('Remove this date?', formatWeek(date), [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Remove',
-        style: 'destructive',
-        onPress: async () => {
-          const { error } = await supabase.from('schedule').delete().eq('week_start', date);
-          if (error) Alert.alert('Error', error.message);
-          else await load();
+    // The 0006 migration cascades weekly_verses on delete, so removing a
+    // scheduled date silently drops any verse set for it. Surface that so a
+    // leader doesn't lose a verse by accident.
+    Alert.alert(
+      'Remove this date?',
+      `${formatWeek(date)}\n\nAny verse set for this date will also be removed.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Remove',
+          style: 'destructive',
+          onPress: async () => {
+            const { error } = await supabase.from('schedule').delete().eq('week_start', date);
+            if (error) Alert.alert('Error', error.message);
+            else await load();
+          },
         },
-      },
-    ]);
+      ],
+    );
   };
 
   const onDayPress = (day: DateData) => {
@@ -188,6 +238,7 @@ export function ScheduleScreen() {
 
     const mine = entry.leader_id === userId;
     const open = !entry.leader_id;
+    const someoneElse = !!entry.leader_id && !mine;
 
     const buttons: Array<{ text: string; style?: 'cancel' | 'destructive'; onPress?: () => void }> = [
       { text: 'Close', style: 'cancel' },
@@ -196,6 +247,13 @@ export function ScheduleScreen() {
       buttons.push({ text: "I'll lead", onPress: () => claim(date) });
     } else if (mine) {
       buttons.push({ text: 'Release', style: 'destructive', onPress: () => release(date) });
+    }
+    if (someoneElse && isAdmin) {
+      buttons.push({
+        text: 'Override (assign to me)',
+        style: 'destructive',
+        onPress: () => overrideClaim(date, entry.leader?.display_name ?? null),
+      });
     }
     if (isLeader) {
       buttons.push({ text: 'Remove from schedule', style: 'destructive', onPress: () => removeDate(date) });
@@ -223,6 +281,12 @@ export function ScheduleScreen() {
     },
   };
 
+  // Disable the left chevron when the user is already viewing the earliest
+  // reachable month, so they can't paginate back into a month with no
+  // tappable days (the minDate prop only blocks day taps, not navigation).
+  const minMonth = weekStart().slice(0, 7);
+  const disableArrowLeft = displayMonth <= minMonth;
+
   return (
     <SafeAreaView style={styles.container} edges={['left', 'right']}>
       <ScrollView
@@ -240,6 +304,8 @@ export function ScheduleScreen() {
           markingType="custom"
           markedDates={markedWithToday}
           onDayPress={onDayPress}
+          onMonthChange={(m) => setDisplayMonth(`${m.year}-${String(m.month).padStart(2, '0')}`)}
+          disableArrowLeft={disableArrowLeft}
           theme={{
             calendarBackground: colors.surface,
             textSectionTitleColor: colors.textMuted,
