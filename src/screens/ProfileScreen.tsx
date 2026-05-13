@@ -18,7 +18,7 @@ import { parse } from 'date-fns';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
 import { useRealtime } from '@/hooks/useRealtime';
-import { colors, radius, spacing } from '@/theme';
+import { colors, fonts, radius, shadow, spacing } from '@/theme';
 import type { Profile } from '@/types';
 
 export function ProfileScreen() {
@@ -65,8 +65,6 @@ export function ProfileScreen() {
     loadMembers();
   }, [loadMembers]);
 
-  // Refresh the admin members list whenever any profile row changes (live
-  // is_leader toggles from another admin's device, name updates from members).
   useRealtime('profiles', loadMembers);
 
   useFocusEffect(
@@ -77,8 +75,6 @@ export function ProfileScreen() {
 
   const save = async () => {
     if (!userId) return;
-    // Validate birthday: accept empty (clears it) or YYYY-MM-DD that parses to
-    // a real calendar date. date-fns parse rejects e.g. 2026-13-99.
     const trimmedBirthday = birthday.trim();
     let birthdayValue: string | null = null;
     if (trimmedBirthday) {
@@ -127,152 +123,382 @@ export function ProfileScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={['left', 'right']}>
+    <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
       <KeyboardAvoidingView
-        style={styles.flex}
+        style={styles.flex1}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-          <Text style={styles.label}>Display name</Text>
-          <TextInput
-            value={displayName}
-            onChangeText={setDisplayName}
-            placeholder="Your name"
-            placeholderTextColor={colors.textMuted}
-            style={styles.input}
-          />
 
-          <Text style={styles.label}>Favorite verse</Text>
-          <TextInput
-            value={favoriteVerse}
-            onChangeText={setFavoriteVerse}
-            placeholder="e.g. Philippians 4:13"
-            placeholderTextColor={colors.textMuted}
-            multiline
-            style={[styles.input, styles.multiline]}
-          />
-
-          <Text style={styles.label}>Favorite hymn</Text>
-          <TextInput
-            value={favoriteHymn}
-            onChangeText={setFavoriteHymn}
-            placeholder="e.g. How Great Thou Art"
-            placeholderTextColor={colors.textMuted}
-            style={styles.input}
-          />
-
-          <Text style={styles.label}>Birthday</Text>
-          <TextInput
-            value={birthday}
-            onChangeText={setBirthday}
-            placeholder="YYYY-MM-DD"
-            placeholderTextColor={colors.textMuted}
-            autoCapitalize="none"
-            keyboardType="numbers-and-punctuation"
-            style={styles.input}
-          />
-
-          <Pressable
-            onPress={save}
-            disabled={saving}
-            style={({ pressed }) => [styles.primary, saving && styles.disabled, pressed && styles.pressed]}
-          >
-            <Text style={styles.primaryText}>{saving ? 'Saving…' : 'Save'}</Text>
-          </Pressable>
-
-          <Text style={styles.email}>{session?.user.email}</Text>
-          <View style={styles.badges}>
-            {isAdmin && <Text style={[styles.badge, styles.adminBadge]}>Admin</Text>}
-            {isLeader && <Text style={styles.badge}>Class leader</Text>}
+          {/* Section Header */}
+          <View style={styles.sectionHeader}>
+            <Text style={styles.pageTitle}>Profile</Text>
           </View>
 
+          {/* Identity strip */}
+          <View style={styles.identityRow}>
+            <ProfileAvatar name={displayName || session?.user.email || '?'} size={64} />
+            <View style={styles.flex1}>
+              <Text style={styles.identityName}>{displayName || 'Set your name'}</Text>
+              <Text style={styles.identitySub}>{session?.user.email}</Text>
+            </View>
+          </View>
+
+          {/* Form card */}
+          <View style={styles.card}>
+            <ProfileField label="Display name">
+              <TextInput
+                value={displayName}
+                onChangeText={setDisplayName}
+                placeholder="Your name"
+                placeholderTextColor={colors.textMuted}
+                style={styles.fieldInput}
+              />
+            </ProfileField>
+
+            <FieldDivider />
+
+            <ProfileField label="Birthday">
+              <TextInput
+                value={birthday}
+                onChangeText={setBirthday}
+                placeholder="YYYY-MM-DD"
+                placeholderTextColor={colors.textMuted}
+                autoCapitalize="none"
+                keyboardType="numbers-and-punctuation"
+                style={styles.fieldInput}
+              />
+            </ProfileField>
+
+            <FieldDivider />
+
+            <ProfileField label="Favourite verse">
+              <TextInput
+                value={favoriteVerse}
+                onChangeText={setFavoriteVerse}
+                placeholder="e.g. Philippians 4:13"
+                placeholderTextColor={colors.textMuted}
+                multiline
+                style={[styles.fieldInput, styles.fieldTextarea]}
+              />
+            </ProfileField>
+
+            <FieldDivider />
+
+            <ProfileField label="Favourite hymn">
+              <TextInput
+                value={favoriteHymn}
+                onChangeText={setFavoriteHymn}
+                placeholder="e.g. How Great Thou Art"
+                placeholderTextColor={colors.textMuted}
+                style={styles.fieldInput}
+              />
+            </ProfileField>
+
+            <Pressable
+              onPress={save}
+              disabled={saving}
+              style={({ pressed }) => [styles.saveBtn, saving && styles.disabled, pressed && styles.pressed]}
+            >
+              <Text style={styles.saveBtnText}>{saving ? 'Saving…' : 'Save'}</Text>
+            </Pressable>
+          </View>
+
+          {/* Email + badges */}
+          <View style={styles.badgeRow}>
+            {isLeader && <RoleBadge label="Class Leader" tone="scarlet" />}
+            {isAdmin && <RoleBadge label="Admin" tone="gold" />}
+          </View>
+
+          {/* Admin: manage leaders */}
           {isAdmin && (
-            <View style={styles.adminPanel}>
-              <Text style={styles.sectionTitle}>Manage leaders</Text>
-              <Text style={styles.sectionHint}>
-                Toggle on to let a member edit verses, add schedule dates, and override claims.
-              </Text>
-              {members.map((m) => (
-                <View key={m.id} style={styles.memberRow}>
-                  <View style={styles.memberInfo}>
-                    <Text style={styles.memberName}>
-                      {m.display_name ?? 'Unnamed'}
-                      {m.is_admin ? ' (admin)' : ''}
-                    </Text>
+            <View style={styles.card}>
+              <View style={styles.cardLabelRow}>
+                <Text style={styles.cardLabel}>Manage Leaders</Text>
+                <Text style={styles.cardLabelRight}>Admin only</Text>
+              </View>
+              {members.map((m, i) => {
+                const initials = (m.display_name ?? 'U')
+                  .split(' ')
+                  .map((s) => s[0] ?? '')
+                  .join('')
+                  .slice(0, 2)
+                  .toUpperCase();
+                return (
+                  <View
+                    key={m.id}
+                    style={[styles.leaderRow, i < members.length - 1 && styles.leaderRowDivider]}
+                  >
+                    <ProfileAvatar name={m.display_name ?? 'U'} size={36} tone={m.is_leader ? 'scarlet' : 'gold'} />
+                    <View style={styles.flex1}>
+                      <Text style={styles.leaderName}>
+                        {m.display_name ?? 'Unnamed'}
+                        {m.is_admin ? ' (admin)' : ''}
+                      </Text>
+                      <Text style={styles.leaderRole}>
+                        {m.is_leader ? 'Class leader' : 'Member'}
+                      </Text>
+                    </View>
+                    <Switch
+                      value={m.is_leader}
+                      disabled={togglingId === m.id}
+                      onValueChange={(v) => toggleLeader(m.id, v)}
+                      trackColor={{ false: '#D9CFBC', true: colors.primary }}
+                      thumbColor="#fff"
+                    />
                   </View>
-                  <Switch
-                    value={m.is_leader}
-                    disabled={togglingId === m.id}
-                    onValueChange={(v) => toggleLeader(m.id, v)}
-                    trackColor={{ false: colors.border, true: colors.primary }}
-                  />
-                </View>
-              ))}
+                );
+              })}
             </View>
           )}
 
+          {/* Sign out */}
           <Pressable
             onPress={signOut}
-            style={({ pressed }) => [styles.signOut, pressed && styles.pressed]}
+            style={({ pressed }) => [styles.signOutBtn, pressed && styles.pressed]}
           >
             <Text style={styles.signOutText}>Sign out</Text>
           </Pressable>
+
+          <Text style={styles.versionText}>Class Meeting · v1.2.0</Text>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
 
+// ─── Shared atoms ─────────────────────────────────────────────
+
+function ProfileAvatar({
+  name,
+  size = 48,
+  tone = 'scarlet',
+}: {
+  name: string;
+  size?: number;
+  tone?: 'scarlet' | 'gold';
+}) {
+  const initials = name
+    .split(' ')
+    .map((s) => s[0] ?? '')
+    .join('')
+    .slice(0, 2)
+    .toUpperCase();
+
+  const bg = tone === 'gold' ? colors.accent : colors.primary;
+
+  return (
+    <View
+      style={[
+        styles.avatar,
+        { width: size, height: size, borderRadius: size / 2, backgroundColor: bg },
+      ]}
+    >
+      <Text style={[styles.avatarText, { fontSize: size * 0.38 }]}>{initials}</Text>
+    </View>
+  );
+}
+
+function ProfileField({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <View style={styles.fieldGroup}>
+      <Text style={styles.fieldLabel}>{label}</Text>
+      {children}
+    </View>
+  );
+}
+
+function FieldDivider() {
+  return <View style={styles.fieldDivider} />;
+}
+
+function RoleBadge({ label, tone }: { label: string; tone: 'scarlet' | 'gold' }) {
+  const bg = tone === 'gold' ? colors.accent : colors.primary;
+  return (
+    <View style={[styles.badge, { backgroundColor: bg }]}>
+      <Text style={styles.badgeText}>{label}</Text>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
-  flex: { flex: 1 },
+  flex1: { flex: 1 },
   container: { flex: 1, backgroundColor: colors.background },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.background },
-  content: { padding: spacing.lg, gap: spacing.md },
-  label: { fontSize: 12, color: colors.textMuted, textTransform: 'uppercase', fontWeight: '700', letterSpacing: 0.5 },
-  input: {
+  content: { paddingBottom: spacing.xxl },
+
+  sectionHeader: {
+    paddingHorizontal: spacing.xl,
+    paddingTop: spacing.sm,
+    paddingBottom: spacing.lg,
+  },
+  pageTitle: {
+    fontFamily: fonts.serif,
+    fontSize: 32,
+    fontWeight: '600',
+    color: colors.text,
+    letterSpacing: -0.4,
+    lineHeight: 34,
+  },
+
+  identityRow: {
+    paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.lg,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+  },
+  identityName: {
+    fontFamily: fonts.serif,
+    fontSize: 22,
+    fontWeight: '600',
+    color: colors.text,
+    letterSpacing: -0.2,
+  },
+  identitySub: {
+    fontSize: 13,
+    color: colors.textMuted,
+    marginTop: 2,
+  },
+
+  // Avatar
+  avatar: { alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
+  avatarText: {
+    color: '#fff',
+    fontFamily: fonts.serif,
+    fontWeight: '600',
+    letterSpacing: 0.5,
+  },
+
+  // Card
+  card: {
+    backgroundColor: colors.surface,
+    borderRadius: radius.lg,
+    padding: spacing.lg,
+    marginHorizontal: spacing.lg,
+    marginBottom: spacing.md,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.borderSoft,
+    ...shadow.card,
+  },
+  cardLabelRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  cardLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 1.6,
+    color: colors.textMuted,
+    textTransform: 'uppercase',
+  },
+  cardLabelRight: {
+    fontSize: 12,
+    color: colors.textMutedSoft,
+    fontWeight: '600',
+    letterSpacing: 0.4,
+  },
+
+  // Form fields
+  fieldGroup: { paddingVertical: 4, gap: 6 },
+  fieldLabel: {
+    fontSize: 11.5,
+    fontWeight: '700',
+    letterSpacing: 1.2,
+    color: colors.textMuted,
+    textTransform: 'uppercase',
+  },
+  fieldInput: {
+    backgroundColor: colors.background,
     borderWidth: 1,
     borderColor: colors.border,
     borderRadius: radius.md,
-    padding: spacing.md,
-    fontSize: 16,
-    backgroundColor: colors.surface,
+    padding: 11,
+    paddingHorizontal: 13,
+    fontSize: 15.5,
     color: colors.text,
+    fontWeight: '500',
   },
-  multiline: { minHeight: 80, textAlignVertical: 'top' },
-  primary: {
+  fieldTextarea: {
+    minHeight: 80,
+    textAlignVertical: 'top',
+    fontFamily: fonts.serif,
+    fontStyle: 'italic',
+    fontSize: 15,
+    lineHeight: 22,
+    color: colors.textSoft,
+  },
+  fieldDivider: {
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: colors.borderSoft,
+    marginVertical: 6,
+  },
+
+  saveBtn: {
     backgroundColor: colors.primary,
     borderRadius: radius.md,
-    padding: spacing.md,
+    paddingVertical: 14,
+    paddingHorizontal: 18,
     alignItems: 'center',
+    marginTop: 14,
+    shadowColor: colors.primary,
+    shadowOpacity: 0.28,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 3,
   },
-  primaryText: { color: '#fff', fontWeight: '600' },
+  saveBtnText: { color: '#fff', fontWeight: '600', fontSize: 16, letterSpacing: 0.1 },
   disabled: { opacity: 0.5 },
   pressed: { opacity: 0.85 },
-  email: { textAlign: 'center', color: colors.textMuted, marginTop: spacing.xl },
-  badges: { flexDirection: 'row', justifyContent: 'center', gap: spacing.sm },
-  badge: {
-    backgroundColor: colors.primaryLight,
-    color: colors.primary,
-    fontWeight: '600',
-    paddingHorizontal: spacing.md,
-    paddingVertical: 4,
-    borderRadius: radius.pill,
-    overflow: 'hidden',
+
+  // Badges
+  badgeRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: spacing.sm,
+    paddingVertical: spacing.sm,
+    marginBottom: spacing.xs,
   },
-  adminBadge: { backgroundColor: '#FCEFD5', color: colors.accentDark },
-  adminPanel: { marginTop: spacing.xl, gap: spacing.xs },
-  sectionTitle: { fontSize: 16, fontWeight: '700', color: colors.text },
-  sectionHint: { color: colors.textMuted, fontSize: 13, marginBottom: spacing.sm },
-  memberRow: {
+  badge: {
+    paddingVertical: 5,
+    paddingHorizontal: 12,
+    borderRadius: radius.pill,
+  },
+  badgeText: {
+    color: '#fff',
+    fontSize: 11.5,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+  },
+
+  // Leader management
+  leaderRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.surface,
-    borderRadius: radius.md,
-    padding: spacing.md,
-    marginBottom: spacing.sm,
+    gap: 12,
+    paddingVertical: 10,
   },
-  memberInfo: { flex: 1 },
-  memberName: { fontSize: 15, color: colors.text },
-  signOut: { marginTop: spacing.xxl, padding: spacing.md, alignItems: 'center' },
-  signOutText: { color: colors.primary, fontWeight: '600' },
+  leaderRowDivider: {
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.borderSoft,
+  },
+  leaderName: { fontSize: 15, fontWeight: '600', color: colors.text },
+  leaderRole: { fontSize: 12, color: colors.textMuted, marginTop: 1 },
+
+  // Sign out
+  signOutBtn: {
+    marginTop: spacing.xl,
+    padding: spacing.md,
+    alignItems: 'center',
+  },
+  signOutText: { color: colors.primary, fontWeight: '600', fontSize: 15, letterSpacing: 0.1 },
+  versionText: {
+    textAlign: 'center',
+    fontSize: 11,
+    color: colors.textMutedSoft,
+    paddingBottom: 4,
+  },
 });

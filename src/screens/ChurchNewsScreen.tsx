@@ -14,7 +14,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { WebView } from 'react-native-webview';
 import { format, isValid } from 'date-fns';
 import { fetchNewsletters, type NewsletterItem } from '@/lib/newsletter';
-import { colors, radius, spacing } from '@/theme';
+import { colors, fonts, radius, shadow, spacing } from '@/theme';
 
 export function ChurchNewsScreen() {
   const [items, setItems] = useState<NewsletterItem[]>([]);
@@ -37,8 +37,6 @@ export function ChurchNewsScreen() {
     load().finally(() => setLoading(false));
   }, [load]);
 
-  // No realtime here (RSS is external) — but a focus refresh catches new
-  // editions sent while the app was on a different tab.
   useFocusEffect(
     useCallback(() => {
       load();
@@ -60,14 +58,14 @@ export function ChurchNewsScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={['left', 'right']}>
+    <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
       {error && !items.length ? (
         <View style={styles.errorBox}>
           <Text style={styles.errorTitle}>Couldn't load newsletters</Text>
           <Text style={styles.errorMsg}>{error}</Text>
           <Pressable
             onPress={onRefresh}
-            style={({ pressed }) => [styles.retry, pressed && styles.pressed]}
+            style={({ pressed }) => [styles.retryBtn, pressed && styles.pressed]}
           >
             <Text style={styles.retryText}>Try again</Text>
           </Pressable>
@@ -84,13 +82,16 @@ export function ChurchNewsScreen() {
               tintColor={colors.primary}
             />
           }
+          ListHeaderComponent={
+            <View style={styles.sectionHeader}>
+              <Text style={styles.pageTitle}>Church News</Text>
+              <Text style={styles.pageSubtitle}>BMC In Touch Newsletter</Text>
+            </View>
+          }
           ListEmptyComponent={
             <Text style={styles.empty}>
               No newsletters yet. Pull down to refresh after the next In Touch is sent.
             </Text>
-          }
-          ListHeaderComponent={
-            <Text style={styles.lead}>BMC In Touch — Methodist Church of Southern Africa</Text>
           }
           renderItem={({ item, index }) => {
             const dateLabel = isValid(item.pubDate)
@@ -101,7 +102,11 @@ export function ChurchNewsScreen() {
                 onPress={() => setSelected(item)}
                 style={({ pressed }) => [styles.card, pressed && styles.pressed]}
               >
-                {index === 0 && <Text style={styles.latestPill}>Latest</Text>}
+                {index === 0 && (
+                  <View style={styles.latestPill}>
+                    <Text style={styles.latestPillText}>Latest</Text>
+                  </View>
+                )}
                 <Text style={styles.cardDate}>{dateLabel}</Text>
                 <Text style={styles.cardTitle}>{item.title}</Text>
                 {item.snippet ? (
@@ -109,7 +114,7 @@ export function ChurchNewsScreen() {
                     {item.snippet}
                   </Text>
                 ) : null}
-                <Text style={styles.cardCta}>Read newsletter →</Text>
+                <Text style={styles.cardCta}>Read newsletter ›</Text>
               </Pressable>
             );
           }}
@@ -139,26 +144,35 @@ function NewsletterReader({
       onRequestClose={onClose}
       onShow={() => setReaderLoading(true)}
     >
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
+        {/* Toolbar — matches design: ← Back | title+domain | ↻ */}
         <View style={styles.toolbar}>
           <Pressable
             onPress={onClose}
             style={({ pressed }) => [styles.tbtn, pressed && styles.pressed]}
+            accessibilityLabel="Back"
           >
-            <Text style={styles.tbtnText}>Done</Text>
+            <Text style={styles.tbtnBack}>‹ Back</Text>
           </Pressable>
-          <Text style={styles.toolbarTitle} numberOfLines={1}>
-            {item?.title ?? ''}
-          </Text>
+
+          <View style={styles.toolbarCenter}>
+            <Text style={styles.toolbarTitle} numberOfLines={1}>
+              BMC Announcements
+            </Text>
+            <Text style={styles.toolbarDomain}>mailchi.mp</Text>
+          </View>
+
           <Pressable
             onPress={() => webRef.current?.reload()}
-            style={({ pressed }) => [styles.tbtn, pressed && styles.pressed]}
+            style={({ pressed }) => [styles.tbtn, styles.tbtnRight, pressed && styles.pressed]}
+            accessibilityLabel="Reload"
           >
-            <Text style={styles.tbtnText}>↻</Text>
+            <Text style={styles.tbtnReload}>↻</Text>
           </Pressable>
         </View>
+
         {item && (
-          <View style={styles.flex}>
+          <View style={styles.flex1}>
             <WebView
               ref={webRef}
               source={{ uri: item.link }}
@@ -177,74 +191,114 @@ function NewsletterReader({
 }
 
 const styles = StyleSheet.create({
-  flex: { flex: 1 },
+  flex1: { flex: 1 },
   container: { flex: 1, backgroundColor: colors.background },
-  center: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.background,
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.background },
+  list: { paddingBottom: spacing.xxl },
+
+  sectionHeader: {
+    paddingHorizontal: spacing.xl,
+    paddingTop: spacing.sm,
+    paddingBottom: spacing.lg,
   },
-  list: { padding: spacing.lg, gap: spacing.md, paddingBottom: spacing.xxl },
-  lead: {
-    fontSize: 12,
-    color: colors.accentDark,
-    textAlign: 'center',
+  pageTitle: {
+    fontFamily: fonts.serif,
+    fontSize: 32,
     fontWeight: '600',
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-    marginBottom: spacing.md,
+    color: colors.text,
+    letterSpacing: -0.4,
+    lineHeight: 34,
   },
-  empty: { textAlign: 'center', color: colors.textMuted, marginTop: spacing.xxl, paddingHorizontal: spacing.lg },
+  pageSubtitle: {
+    fontSize: 13.5,
+    color: colors.textMuted,
+    marginTop: 4,
+  },
+
   card: {
     backgroundColor: colors.surface,
     borderRadius: radius.lg,
     padding: spacing.lg,
+    marginHorizontal: spacing.lg,
     marginBottom: spacing.md,
-    gap: spacing.xs,
-    shadowColor: '#000',
-    shadowOpacity: 0.04,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 1,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.borderSoft,
+    ...shadow.card,
   },
   latestPill: {
     alignSelf: 'flex-start',
     backgroundColor: colors.primary,
+    borderRadius: radius.pill,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 2,
+    marginBottom: spacing.xs,
+    overflow: 'hidden',
+  },
+  latestPillText: {
     color: '#fff',
     fontSize: 11,
     fontWeight: '700',
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 2,
-    borderRadius: radius.pill,
-    overflow: 'hidden',
     textTransform: 'uppercase',
     letterSpacing: 0.5,
-    marginBottom: spacing.xs,
   },
-  cardDate: { fontSize: 12, color: colors.textMuted, fontWeight: '600' },
-  cardTitle: { fontSize: 17, fontWeight: '700', color: colors.text },
-  cardSnippet: { fontSize: 14, color: colors.textMuted, lineHeight: 20, marginTop: spacing.xs },
+  cardDate: { fontSize: 12, color: colors.textMuted, fontWeight: '600', marginBottom: 4 },
+  cardTitle: {
+    fontFamily: fonts.serif,
+    fontSize: 19,
+    fontWeight: '600',
+    color: colors.text,
+    letterSpacing: -0.1,
+    marginBottom: 6,
+  },
+  cardSnippet: { fontSize: 14, color: colors.textMuted, lineHeight: 20 },
   cardCta: { fontSize: 13, color: colors.primary, fontWeight: '600', marginTop: spacing.sm },
-  pressed: { opacity: 0.7 },
+
+  pressed: { opacity: 0.75 },
+
+  // Toolbar
   toolbar: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
     paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    backgroundColor: colors.surface,
+    paddingVertical: 10,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: colors.border,
+    backgroundColor: colors.surface,
   },
-  toolbarTitle: { flex: 1, textAlign: 'center', fontSize: 15, fontWeight: '600', color: colors.text, paddingHorizontal: spacing.sm },
-  tbtn: { paddingHorizontal: spacing.md, paddingVertical: spacing.xs, minWidth: 56 },
-  tbtnText: { color: colors.primary, fontSize: 15, fontWeight: '600' },
+  tbtn: { minWidth: 70 },
+  tbtnRight: { alignItems: 'flex-end' },
+  tbtnBack: { color: colors.primary, fontSize: 15, fontWeight: '500' },
+  tbtnReload: { color: colors.primary, fontSize: 20 },
+  toolbarCenter: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  toolbarTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: colors.text,
+    letterSpacing: -0.1,
+    lineHeight: 20,
+  },
+  toolbarDomain: {
+    fontSize: 10.5,
+    fontWeight: '500',
+    color: colors.textMuted,
+    marginTop: 2,
+    letterSpacing: 0.2,
+  },
   loaderOverlay: { position: 'absolute', top: spacing.md, right: spacing.md },
-  errorBox: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: spacing.xl, gap: spacing.md },
+
+  errorBox: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: spacing.xl,
+    gap: spacing.md,
+  },
   errorTitle: { fontSize: 18, fontWeight: '700', color: colors.text },
   errorMsg: { fontSize: 14, color: colors.textMuted, textAlign: 'center' },
-  retry: {
+  retryBtn: {
     marginTop: spacing.md,
     backgroundColor: colors.primary,
     paddingHorizontal: spacing.xl,
@@ -252,4 +306,11 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
   },
   retryText: { color: '#fff', fontWeight: '600' },
+
+  empty: {
+    textAlign: 'center',
+    color: colors.textMuted,
+    marginTop: spacing.xxl,
+    paddingHorizontal: spacing.xl,
+  },
 });

@@ -1,5 +1,5 @@
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { useAuth } from '@/hooks/useAuth';
 import { SignInScreen } from '@/screens/SignInScreen';
 import { PasswordResetScreen } from '@/screens/PasswordResetScreen';
@@ -9,25 +9,9 @@ import { ScheduleScreen } from '@/screens/ScheduleScreen';
 import { ChurchNewsScreen } from '@/screens/ChurchNewsScreen';
 import { ProfileScreen } from '@/screens/ProfileScreen';
 import { colors } from '@/theme';
+import { TabBarIcon } from '@/components/TabBarIcon';
 
 const Tabs = createBottomTabNavigator();
-
-// Simple emoji-style icons keep us off any extra icon-font dependency.
-const TAB_ICONS: Record<string, string> = {
-  'This Week': '✝',
-  Events: '✦',
-  Schedule: '◷',
-  'Church News': '✉',
-  Profile: '○',
-};
-
-function TabIcon({ name, focused }: { name: string; focused: boolean }) {
-  return (
-    <Text style={[styles.tabIcon, { color: focused ? colors.primary : colors.textMuted }]}>
-      {TAB_ICONS[name] ?? '•'}
-    </Text>
-  );
-}
 
 export function RootNavigator() {
   const { session, loading, recoveryMode } = useAuth();
@@ -53,22 +37,16 @@ export function RootNavigator() {
   return (
     <Tabs.Navigator
       screenOptions={({ route }) => ({
-        headerTitleAlign: 'center',
-        headerStyle: {
-          backgroundColor: colors.primary,
-          shadowOpacity: 0,
-          elevation: 0,
-        },
-        headerTintColor: '#fff',
-        headerTitleStyle: { fontWeight: '700', letterSpacing: 0.5 },
+        headerShown: false,
         tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: colors.textMuted,
         tabBarStyle: {
-          backgroundColor: colors.surface,
+          backgroundColor: 'rgba(247,241,229,0.96)',
           borderTopColor: colors.border,
+          borderTopWidth: StyleSheet.hairlineWidth,
         },
-        tabBarLabelStyle: { fontSize: 11, fontWeight: '600' },
-        tabBarIcon: ({ focused }) => <TabIcon name={route.name} focused={focused} />,
+        tabBarLabelStyle: { fontSize: 10.5, fontWeight: '600', letterSpacing: 0.1 },
+        tabBarIcon: ({ focused }) => <TabBarIcon name={route.name} focused={focused} />,
       })}
     >
       <Tabs.Screen name="This Week" component={ThisWeekScreen} />
@@ -87,5 +65,4 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: colors.background,
   },
-  tabIcon: { fontSize: 18, lineHeight: 22 },
 });

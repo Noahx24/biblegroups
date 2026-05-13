@@ -1,19 +1,33 @@
-// South African Methodist Church palette: scarlet/burgundy + gold accents on a
-// cream background. Used app-wide so the visual identity stays consistent.
+// Methodist scarlet + gold on cream. Tokens match the design spec exactly.
+import { Platform } from 'react-native';
+
 export const colors = {
-  primary: '#A8232E',
-  primaryDark: '#7C1A24',
-  primaryLight: '#F5E2E4',
-  accent: '#C9A961',
+  primary: '#B0202C',
+  primaryDark: '#8E1924',
+  primaryLight: '#F2D9DC',
+  accent: '#C89441',
   accentDark: '#9C7E3D',
-  background: '#FAF6EE',
+  accentLight: '#E8C77A',
+  accentTint: '#F7E9C8',
+  background: '#FAF6EC',
+  backgroundSoft: '#F7F1E5',
   surface: '#FFFFFF',
-  text: '#2A1E1F',
-  textMuted: '#6B5E60',
+  text: '#1F1A14',
+  textSoft: '#3D352B',
+  textMuted: '#7A7164',
+  textMutedSoft: '#9A917F',
   border: '#E5DDD0',
+  borderSoft: '#EFE7D8',
+  open: '#3A7FD8',
+  openSoft: '#D5E2F6',
+  rose: '#C26A7C',
   success: '#4A7C59',
-  danger: '#A8232E',
-  open: '#3A6EA5',
+  danger: '#B0202C',
+};
+
+export const fonts = {
+  serif: Platform.select({ ios: 'Georgia', android: 'serif', default: 'Georgia' }),
+  sans: Platform.select({ ios: 'System', android: 'sans-serif', default: 'System' }),
 };
 
 export const radius = {
@@ -32,8 +46,16 @@ export const spacing = {
   xxl: 32,
 };
 
-// App-wide React Navigation theme so the tab bar / status bar inherit the
-// Methodist palette without per-screen overrides.
+export const shadow = {
+  card: {
+    shadowColor: '#1F1A14',
+    shadowOpacity: 0.07,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 2,
+  },
+};
+
 export const navigationTheme = {
   dark: false,
   colors: {
