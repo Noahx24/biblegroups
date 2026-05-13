@@ -48,6 +48,7 @@ export function ThisWeekScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [reference, setReference] = useState('');
+  const [translation, setTranslation] = useState<string>('web');
   const [saving, setSaving] = useState(false);
   const [claiming, setClaiming] = useState(false);
 
@@ -135,7 +136,7 @@ export function ThisWeekScreen() {
     if (!reference.trim() || !session?.user || !slot) return;
     setSaving(true);
     try {
-      const fetched = await fetchVerse(reference);
+      const fetched = await fetchVerse(reference, translation);
       const { error } = await supabase.from('weekly_verses').upsert(
         {
           group_id: group.id,
@@ -211,6 +212,7 @@ export function ThisWeekScreen() {
                 autoCapitalize="words"
                 style={styles.input}
               />
+              <TranslationPicker value={translation} onChange={setTranslation} />
               <Pressable
                 onPress={saveVerse}
                 disabled={saving || !reference.trim()}
@@ -359,6 +361,35 @@ export function ThisWeekScreen() {
   );
 }
 
+const TRANSLATIONS: { value: string; label: string }[] = [
+  { value: 'web', label: 'WEB' },
+  { value: 'kjv', label: 'KJV' },
+  { value: 'bbe', label: 'BBE' },
+  { value: 'oeb-us', label: 'OEB' },
+  { value: 'webbe', label: 'WEBBE' },
+];
+
+function TranslationPicker({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  return (
+    <View style={styles.translationRow}>
+      <Text style={styles.translationLabel}>Translation</Text>
+      <View style={styles.translationOptions}>
+        {TRANSLATIONS.map(t => (
+          <Pressable
+            key={t.value}
+            onPress={() => onChange(t.value)}
+            style={[styles.translationPill, value === t.value && styles.translationPillActive]}
+          >
+            <Text style={[styles.translationPillText, value === t.value && styles.translationPillTextActive]}>
+              {t.label}
+            </Text>
+          </Pressable>
+        ))}
+      </View>
+    </View>
+  );
+}
+
 function InitialsAvatar({ name, tone, size = 48 }: { name: string; tone: 'scarlet' | 'gold'; size?: number }) {
   const initials = name.split(' ').map(s => s[0] ?? '').join('').slice(0, 2).toUpperCase();
   const bg = tone === 'gold' ? { backgroundColor: colors.accent } : { backgroundColor: colors.primary };
@@ -448,4 +479,11 @@ const styles = StyleSheet.create({
   pressed: { opacity: 0.85 },
   editor: { gap: spacing.sm, marginTop: spacing.sm },
   input: { borderWidth: 1, borderColor: colors.border, borderRadius: radius.md, padding: spacing.md, fontSize: 16, backgroundColor: colors.background, color: colors.text },
+  translationRow: { gap: 6 },
+  translationLabel: { fontSize: 10.5, fontWeight: '700', letterSpacing: 1.2, color: colors.textMuted, textTransform: 'uppercase' },
+  translationOptions: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs },
+  translationPill: { paddingVertical: 5, paddingHorizontal: 10, borderRadius: radius.pill, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.background },
+  translationPillActive: { backgroundColor: colors.primary, borderColor: colors.primary },
+  translationPillText: { fontSize: 12, fontWeight: '700', color: colors.textMuted, letterSpacing: 0.4 },
+  translationPillTextActive: { color: '#fff' },
 });

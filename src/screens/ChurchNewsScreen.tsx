@@ -109,12 +109,6 @@ export function ChurchNewsScreen() {
                 )}
                 <Text style={styles.cardDate}>{dateLabel}</Text>
                 <Text style={styles.cardTitle}>{item.title}</Text>
-                {item.snippet ? (
-                  <Text style={styles.cardSnippet} numberOfLines={3}>
-                    {item.snippet}
-                  </Text>
-                ) : null}
-                <Text style={styles.cardCta}>Read newsletter ›</Text>
               </Pressable>
             );
           }}
