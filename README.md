@@ -32,7 +32,7 @@ npm install
 ### 2. Create a Supabase project
 
 1. Go to https://supabase.com and create a new project.
-2. In the SQL editor, run the migrations in order: [`0001_init.sql`](supabase/migrations/0001_init.sql), [`0002_admin_is_leader.sql`](supabase/migrations/0002_admin_is_leader.sql), [`0003_profile_birthday.sql`](supabase/migrations/0003_profile_birthday.sql), [`0004_realtime.sql`](supabase/migrations/0004_realtime.sql).
+2. In the SQL editor, run the migrations in order: [`0001_init.sql`](supabase/migrations/0001_init.sql), [`0002_admin_is_leader.sql`](supabase/migrations/0002_admin_is_leader.sql), [`0003_profile_birthday.sql`](supabase/migrations/0003_profile_birthday.sql), [`0004_realtime.sql`](supabase/migrations/0004_realtime.sql), [`0005_rls_hardening.sql`](supabase/migrations/0005_rls_hardening.sql).
 3. In **Authentication → Providers**, ensure **Email** is enabled. For a small private class, turn **"Confirm email"** OFF to skip the inbox round-trip.
 4. In **Authentication → URL Configuration**, add `classmeeting://reset` as a redirect URL so password-reset links route back into the app.
 
