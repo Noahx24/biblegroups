@@ -66,7 +66,7 @@ export function PasswordResetScreen() {
         <ScrollView contentContainerStyle={styles.inner} keyboardShouldPersistTaps="handled">
           <View style={styles.brand}>
             <Text style={styles.title}>Set new password</Text>
-            <Text style={styles.tagline}>Class Meeting</Text>
+            <Text style={styles.tagline}>ChurchFlow</Text>
           </View>
           <Text style={styles.subtitle}>
             Choose a new password for your account. You're signed in for this reset only.
