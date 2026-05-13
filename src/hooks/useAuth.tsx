@@ -98,21 +98,45 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    if (!session?.user) {
+    const userId = session?.user?.id;
+    if (!userId) {
       setIsLeader(false);
       setIsAdmin(false);
       return;
     }
-    supabase
-      .from('profiles')
-      .select('is_leader, is_admin')
-      .eq('id', session.user.id)
-      .maybeSingle()
-      .then(({ data, error }) => {
-        if (error) console.warn('profile load failed', error);
-        setIsLeader(Boolean(data?.is_leader));
-        setIsAdmin(Boolean(data?.is_admin));
-      });
+
+    let cancelled = false;
+
+    const loadRoles = async () => {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('is_leader, is_admin')
+        .eq('id', userId)
+        .maybeSingle();
+      if (cancelled) return;
+      if (error) console.warn('profile load failed', error);
+      setIsLeader(Boolean(data?.is_leader));
+      setIsAdmin(Boolean(data?.is_admin));
+    };
+
+    loadRoles();
+
+    // Subscribe to changes on this user's own profile row so an admin's
+    // is_leader / is_admin toggle propagates without requiring a sign-out.
+    // Realtime publication on `profiles` is enabled by migration 0004.
+    const channel = supabase
+      .channel(`auth-profile:${userId}`)
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'profiles', filter: `id=eq.${userId}` },
+        () => loadRoles(),
+      )
+      .subscribe();
+
+    return () => {
+      cancelled = true;
+      supabase.removeChannel(channel);
+    };
   }, [session?.user?.id]);
 
   const signIn = async (email: string, password: string) => {

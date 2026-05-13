@@ -11,10 +11,12 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
 import { supabase } from '@/lib/supabase';
 import { fetchVerse } from '@/lib/bible';
 import { formatWeek, nextWeekStart, weekStart } from '@/lib/week';
 import { useAuth } from '@/hooks/useAuth';
+import { useRealtime } from '@/hooks/useRealtime';
 import { colors, radius, spacing } from '@/theme';
 import type { ScheduleEntry, WeeklyVerse } from '@/types';
 
@@ -62,6 +64,16 @@ export function ThisWeekScreen() {
   useEffect(() => {
     load().finally(() => setLoading(false));
   }, [load]);
+
+  useFocusEffect(
+    useCallback(() => {
+      load();
+    }, [load]),
+  );
+
+  // Live: a leader claiming this week or posting a verse appears immediately.
+  useRealtime('schedule', load);
+  useRealtime('weekly_verses', load);
 
   const onRefresh = async () => {
     setRefreshing(true);

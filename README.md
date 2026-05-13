@@ -32,7 +32,7 @@ npm install
 ### 2. Create a Supabase project
 
 1. Go to https://supabase.com and create a new project.
-2. In the SQL editor, run [`0001_init.sql`](supabase/migrations/0001_init.sql), then [`0002_admin_is_leader.sql`](supabase/migrations/0002_admin_is_leader.sql), then [`0003_profile_birthday.sql`](supabase/migrations/0003_profile_birthday.sql).
+2. In the SQL editor, run the migrations in order: [`0001_init.sql`](supabase/migrations/0001_init.sql), [`0002_admin_is_leader.sql`](supabase/migrations/0002_admin_is_leader.sql), [`0003_profile_birthday.sql`](supabase/migrations/0003_profile_birthday.sql), [`0004_realtime.sql`](supabase/migrations/0004_realtime.sql).
 3. In **Authentication → Providers**, ensure **Email** is enabled. For a small private class, turn **"Confirm email"** OFF to skip the inbox round-trip.
 4. In **Authentication → URL Configuration**, add `classmeeting://reset` as a redirect URL so password-reset links route back into the app.
 
@@ -74,12 +74,15 @@ src/theme.ts                     Methodist palette + shared style tokens
 src/lib/supabase.ts              Supabase client (AsyncStorage-backed session)
 src/lib/bible.ts                 bible-api.com fetcher
 src/lib/week.ts                  Week-start date helpers
-src/hooks/useAuth.tsx            Auth context (email + password + password-reset deep link)
+src/hooks/useAuth.tsx            Auth context (email + password + password-reset deep link + live role updates)
+src/hooks/useRealtime.ts         postgres_changes subscription helper
+src/components/ErrorBoundary.tsx Root error boundary
+src/lib/logger.ts                Logging seam (Sentry-ready)
 src/navigation/RootNavigator     Tab navigator, gated on auth + recovery mode
 src/lib/newsletter.ts            BMC In Touch RSS fetcher + parser
 src/screens/                     SignIn, PasswordReset, ThisWeek, Events, Schedule, ChurchNews, Profile
 assets/                          App icon, adaptive icon, splash (placeholder Methodist artwork)
-supabase/migrations/             SQL schema with row-level security
+supabase/migrations/             SQL schema with row-level security + Realtime publication
 ```
 
 ## Building for the app stores
