@@ -19,7 +19,7 @@ import { format, parse } from 'date-fns';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
 import { useRealtime } from '@/hooks/useRealtime';
-import { colors, radius, spacing } from '@/theme';
+import { colors, fonts, radius, shadow, spacing } from '@/theme';
 import type { EventRsvp, GroupEvent, RsvpStatus } from '@/types';
 
 const RSVP_OPTIONS: { value: RsvpStatus; label: string }[] = [
@@ -62,16 +62,12 @@ export function EventsScreen() {
     load().finally(() => setLoading(false));
   }, [load]);
 
-  // Re-fetch every time this tab gains focus so promotions, fresh RSVPs and
-  // new events appear without a manual pull-to-refresh.
   useFocusEffect(
     useCallback(() => {
       load();
     }, [load]),
   );
 
-  // Live updates while the screen is open: any insert/update/delete on
-  // either table re-runs the load callback. Realtime is enabled by 0004.
   useRealtime('events', load);
   useRealtime('event_rsvps', load);
 
@@ -106,7 +102,6 @@ export function EventsScreen() {
   };
 
   const openMenu = (ev: GroupEvent) => {
-    // Owner OR leader/admin can edit/delete (RLS enforces server-side too).
     const canManage = ev.created_by === userId || isLeader || isAdmin;
     if (!canManage) return;
     Alert.alert(ev.title, undefined, [
@@ -141,6 +136,11 @@ export function EventsScreen() {
     return m;
   }, [rsvps]);
 
+  const goingTotal = useMemo(
+    () => rsvps.filter((r) => r.user_id === userId && r.status === 'going').length,
+    [rsvps, userId],
+  );
+
   if (loading) {
     return (
       <View style={styles.center}>
@@ -150,7 +150,7 @@ export function EventsScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={['left', 'right']}>
+    <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
       <FlatList
         data={events}
         keyExtractor={(e) => e.id}
@@ -162,6 +162,17 @@ export function EventsScreen() {
             tintColor={colors.primary}
           />
         }
+        ListHeaderComponent={
+          <View style={styles.sectionHeader}>
+            <View>
+              <Text style={styles.pageTitle}>Group Events</Text>
+              <Text style={styles.pageSubtitle}>
+                {events.length} upcoming
+                {goingTotal > 0 ? ` · You're going to ${goingTotal}` : ''}
+              </Text>
+            </View>
+          </View>
+        }
         ListEmptyComponent={
           <Text style={styles.empty}>No upcoming events yet. Tap + to add one.</Text>
         }
@@ -171,57 +182,19 @@ export function EventsScreen() {
           const goingCount = eventRsvps.filter((r) => r.status === 'going').length;
           const canManage = item.created_by === userId || isLeader || isAdmin;
           return (
-            <View style={styles.card}>
-              <View style={styles.cardHead}>
-                <Text style={styles.title} numberOfLines={2}>{item.title}</Text>
-                {canManage && (
-                  <Pressable
-                    onPress={() => openMenu(item)}
-                    hitSlop={12}
-                    accessibilityLabel="Event actions"
-                    style={({ pressed }) => [styles.menuBtn, pressed && styles.pressed]}
-                  >
-                    <Text style={styles.menuText}>⋯</Text>
-                  </Pressable>
-                )}
-              </View>
-              <Text style={styles.when}>
-                {format(new Date(item.starts_at), 'EEE, MMM d • h:mm a')}
-              </Text>
-              {item.location ? <Text style={styles.location}>{item.location}</Text> : null}
-              {item.description ? (
-                <Text style={styles.description}>{item.description}</Text>
-              ) : null}
-
-              <View style={styles.rsvpRow}>
-                {RSVP_OPTIONS.map((opt) => {
-                  const active = mine === opt.value;
-                  return (
-                    <Pressable
-                      key={opt.value}
-                      onPress={() => setRsvp(item.id, opt.value)}
-                      accessibilityRole="button"
-                      accessibilityState={{ selected: active }}
-                      accessibilityLabel={`RSVP ${opt.label}`}
-                      style={({ pressed }) => [
-                        styles.rsvpBtn,
-                        active && styles.rsvpBtnActive,
-                        pressed && styles.pressed,
-                      ]}
-                    >
-                      <Text style={[styles.rsvpText, active && styles.rsvpTextActive]}>
-                        {opt.label}
-                      </Text>
-                    </Pressable>
-                  );
-                })}
-                <Text style={styles.count}>{goingCount} going</Text>
-              </View>
-            </View>
+            <EventCard
+              event={item}
+              myRsvp={mine}
+              goingCount={goingCount}
+              canManage={canManage}
+              onRsvp={(status) => setRsvp(item.id, status)}
+              onMenu={() => openMenu(item)}
+            />
           );
         }}
       />
 
+      {/* FAB */}
       <Pressable
         style={({ pressed }) => [styles.fab, pressed && styles.pressed]}
         accessibilityLabel="Create event"
@@ -231,7 +204,7 @@ export function EventsScreen() {
           setModalOpen(true);
         }}
       >
-        <Text style={styles.fabText}>+</Text>
+        <Text style={styles.fabIcon}>+</Text>
       </Pressable>
 
       <EventModal
@@ -245,6 +218,81 @@ export function EventsScreen() {
         editing={editing}
       />
     </SafeAreaView>
+  );
+}
+
+function EventCard({
+  event,
+  myRsvp,
+  goingCount,
+  canManage,
+  onRsvp,
+  onMenu,
+}: {
+  event: GroupEvent;
+  myRsvp: RsvpStatus | null;
+  goingCount: number;
+  canManage: boolean;
+  onRsvp: (s: RsvpStatus) => void;
+  onMenu: () => void;
+}) {
+  const dateStr = format(new Date(event.starts_at), 'EEE · MMM d · HH:mm');
+
+  return (
+    <View style={styles.card}>
+      <View style={styles.cardHead}>
+        <Text style={styles.eventTitle} numberOfLines={2}>{event.title}</Text>
+        {canManage && (
+          <Pressable
+            onPress={onMenu}
+            hitSlop={12}
+            accessibilityLabel="Event actions"
+            style={({ pressed }) => [styles.menuBtn, pressed && styles.pressed]}
+          >
+            <Text style={styles.menuDots}>⋯</Text>
+          </Pressable>
+        )}
+      </View>
+
+      <Text style={styles.eventDate}>{dateStr}</Text>
+
+      {event.location ? (
+        <View style={styles.locationRow}>
+          <Text style={styles.locationPin}>⌖</Text>
+          <Text style={styles.locationText}>{event.location}</Text>
+        </View>
+      ) : null}
+
+      {event.description ? (
+        <Text style={styles.eventDesc}>{event.description}</Text>
+      ) : null}
+
+      <View style={styles.rsvpRow}>
+        {RSVP_OPTIONS.map((opt) => {
+          const active = myRsvp === opt.value;
+          return (
+            <Pressable
+              key={opt.value}
+              onPress={() => onRsvp(opt.value)}
+              accessibilityRole="button"
+              accessibilityState={{ selected: active }}
+              accessibilityLabel={`RSVP ${opt.label}`}
+              style={({ pressed }) => [
+                styles.rsvpPill,
+                active && styles.rsvpPillActive,
+                pressed && styles.pressed,
+              ]}
+            >
+              <Text style={[styles.rsvpText, active && styles.rsvpTextActive]}>
+                {opt.label}
+              </Text>
+            </Pressable>
+          );
+        })}
+        <View style={styles.flex1} />
+        <Text style={styles.goingCount}>{goingCount} going</Text>
+      </View>
+    </View>
   );
 }
 
@@ -267,8 +315,6 @@ function EventModal({
   const [whenISO, setWhenISO] = useState('');
   const [saving, setSaving] = useState(false);
 
-  // When opening for an edit, prefill from the row. Convert the ISO timestamp
-  // back to the YYYY-MM-DD HH:mm format the input expects, in local time.
   const populate = (ev: GroupEvent | null) => {
     if (ev) {
       setTitle(ev.title);
@@ -325,16 +371,16 @@ function EventModal({
     >
       <SafeAreaView style={styles.container}>
         <KeyboardAvoidingView
-          style={styles.flex}
+          style={styles.flex1}
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         >
           <View style={styles.modalHeader}>
             <Pressable onPress={onClose} accessibilityRole="button">
-              <Text style={styles.headerAction}>Cancel</Text>
+              <Text style={styles.modalAction}>Cancel</Text>
             </Pressable>
-            <Text style={styles.headerTitle}>{editing ? 'Edit event' : 'New event'}</Text>
+            <Text style={styles.modalTitle}>{editing ? 'Edit event' : 'New event'}</Text>
             <Pressable onPress={save} disabled={saving} accessibilityRole="button">
-              <Text style={[styles.headerAction, styles.save]}>{saving ? '…' : 'Save'}</Text>
+              <Text style={[styles.modalAction, styles.modalSave]}>{saving ? '…' : 'Save'}</Text>
             </Pressable>
           </View>
           <View style={styles.form}>
@@ -376,61 +422,133 @@ function EventModal({
 }
 
 const styles = StyleSheet.create({
-  flex: { flex: 1 },
+  flex1: { flex: 1 },
   container: { flex: 1, backgroundColor: colors.background },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.background },
-  list: { padding: spacing.lg, gap: spacing.md },
-  empty: { textAlign: 'center', color: colors.textMuted, marginTop: spacing.xxl },
+  list: { paddingBottom: 100 },
+
+  // Section header
+  sectionHeader: {
+    paddingHorizontal: spacing.xl,
+    paddingTop: spacing.sm,
+    paddingBottom: spacing.lg,
+  },
+  pageTitle: {
+    fontFamily: fonts.serif,
+    fontSize: 32,
+    fontWeight: '600',
+    color: colors.text,
+    letterSpacing: -0.4,
+    lineHeight: 34,
+  },
+  pageSubtitle: {
+    fontSize: 13.5,
+    color: colors.textMuted,
+    marginTop: 4,
+  },
+
+  // Event card
   card: {
     backgroundColor: colors.surface,
     borderRadius: radius.lg,
     padding: spacing.lg,
-    gap: 4,
+    marginHorizontal: spacing.lg,
     marginBottom: spacing.md,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.borderSoft,
+    ...shadow.card,
   },
-  cardHead: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.sm },
-  title: { fontSize: 17, fontWeight: '700', color: colors.text, flex: 1 },
-  menuBtn: { paddingHorizontal: spacing.sm, paddingVertical: 2 },
-  menuText: { fontSize: 22, color: colors.textMuted, lineHeight: 22 },
-  when: { fontSize: 14, color: colors.primary, fontWeight: '600' },
-  location: { fontSize: 14, color: colors.textMuted },
-  description: { fontSize: 14, color: colors.text, marginTop: spacing.xs },
+  cardHead: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.sm,
+    marginBottom: 4,
+  },
+  eventTitle: {
+    fontFamily: fonts.serif,
+    fontSize: 19,
+    fontWeight: '600',
+    color: colors.text,
+    letterSpacing: -0.2,
+    lineHeight: 24,
+    flex: 1,
+  },
+  menuBtn: { paddingHorizontal: spacing.xs, paddingVertical: 2 },
+  menuDots: { fontSize: 22, color: colors.textMuted, lineHeight: 22 },
+  eventDate: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: colors.primary,
+    letterSpacing: 0.1,
+    marginBottom: 8,
+  },
+  locationRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    marginBottom: 8,
+  },
+  locationPin: { fontSize: 13, color: colors.textMuted },
+  locationText: { fontSize: 13, color: colors.textMuted },
+  eventDesc: {
+    fontSize: 13.5,
+    color: colors.textMuted,
+    lineHeight: 20,
+    marginBottom: 4,
+  },
+
+  // RSVP
   rsvpRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
-    marginTop: spacing.md,
+    marginTop: 14,
   },
-  rsvpBtn: {
-    paddingVertical: 6,
-    paddingHorizontal: spacing.md,
+  rsvpPill: {
+    paddingVertical: 7,
+    paddingHorizontal: 14,
     borderRadius: radius.pill,
     backgroundColor: colors.background,
     borderWidth: 1,
     borderColor: colors.border,
   },
-  rsvpBtnActive: { backgroundColor: colors.primary, borderColor: colors.primary },
-  rsvpText: { color: colors.textMuted, fontWeight: '600', fontSize: 13 },
+  rsvpPillActive: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+    shadowColor: colors.primary,
+    shadowOpacity: 0.22,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 1 },
+    elevation: 2,
+  },
+  rsvpText: { fontSize: 13, fontWeight: '600', color: colors.textSoft, letterSpacing: 0.1 },
   rsvpTextActive: { color: '#fff' },
-  count: { marginLeft: 'auto', color: colors.textMuted, fontSize: 13 },
-  pressed: { opacity: 0.75 },
+  goingCount: { fontSize: 12.5, color: colors.textMuted, fontWeight: '600' },
+
+  // Empty
+  empty: { textAlign: 'center', color: colors.textMuted, marginTop: spacing.xxl, paddingHorizontal: spacing.xl },
+
+  // FAB
   fab: {
     position: 'absolute',
-    right: spacing.xl,
-    bottom: spacing.xxl,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    right: 18,
+    bottom: 100,
+    width: 58,
+    height: 58,
+    borderRadius: 29,
     backgroundColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOpacity: 0.25,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 3 },
-    elevation: 4,
+    shadowColor: colors.primary,
+    shadowOpacity: 0.35,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 6,
   },
-  fabText: { color: '#fff', fontSize: 28, lineHeight: 30 },
+  fabIcon: { color: '#fff', fontSize: 28, lineHeight: 30, marginTop: -2 },
+  pressed: { opacity: 0.75 },
+
+  // Modal
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -440,9 +558,9 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.border,
     backgroundColor: colors.surface,
   },
-  headerTitle: { fontSize: 16, fontWeight: '600', color: colors.text },
-  headerAction: { fontSize: 16, color: colors.primary },
-  save: { fontWeight: '700' },
+  modalTitle: { fontSize: 16, fontWeight: '600', color: colors.text },
+  modalAction: { fontSize: 16, color: colors.primary },
+  modalSave: { fontWeight: '700' },
   form: { padding: spacing.lg, gap: spacing.md },
   input: {
     borderWidth: 1,
