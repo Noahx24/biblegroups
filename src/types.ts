@@ -87,12 +87,31 @@ export type ScheduleSlot = {
   id: string;
   group_id: string;
   slot_date: string;
+  slot_time: string | null;          // 'HH:MM:SS' or 'HH:MM'
+  programme_id: string | null;
   assignee_id: string | null;
   status: SlotStatus;
   notes: string | null;
   created_by: string | null;
   created_at: string;
   assignee?: Pick<Profile, 'id' | 'display_name' | 'avatar_url'> | null;
+  programme?: Pick<VolunteerProgramme, 'id' | 'name' | 'default_time'> | null;
+};
+
+export type VolunteerProgramme = {
+  id: string;
+  group_id: string;
+  name: string;
+  default_time: string | null;       // 'HH:MM:SS'
+  created_by: string | null;
+  created_at: string;
+};
+
+export type DevicePushToken = {
+  user_id: string;
+  expo_push_token: string;
+  platform: 'ios' | 'android' | 'web';
+  updated_at: string;
 };
 
 export type GroupEvent = {

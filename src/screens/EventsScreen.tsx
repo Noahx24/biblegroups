@@ -79,7 +79,11 @@ export function EventsScreen() {
     useCallback(() => { load(); }, [load]),
   );
 
-  useRealtime('events', load);
+  useRealtime('events', load, `group_id=eq.${group.id}`);
+  // event_rsvps has no group_id column, but it's keyed by event_id; a stale
+  // change in another group's RSVPs will just trigger an extra fetch that
+  // returns the same data. Filtering by event_id would require a per-event
+  // subscription; the per-group debouncing isn't worth it here.
   useRealtime('event_rsvps', load);
 
   const onRefresh = async () => {
@@ -345,10 +349,16 @@ function EventModal({
         return;
       }
     } else {
-      const { error } = await supabase
-        .from('events').insert({ ...payload, group_id: groupId, created_by: userId });
+      const { data: created, error } = await supabase
+        .from('events')
+        .insert({ ...payload, group_id: groupId, created_by: userId })
+        .select();
       setSaving(false);
       if (error) { Alert.alert('Error', error.message); return; }
+      if (!created || created.length === 0) {
+        Alert.alert('Could not create event', 'The event was not saved. You may not have permission to add events to this group.');
+        return;
+      }
     }
     onSaved();
   };

@@ -6,6 +6,11 @@ import { AuthProvider } from '@/hooks/useAuth';
 import { RootNavigator } from '@/navigation/RootNavigator';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { navigationTheme } from '@/theme';
+import { setNotificationHandler } from '@/lib/push';
+
+// Install the foreground notification handler before any render — push
+// notifications arriving while the app is open show as banners.
+setNotificationHandler();
 
 export default function App() {
   return (

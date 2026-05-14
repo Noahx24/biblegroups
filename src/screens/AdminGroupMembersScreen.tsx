@@ -113,15 +113,20 @@ export function AdminGroupMembersScreen() {
   const toggleRole = async (m: MemberRow) => {
     const nextRole: MemberRole = m.role === 'leader' ? 'member' : 'leader';
     setBusyUserId(m.user_id);
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('group_members')
       .update({ role: nextRole })
       .eq('group_id', group.id)
-      .eq('user_id', m.user_id);
+      .eq('user_id', m.user_id)
+      .select();
+    if (!mountedRef.current) return;
     setBusyUserId(null);
     if (error) {
       Alert.alert('Could not update role', error.message);
       return;
+    }
+    if (!data || data.length === 0) {
+      Alert.alert('Could not update role', 'This member may have been removed by another admin.');
     }
     await load();
   };
@@ -144,15 +149,21 @@ export function AdminGroupMembersScreen() {
 
   const removeMember = async (m: MemberRow) => {
     setBusyUserId(m.user_id);
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('group_members')
       .delete()
       .eq('group_id', group.id)
-      .eq('user_id', m.user_id);
+      .eq('user_id', m.user_id)
+      .select();
+    if (!mountedRef.current) return;
     setBusyUserId(null);
     if (error) {
       Alert.alert('Could not remove member', error.message);
       return;
+    }
+    if (!data || data.length === 0) {
+      // Already gone — either another admin removed them or RLS rejected
+      // silently. Just refresh so the UI matches DB state.
     }
     await load();
   };

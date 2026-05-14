@@ -101,8 +101,8 @@ export function ThisWeekScreen() {
     useCallback(() => { load(); }, [load]),
   );
 
-  useRealtime('schedule', load);
-  useRealtime('weekly_verses', load);
+  useRealtime('schedule', load, `group_id=eq.${group.id}`);
+  useRealtime('weekly_verses', load, `group_id=eq.${group.id}`);
 
   const onRefresh = async () => {
     setRefreshing(true);
