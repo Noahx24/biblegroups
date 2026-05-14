@@ -49,17 +49,21 @@ export function ChurchNewsScreen() {
     setRefreshing(false);
   };
 
-  // Group newsletters by liturgical season; sort sections newest-first.
+  // Group newsletters by month of publication; sort sections newest-first.
   const sections = useMemo(() => {
-    const byTheme = new Map<string, { theme: string; sortKey: number; data: NewsletterItem[] }>();
+    const byMonth = new Map<string, { title: string; sortKey: number; data: NewsletterItem[] }>();
     for (const item of items) {
-      const existing = byTheme.get(item.theme);
+      if (!isValid(item.pubDate)) continue;
+      const key = format(item.pubDate, 'yyyy-MM');
+      const title = format(item.pubDate, 'MMMM yyyy');
+      const sortKey = new Date(item.pubDate.getFullYear(), item.pubDate.getMonth(), 1).getTime();
+      const existing = byMonth.get(key);
       if (existing) existing.data.push(item);
-      else byTheme.set(item.theme, { theme: item.theme, sortKey: item.themeSortKey, data: [item] });
+      else byMonth.set(key, { title, sortKey, data: [item] });
     }
-    return Array.from(byTheme.values())
+    return Array.from(byMonth.values())
       .sort((a, b) => b.sortKey - a.sortKey)
-      .map(s => ({ title: s.theme, data: s.data }));
+      .map(s => ({ title: s.title, data: s.data }));
   }, [items]);
 
   const latestId = items[0]?.id;
@@ -110,7 +114,7 @@ export function ChurchNewsScreen() {
             </Text>
           }
           renderSectionHeader={({ section }) => (
-            <Text style={styles.themeHeader}>{section.title}</Text>
+            <Text style={styles.monthHeader}>{section.title}</Text>
           )}
           renderItem={({ item }) => {
             const dateLabel = isValid(item.pubDate)
@@ -280,7 +284,7 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
     marginTop: 4,
   },
-  themeHeader: {
+  monthHeader: {
     fontSize: 11,
     fontWeight: '700',
     letterSpacing: 1.6,
