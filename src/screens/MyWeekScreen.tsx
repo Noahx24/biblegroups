@@ -1,7 +1,9 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Pressable,
   RefreshControl,
+  ScrollView,
   SectionList,
   StyleSheet,
   Text,
@@ -16,21 +18,21 @@ import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
 import { useRealtime } from '@/hooks/useRealtime';
 import { colors, fonts, radius, shadow, spacing } from '@/theme';
-import type { GroupType, ProgramType } from '@/types';
+import type { GroupType, ProgramType, SlotStatus } from '@/types';
 
 type IoniconsName = ComponentProps<typeof Ionicons>['name'];
 
 // ─── colour helpers ──────────────────────────────────────────────────────────
 
 const GROUP_PALETTE = [
-  '#3A7FD8', // blue
-  '#4A7C59', // green
-  '#C89441', // gold
-  '#8B5CF6', // purple
-  '#D97706', // amber
-  '#0891B2', // cyan
-  '#C26A7C', // rose
-  '#059669', // emerald
+  '#3A7FD8',
+  '#4A7C59',
+  '#C89441',
+  '#8B5CF6',
+  '#D97706',
+  '#0891B2',
+  '#C26A7C',
+  '#059669',
 ];
 
 function groupColor(groupId: string): string {
@@ -47,19 +49,46 @@ const PROGRAM_COLOR: Record<string, string> = {
   holiday_club: colors.success,
 };
 
-// ─── unified item type ───────────────────────────────────────────────────────
+// ─── kind display ────────────────────────────────────────────────────────────
+
+const KIND_LABEL: Record<string, string> = {
+  slot: 'Schedule',
+  event: 'Event',
+  program: 'Programme',
+};
+
+const KIND_BG: Record<string, string> = {
+  slot: colors.primaryLight,
+  event: colors.openSoft,
+  program: colors.accentTint,
+};
+
+const KIND_COLOR: Record<string, string> = {
+  slot: colors.primary,
+  event: colors.open,
+  program: colors.accent,
+};
+
+// ─── types ───────────────────────────────────────────────────────────────────
 
 type WeekItem = {
   id: string;
   kind: 'slot' | 'event' | 'program';
-  date: string;         // yyyy-MM-dd for grouping
-  sortKey: string;      // 'HH:MM' or '99:99' so no-time items sort last
+  date: string;
+  sortKey: string;
   timeLabel: string | null;
   label: string;
   sublabel: string | null;
   location: string | null;
   color: string;
   icon: IoniconsName;
+  slotStatus?: SlotStatus;
+};
+
+type Section = {
+  title: string;
+  date: string;          // yyyy-MM-dd — needed for day-strip scroll
+  data: WeekItem[];
 };
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
@@ -76,9 +105,123 @@ function slotIcon(groupType: GroupType): IoniconsName {
   return groupType === 'class' ? 'book' : 'construct';
 }
 
-function programIcon(_type: ProgramType): IoniconsName {
-  return 'star';
+// ─── day strip ───────────────────────────────────────────────────────────────
+
+type DayChip = {
+  isoDate: string;
+  dayName: string;   // "Mon"
+  dayNum: string;    // "14"
+  hasItems: boolean;
+};
+
+function DayStrip({
+  days,
+  selectedDate,
+  onSelect,
+}: {
+  days: DayChip[];
+  selectedDate: string;
+  onSelect: (isoDate: string) => void;
+}) {
+  const stripRef = useRef<ScrollView>(null);
+
+  // Auto-scroll strip to keep selected chip centred
+  useEffect(() => {
+    const idx = days.findIndex(d => d.isoDate === selectedDate);
+    if (idx < 0) return;
+    // Each chip is ~52 px wide + 6 px gap
+    const CHIP_W = 52 + 6;
+    stripRef.current?.scrollTo({ x: Math.max(0, idx * CHIP_W - 80), animated: true });
+  }, [selectedDate, days]);
+
+  return (
+    <View style={stripStyles.wrapper}>
+      <ScrollView
+        ref={stripRef}
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={stripStyles.strip}
+      >
+        {days.map(chip => {
+          const active = chip.isoDate === selectedDate;
+          return (
+            <Pressable
+              key={chip.isoDate}
+              style={[
+                stripStyles.chip,
+                active && stripStyles.chipActive,
+                !chip.hasItems && stripStyles.chipEmpty,
+              ]}
+              onPress={() => onSelect(chip.isoDate)}
+            >
+              <Text style={[stripStyles.chipDay, active && stripStyles.chipTextActive]}>
+                {chip.dayName}
+              </Text>
+              <Text style={[stripStyles.chipNum, active && stripStyles.chipTextActive]}>
+                {chip.dayNum}
+              </Text>
+              {chip.hasItems && (
+                <View style={[stripStyles.dot, active && stripStyles.dotActive]} />
+              )}
+            </Pressable>
+          );
+        })}
+      </ScrollView>
+    </View>
+  );
 }
+
+const stripStyles = StyleSheet.create({
+  wrapper: {
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.border,
+    backgroundColor: colors.surface,
+  },
+  strip: {
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+    gap: 6,
+  },
+  chip: {
+    width: 52,
+    alignItems: 'center',
+    paddingVertical: spacing.sm,
+    borderRadius: radius.md,
+    gap: 2,
+  },
+  chipActive: {
+    backgroundColor: colors.primary,
+  },
+  chipEmpty: {
+    opacity: 0.45,
+  },
+  chipDay: {
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+    color: colors.textMuted,
+    textTransform: 'uppercase',
+  },
+  chipNum: {
+    fontSize: 17,
+    fontWeight: '700',
+    color: colors.text,
+    lineHeight: 20,
+  },
+  chipTextActive: {
+    color: colors.surface,
+  },
+  dot: {
+    width: 5,
+    height: 5,
+    borderRadius: 3,
+    backgroundColor: colors.primary,
+    marginTop: 2,
+  },
+  dotActive: {
+    backgroundColor: colors.surface,
+  },
+});
 
 // ─── screen ──────────────────────────────────────────────────────────────────
 
@@ -86,23 +229,54 @@ export function MyWeekScreen() {
   const { session } = useAuth();
   const userId = session?.user.id ?? '';
 
-  const [sections, setSections] = useState<{ title: string; data: WeekItem[] }[]>([]);
+  const [rawSections, setRawSections] = useState<Section[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [hasGroups, setHasGroups] = useState(true);
+  const [selectedDate, setSelectedDate] = useState(() => format(new Date(), 'yyyy-MM-dd'));
+
+  const listRef = useRef<SectionList<WeekItem, Section>>(null);
+
+  // Build 14-day chip list once sections are loaded
+  const days = useMemo<DayChip[]>(() => {
+    const now = new Date();
+    return Array.from({ length: 14 }, (_, i) => {
+      const d = addDays(now, i);
+      const isoDate = format(d, 'yyyy-MM-dd');
+      return {
+        isoDate,
+        dayName: format(d, 'EEE'),
+        dayNum: format(d, 'd'),
+        hasItems: rawSections.some(s => s.date === isoDate),
+      };
+    });
+  }, [rawSections]);
+
+  const scrollToDate = useCallback((isoDate: string) => {
+    setSelectedDate(isoDate);
+    const sectionIndex = rawSections.findIndex(s => s.date === isoDate);
+    if (sectionIndex < 0) return;
+    try {
+      listRef.current?.scrollToLocation({
+        sectionIndex,
+        itemIndex: 0,
+        animated: true,
+        viewOffset: 0,
+      });
+    } catch {
+      // scrollToLocation can throw if layout hasn't settled yet; ignore
+    }
+  }, [rawSections]);
 
   const load = useCallback(async () => {
     if (!userId) return;
 
-    // Compute window bounds fresh on each load so date changes (e.g. midnight
-    // rollover) are picked up without remounting.
     const now = new Date();
     const today = format(now, 'yyyy-MM-dd');
     const windowEnd = format(addDays(now, 13), 'yyyy-MM-dd');
     const nowIso = now.toISOString();
     const windowEndIso = addDays(now, 14).toISOString();
 
-    // Step 1: user's group memberships
     const { data: memberRows, error: memberErr } = await supabase
       .from('group_members')
       .select('group_id, role, groups(id, name, type)')
@@ -113,7 +287,10 @@ export function MyWeekScreen() {
       return;
     }
 
-    type MemberJoin = { group_id: string; role: string; groups: { id: string; name: string; type: GroupType } | null };
+    type MemberJoin = {
+      group_id: string;
+      groups: { id: string; name: string; type: GroupType } | null;
+    };
     const rows = (memberRows ?? []) as unknown as MemberJoin[];
     const groupMap: Record<string, { name: string; type: GroupType }> = {};
     const groupIds: string[] = [];
@@ -124,7 +301,6 @@ export function MyWeekScreen() {
     }
     setHasGroups(groupIds.length > 0);
 
-    // Step 2: parallel fetch — schedule slots, events, child programme dates
     const [slotsRes, eventsRes, regsRes] = await Promise.all([
       supabase
         .from('schedule')
@@ -144,7 +320,10 @@ export function MyWeekScreen() {
             .lt('starts_at', windowEndIso)
             .order('starts_at', { ascending: true })
             .limit(50)
-        : Promise.resolve({ data: [] as { id: string; title: string; starts_at: string; location: string | null; group_id: string }[], error: null }),
+        : Promise.resolve({
+            data: [] as { id: string; title: string; starts_at: string; location: string | null; group_id: string }[],
+            error: null,
+          }),
 
       supabase
         .from('program_registrations')
@@ -159,7 +338,6 @@ export function MyWeekScreen() {
 
     const items: WeekItem[] = [];
 
-    // Schedule slots
     type SlotJoin = {
       id: string;
       slot_date: string;
@@ -172,9 +350,10 @@ export function MyWeekScreen() {
       const group = groupMap[raw.group_id];
       const prog = raw.volunteer_programmes;
       const timeLabel = raw.slot_time ? raw.slot_time.slice(0, 5) : null;
-      const label = group?.type === 'class'
-        ? `Leading ${group.name}`
-        : prog?.name
+      const label =
+        group?.type === 'class'
+          ? `Leading ${group.name}`
+          : prog?.name
           ? `Volunteering — ${prog.name}`
           : `Volunteering for ${group?.name ?? 'group'}`;
       items.push({
@@ -188,11 +367,17 @@ export function MyWeekScreen() {
         location: null,
         color: groupColor(raw.group_id),
         icon: slotIcon(group?.type ?? 'class'),
+        slotStatus: raw.status as SlotStatus,
       });
     }
 
-    // Events
-    type EventRow = { id: string; title: string; starts_at: string; location: string | null; group_id: string };
+    type EventRow = {
+      id: string;
+      title: string;
+      starts_at: string;
+      location: string | null;
+      group_id: string;
+    };
     for (const ev of ((eventsRes.data ?? []) as EventRow[])) {
       const date = format(parseISO(ev.starts_at), 'yyyy-MM-dd');
       const timeLabel = format(parseISO(ev.starts_at), 'HH:mm');
@@ -211,11 +396,16 @@ export function MyWeekScreen() {
       });
     }
 
-    // Child programme dates
     type RegJoin = {
       id: string;
       family_members: { name: string } | null;
-      youth_programs: { id: string; name: string; type: ProgramType; start_date: string | null; end_date: string | null } | null;
+      youth_programs: {
+        id: string;
+        name: string;
+        type: ProgramType;
+        start_date: string | null;
+        end_date: string | null;
+      } | null;
     };
     for (const reg of ((regsRes.data ?? []) as unknown as RegJoin[])) {
       const prog = reg.youth_programs;
@@ -234,7 +424,7 @@ export function MyWeekScreen() {
           sublabel: 'Programme starts',
           location: null,
           color,
-          icon: programIcon(prog.type),
+          icon: 'star',
         });
       }
       if (prog.end_date && prog.end_date >= today && prog.end_date <= windowEnd) {
@@ -248,26 +438,27 @@ export function MyWeekScreen() {
           sublabel: 'Last day',
           location: null,
           color,
-          icon: programIcon(prog.type),
+          icon: 'flag',
         });
       }
     }
 
-    // Group into day sections, sort by date then by time within day
     items.sort((a, b) => {
-      const dateCmp = a.date.localeCompare(b.date);
-      if (dateCmp !== 0) return dateCmp;
-      return a.sortKey.localeCompare(b.sortKey);
+      const dc = a.date.localeCompare(b.date);
+      return dc !== 0 ? dc : a.sortKey.localeCompare(b.sortKey);
     });
 
     const byDay = new Map<string, WeekItem[]>();
     for (const item of items) {
-      (byDay.get(item.date) ?? (() => { const arr: WeekItem[] = []; byDay.set(item.date, arr); return arr; })()).push(item);
+      const existing = byDay.get(item.date);
+      if (existing) existing.push(item);
+      else byDay.set(item.date, [item]);
     }
 
-    setSections(
+    setRawSections(
       Array.from(byDay.entries()).map(([date, data]) => ({
         title: dayLabel(date),
+        date,
         data,
       })),
     );
@@ -297,32 +488,34 @@ export function MyWeekScreen() {
     );
   }
 
-  const windowLabel = `${format(new Date(), 'MMM d')} – ${format(addDays(new Date(), 13), 'MMM d')}`;
+  const now = new Date();
+  const windowLabel = `${format(now, 'MMM d')} – ${format(addDays(now, 13), 'MMM d')}`;
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
-      <SectionList
-        sections={sections}
+      {/* Page header — outside the list so it doesn't scroll away */}
+      <View style={styles.pageHeader}>
+        <View>
+          <Text style={styles.pageTitle}>My Week</Text>
+          <Text style={styles.pageSubtitle}>{windowLabel}</Text>
+        </View>
+      </View>
+
+      {/* Sticky day strip */}
+      <DayStrip days={days} selectedDate={selectedDate} onSelect={scrollToDate} />
+
+      <SectionList<WeekItem, Section>
+        ref={listRef}
+        sections={rawSections}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.list}
-        stickySectionHeadersEnabled={false}
+        stickySectionHeadersEnabled
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
         }
-        ListHeaderComponent={
-          <View style={styles.pageHeader}>
-            <Text style={styles.pageTitle}>My Week</Text>
-            <Text style={styles.pageSubtitle}>{windowLabel}</Text>
-          </View>
-        }
         ListEmptyComponent={
           <View style={styles.emptyBox}>
-            <Ionicons
-              name="calendar-outline"
-              size={48}
-              color={colors.border}
-              style={styles.emptyIcon}
-            />
+            <Ionicons name="calendar-outline" size={52} color={colors.border} style={styles.emptyIcon} />
             {!hasGroups ? (
               <>
                 <Text style={styles.emptyTitle}>No groups yet</Text>
@@ -341,7 +534,12 @@ export function MyWeekScreen() {
           </View>
         }
         renderSectionHeader={({ section }) => (
-          <Text style={styles.dayHeader}>{section.title}</Text>
+          <View style={styles.sectionHeaderRow}>
+            <Text style={styles.dayHeader}>{section.title}</Text>
+            <View style={styles.countBadge}>
+              <Text style={styles.countBadgeText}>{section.data.length}</Text>
+            </View>
+          </View>
         )}
         renderItem={({ item }) => <WeekCard item={item} />}
       />
@@ -349,15 +547,33 @@ export function MyWeekScreen() {
   );
 }
 
-// ─── card component ───────────────────────────────────────────────────────────
+// ─── card ─────────────────────────────────────────────────────────────────────
 
 function WeekCard({ item }: { item: WeekItem }) {
+  const kindBg = KIND_BG[item.kind] ?? colors.primaryLight;
+  const kindColor = KIND_COLOR[item.kind] ?? colors.primary;
+  const kindLabel = KIND_LABEL[item.kind] ?? item.kind;
+
   return (
     <View style={[styles.card, { borderLeftColor: item.color }]}>
+      {/* Icon circle */}
       <View style={[styles.iconCircle, { backgroundColor: item.color + '22' }]}>
         <Ionicons name={item.icon} size={16} color={item.color} />
       </View>
+
+      {/* Text column */}
       <View style={styles.cardText}>
+        <View style={styles.cardTopRow}>
+          <View style={[styles.kindPill, { backgroundColor: kindBg }]}>
+            <Text style={[styles.kindPillText, { color: kindColor }]}>{kindLabel}</Text>
+          </View>
+          {item.slotStatus === 'pending' && (
+            <View style={[styles.statusDot, { backgroundColor: colors.accent }]} />
+          )}
+          {item.slotStatus === 'accepted' && (
+            <View style={[styles.statusDot, { backgroundColor: colors.success }]} />
+          )}
+        </View>
         <Text style={styles.cardLabel} numberOfLines={2}>{item.label}</Text>
         {!!item.sublabel && (
           <Text style={styles.cardSublabel} numberOfLines={1}>{item.sublabel}</Text>
@@ -369,6 +585,8 @@ function WeekCard({ item }: { item: WeekItem }) {
           </View>
         )}
       </View>
+
+      {/* Time badge */}
       {!!item.timeLabel && (
         <View style={styles.timeBadge}>
           <Text style={styles.timeBadgeText}>{item.timeLabel}</Text>
@@ -382,13 +600,19 @@ function WeekCard({ item }: { item: WeekItem }) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.background },
+  center: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.background,
+  },
   list: { paddingBottom: spacing.xxl },
 
   pageHeader: {
     paddingHorizontal: spacing.xl,
     paddingTop: spacing.sm,
-    paddingBottom: spacing.lg,
+    paddingBottom: spacing.md,
+    backgroundColor: colors.background,
   },
   pageTitle: {
     fontFamily: fonts.serif,
@@ -401,19 +625,39 @@ const styles = StyleSheet.create({
   pageSubtitle: {
     fontSize: 13.5,
     color: colors.textMuted,
-    marginTop: 4,
+    marginTop: 3,
   },
 
+  sectionHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: spacing.xl,
+    paddingTop: spacing.lg,
+    paddingBottom: spacing.sm,
+    backgroundColor: colors.background,
+    gap: spacing.sm,
+  },
   dayHeader: {
     fontSize: 11,
     fontWeight: '700',
     letterSpacing: 1.6,
     color: colors.primary,
     textTransform: 'uppercase',
-    paddingHorizontal: spacing.xl,
-    paddingTop: spacing.lg,
-    paddingBottom: spacing.sm,
-    backgroundColor: colors.background,
+    flex: 1,
+  },
+  countBadge: {
+    backgroundColor: colors.primaryLight,
+    borderRadius: radius.pill,
+    minWidth: 20,
+    height: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 6,
+  },
+  countBadgeText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: colors.primary,
   },
 
   card: {
@@ -442,7 +686,29 @@ const styles = StyleSheet.create({
     flexShrink: 0,
   },
 
-  cardText: { flex: 1 },
+  cardText: { flex: 1, gap: 2 },
+  cardTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    marginBottom: 2,
+  },
+  kindPill: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: radius.sm,
+  },
+  kindPillText: {
+    fontSize: 9.5,
+    fontWeight: '800',
+    letterSpacing: 0.6,
+    textTransform: 'uppercase',
+  },
+  statusDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+  },
   cardLabel: {
     fontSize: 14.5,
     fontWeight: '600',
@@ -452,13 +718,12 @@ const styles = StyleSheet.create({
   cardSublabel: {
     fontSize: 12,
     color: colors.textMuted,
-    marginTop: 2,
   },
   locationRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 3,
-    marginTop: 2,
+    marginTop: 1,
   },
   cardLocation: {
     fontSize: 12,
