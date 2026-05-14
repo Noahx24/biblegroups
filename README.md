@@ -215,6 +215,50 @@ assets/                       App icon, adaptive icon, splash screen
 
 ---
 
+## App icons & splash screen
+
+The repo ships three vector sources under `assets/`:
+
+| File | Purpose | Final raster |
+| --- | --- | --- |
+| `assets/icon.svg` | iOS icon + Android non-adaptive icon | `assets/icon.png` (1024 × 1024) |
+| `assets/adaptive-icon.svg` | Android adaptive-icon foreground (background colour is set in `app.json`) | `assets/adaptive-icon.png` (1024 × 1024) |
+| `assets/splash.svg` | Initial loading screen | `assets/splash.png` (2048 × 2048) |
+
+Expo bundles the **PNG** files, so you re-export the SVGs whenever you change the artwork. Anything that can rasterise SVG works — pick one of the routes below.
+
+### Option A — `sharp-cli` (no dependencies, one-off)
+
+```bash
+# install once (saved to devDependencies)
+npm install --save-dev sharp-cli
+
+# generate the three PNGs Expo expects
+npx sharp -i assets/icon.svg          -o assets/icon.png          resize 1024 1024
+npx sharp -i assets/adaptive-icon.svg -o assets/adaptive-icon.png resize 1024 1024
+npx sharp -i assets/splash.svg        -o assets/splash.png        resize 2048 2048
+```
+
+### Option B — Inkscape (better text rendering, if you add wordmarks later)
+
+```bash
+inkscape assets/icon.svg          --export-type=png --export-filename=assets/icon.png          -w 1024 -h 1024
+inkscape assets/adaptive-icon.svg --export-type=png --export-filename=assets/adaptive-icon.png -w 1024 -h 1024
+inkscape assets/splash.svg        --export-type=png --export-filename=assets/splash.png        -w 2048 -h 2048
+```
+
+After exporting, rebuild the prebuilt native projects so the new icons land in the binaries:
+
+```bash
+npx expo prebuild --clean
+```
+
+Then run `eas build` as below.
+
+**Replacing the artwork.** The shipped SVG is a placeholder — open book + bookmark in Methodist scarlet on cream. To use the church's real branding, replace the three `.svg` files (keep the file names and viewBox dimensions) and re-run the rasterisation commands above. The colour palette comes from `src/theme.ts`; matching the brand there keeps the rest of the app consistent.
+
+---
+
 ## Building for the app stores
 
 ```bash
