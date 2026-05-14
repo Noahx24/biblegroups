@@ -593,6 +593,7 @@ function AddMemberModal({
               renderItem={({ item }) => {
                 const already = existingUserIds.includes(item.id);
                 const isStaged = staged.some(u => u.id === item.id);
+                const displayName = item.display_name ?? item.email ?? 'Unknown';
                 return (
                   <TouchableOpacity
                     style={[
@@ -602,6 +603,15 @@ function AddMemberModal({
                     ]}
                     disabled={already || adding}
                     onPress={() => toggleStage(item)}
+                    accessibilityRole={already ? 'text' : 'checkbox'}
+                    accessibilityState={already ? { disabled: true } : { checked: isStaged }}
+                    accessibilityLabel={
+                      already
+                        ? `${displayName} — already in group`
+                        : isStaged
+                          ? `${displayName} — selected for adding`
+                          : `${displayName} — tap to add`
+                    }
                   >
                     <Avatar uri={item.avatar_url} name={item.display_name ?? item.email} size={36} />
                     <View style={styles.searchResultInfo}>

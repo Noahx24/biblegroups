@@ -149,7 +149,10 @@ begin
     from public.profiles p
     where p.id = auth.uid();
 
-  if coalesce(v_caller_is_admin, false) = false then
+  -- service_role can call directly (e.g. from pg_cron) without an admin
+  -- profile row; the function is granted EXECUTE to service_role above.
+  -- For everyone else, require an admin profile.
+  if current_user <> 'service_role' and coalesce(v_caller_is_admin, false) = false then
     raise exception 'admin only' using errcode = '42501';
   end if;
 

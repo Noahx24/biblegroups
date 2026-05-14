@@ -343,14 +343,20 @@ function ChildEditorModal({ visible, userId, existing, onClose, onSaved }: {
 
     // Consent timestamp policy:
     //   - hasHealthInfo=false → null both fields (no health data, no consent needed)
-    //   - hasHealthInfo=true and the existing consent is still current
-    //     (same version, parent left the tick) → preserve the original
-    //     timestamp so we don't falsify when the consent actually happened
-    //   - otherwise (new record, or version changed) → stamp now()
-    const isPreservingConsent =
+    //   - hasHealthInfo=true with the existing record's consent still on
+    //     the current version → preserve the original timestamp so we don't
+    //     falsify when the consent actually happened
+    //   - otherwise (new record, version bump) → stamp now()
+    const preservedConsentAt =
       hasHealthInfo
-      && !!existing?.consent_given_at
-      && existing.consent_version === CHILD_CONSENT_VERSION;
+      && existing?.consent_version === CHILD_CONSENT_VERSION
+      && existing?.consent_given_at
+        ? existing.consent_given_at
+        : null;
+
+    const consentGivenAt = !hasHealthInfo
+      ? null
+      : preservedConsentAt ?? new Date().toISOString();
 
     const payload = {
       parent_user_id: userId,
@@ -362,11 +368,7 @@ function ChildEditorModal({ visible, userId, existing, onClose, onSaved }: {
       emergency_contact_1_phone: ec1Phone.trim() || null,
       emergency_contact_2_name:  ec2Name.trim()  || null,
       emergency_contact_2_phone: ec2Phone.trim() || null,
-      consent_given_at: !hasHealthInfo
-        ? null
-        : isPreservingConsent
-          ? existing!.consent_given_at
-          : new Date().toISOString(),
+      consent_given_at: consentGivenAt,
       consent_version: hasHealthInfo ? CHILD_CONSENT_VERSION : null,
     };
 
