@@ -10,6 +10,12 @@ import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { navigationTheme } from '@/theme';
 import { setNotificationHandler } from '@/lib/push';
 import { navigationRef } from '@/lib/navigationRef';
+import { initLogger } from '@/lib/logger';
+
+// Init Sentry first so any failure during the rest of bootstrap or the
+// component tree can still be captured. initLogger is a no-op when
+// EXPO_PUBLIC_SENTRY_DSN is not set.
+initLogger();
 
 // Install the foreground notification handler before any render — push
 // notifications arriving while the app is open show as banners.
