@@ -1,10 +1,10 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
-  FlatList,
   Modal,
   Pressable,
   RefreshControl,
+  SectionList,
   StyleSheet,
   Text,
   View,
@@ -49,6 +49,21 @@ export function ChurchNewsScreen() {
     setRefreshing(false);
   };
 
+  // Group newsletters by liturgical season; sort sections newest-first.
+  const sections = useMemo(() => {
+    const byTheme = new Map<string, { theme: string; sortKey: number; data: NewsletterItem[] }>();
+    for (const item of items) {
+      const existing = byTheme.get(item.theme);
+      if (existing) existing.data.push(item);
+      else byTheme.set(item.theme, { theme: item.theme, sortKey: item.themeSortKey, data: [item] });
+    }
+    return Array.from(byTheme.values())
+      .sort((a, b) => b.sortKey - a.sortKey)
+      .map(s => ({ title: s.theme, data: s.data }));
+  }, [items]);
+
+  const latestId = items[0]?.id;
+
   if (loading) {
     return (
       <View style={styles.center}>
@@ -71,10 +86,11 @@ export function ChurchNewsScreen() {
           </Pressable>
         </View>
       ) : (
-        <FlatList
-          data={items}
+        <SectionList
+          sections={sections}
           keyExtractor={(it) => it.id}
           contentContainerStyle={styles.list}
+          stickySectionHeadersEnabled={false}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
@@ -93,7 +109,10 @@ export function ChurchNewsScreen() {
               No newsletters yet. Pull down to refresh after the next In Touch is sent.
             </Text>
           }
-          renderItem={({ item, index }) => {
+          renderSectionHeader={({ section }) => (
+            <Text style={styles.themeHeader}>{section.title}</Text>
+          )}
+          renderItem={({ item }) => {
             const dateLabel = isValid(item.pubDate)
               ? format(item.pubDate, 'EEE, MMM d, yyyy')
               : 'Undated';
@@ -102,7 +121,7 @@ export function ChurchNewsScreen() {
                 onPress={() => setSelected(item)}
                 style={({ pressed }) => [styles.card, pressed && styles.pressed]}
               >
-                {index === 0 && (
+                {item.id === latestId && (
                   <View style={styles.latestPill}>
                     <Text style={styles.latestPillText}>Latest</Text>
                   </View>
@@ -260,6 +279,17 @@ const styles = StyleSheet.create({
     fontSize: 13.5,
     color: colors.textMuted,
     marginTop: 4,
+  },
+  themeHeader: {
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 1.6,
+    color: colors.primary,
+    textTransform: 'uppercase',
+    paddingHorizontal: spacing.xl,
+    paddingTop: spacing.lg,
+    paddingBottom: spacing.sm,
+    backgroundColor: colors.background,
   },
 
   card: {
