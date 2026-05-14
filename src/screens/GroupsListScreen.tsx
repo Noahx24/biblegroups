@@ -222,7 +222,15 @@ export function GroupsListScreen() {
     );
   }
 
-  const otherGroups = allGroups.filter(g => !myGroupIds.has(g.id));
+  // Non-admins browsing the directory only see class groups. Volunteer groups
+  // are admin-managed and not relevant to a normal member who isn't already
+  // part of one — anyone who IS in a volunteer group still sees it under
+  // "My Groups" so they can access its schedule and announcements.
+  const otherGroups = allGroups.filter(g => {
+    if (myGroupIds.has(g.id)) return false;
+    if (!isAdmin && g.type !== 'class') return false;
+    return true;
+  });
 
   return (
     <SafeAreaView style={styles.safe}>
