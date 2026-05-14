@@ -15,7 +15,7 @@
  *     creates groups that don't yet exist, and upserts the group_member row.
  */
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -144,12 +144,19 @@ export function AdminScreen() {
   const [groups, setGroups] = useState<GroupSummary[]>([]);
   const [groupsLoading, setGroupsLoading] = useState(true);
   const [groupQuery, setGroupQuery] = useState('');
+  const mountedRef = useRef(true);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => { mountedRef.current = false; };
+  }, []);
 
   const loadGroups = useCallback(async () => {
     const [groupsRes, countsRes] = await Promise.all([
       supabase.from('groups').select('*').order('name'),
       supabase.from('group_members').select('group_id'),
     ]);
+    if (!mountedRef.current) return;
 
     if (groupsRes.error) console.warn('groups load failed', groupsRes.error);
     if (countsRes.error) console.warn('group_member count load failed', countsRes.error);

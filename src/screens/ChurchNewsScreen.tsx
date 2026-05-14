@@ -22,19 +22,29 @@ export function ChurchNewsScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selected, setSelected] = useState<NewsletterItem | null>(null);
+  const mountedRef = useRef(true);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => { mountedRef.current = false; };
+  }, []);
 
   const load = useCallback(async () => {
     setError(null);
     try {
       const list = await fetchNewsletters();
+      if (!mountedRef.current) return;
       setItems(list);
     } catch (e) {
+      if (!mountedRef.current) return;
       setError(e instanceof Error ? e.message : String(e));
     }
   }, []);
 
   useEffect(() => {
-    load().finally(() => setLoading(false));
+    load().finally(() => {
+      if (mountedRef.current) setLoading(false);
+    });
   }, [load]);
 
   useFocusEffect(
@@ -170,16 +180,23 @@ const HIDE_MAILCHIMP_CHROME = `
     }
     function scrubViewInBrowser() {
       var nodes = document.querySelectorAll('a, span, td, p, div');
+      var PHRASE = 'view this email in your browser';
       for (var i = 0; i < nodes.length; i++) {
         var el = nodes[i];
         var text = (el.innerText || el.textContent || '').trim().toLowerCase();
-        if (text === 'view this email in your browser' ||
-            text.indexOf('view this email in your browser') !== -1 && text.length < 80) {
-          var target = el;
-          for (var j = 0; j < 5 && target.parentElement; j++) {
-            if (target.tagName === 'TR') break;
-            target = target.parentElement;
-          }
+        var matches = text === PHRASE ||
+          (text.indexOf(PHRASE) !== -1 && text.length < 80);
+        if (!matches) continue;
+        // Walk up to the enclosing row, but never past <body> -- otherwise
+        // we'd hide the entire newsletter.
+        var target = el;
+        for (var j = 0; j < 5; j++) {
+          var parent = target.parentElement;
+          if (!parent || parent.tagName === 'BODY' || parent.tagName === 'HTML') break;
+          if (target.tagName === 'TR') break;
+          target = parent;
+        }
+        if (target.tagName !== 'BODY' && target.tagName !== 'HTML') {
           target.style.display = 'none';
         }
       }
@@ -331,8 +348,6 @@ const styles = StyleSheet.create({
     letterSpacing: -0.1,
     marginBottom: 6,
   },
-  cardSnippet: { fontSize: 14, color: colors.textMuted, lineHeight: 20 },
-  cardCta: { fontSize: 13, color: colors.primary, fontWeight: '600', marginTop: spacing.sm },
 
   pressed: { opacity: 0.75 },
 

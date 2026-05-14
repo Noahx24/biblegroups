@@ -396,23 +396,23 @@ const PRESET_LABEL: Record<ProgramPreset, string> = {
   other: 'Other',
 };
 
+// Each preset prefills the name (only when the admin hasn't typed something
+// custom) plus a sensible default age range.
+const PRESET_DEFAULTS: Record<ProgramPreset, { name: string; ageMin: string; ageMax: string }> = {
+  youth: { name: 'Youth Group', ageMin: '13', ageMax: '18' },
+  childrens: { name: "Children's Church", ageMin: '4', ageMax: '12' },
+  holiday_club: { name: 'Holiday Club', ageMin: '', ageMax: '' },
+  other: { name: '', ageMin: '', ageMax: '' },
+};
+
 function CreateProgramModal({ visible, userId, onClose, onSaved }: {
   visible: boolean; userId: string; onClose: () => void; onSaved: () => void;
 }) {
   const [preset, setPreset] = useState<ProgramPreset>('youth');
-  const [name, setName] = useState('');
+  const [name, setName] = useState(PRESET_DEFAULTS.youth.name);
   const [desc, setDesc] = useState('');
-  const [ageMin, setAgeMin] = useState('13');
-  const [ageMax, setAgeMax] = useState('18');
-
-  // Each preset prefills the name (only when the admin hasn't typed one yet)
-  // plus a sensible default age range.
-  const PRESET_DEFAULTS: Record<ProgramPreset, { name: string; ageMin: string; ageMax: string }> = {
-    youth: { name: 'Youth Group', ageMin: '13', ageMax: '18' },
-    childrens: { name: "Children's Church", ageMin: '4', ageMax: '12' },
-    holiday_club: { name: 'Holiday Club', ageMin: '', ageMax: '' },
-    other: { name: '', ageMin: '', ageMax: '' },
-  };
+  const [ageMin, setAgeMin] = useState(PRESET_DEFAULTS.youth.ageMin);
+  const [ageMax, setAgeMax] = useState(PRESET_DEFAULTS.youth.ageMax);
 
   const handlePresetChange = (p: ProgramPreset) => {
     const previous = PRESET_DEFAULTS[preset];
@@ -450,7 +450,11 @@ function CreateProgramModal({ visible, userId, onClose, onSaved }: {
     });
     setSaving(false);
     if (error) { Alert.alert('Error', error.message); return; }
-    setName(''); setPreset('youth'); setDesc(''); setAgeMin('13'); setAgeMax('18');
+    setPreset('youth');
+    setName(PRESET_DEFAULTS.youth.name);
+    setDesc('');
+    setAgeMin(PRESET_DEFAULTS.youth.ageMin);
+    setAgeMax(PRESET_DEFAULTS.youth.ageMax);
     setLocation(''); setStartDate(''); setEndDate('');
     onSaved();
   };

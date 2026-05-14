@@ -20,6 +20,7 @@ import {
   Platform,
   Pressable,
   SafeAreaView,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -71,12 +72,19 @@ export function AdminGroupMembersScreen() {
   const [loading, setLoading] = useState(true);
   const [busyUserId, setBusyUserId] = useState<string | null>(null);
   const [showAdd, setShowAdd] = useState(false);
+  const mountedRef = useRef(true);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => { mountedRef.current = false; };
+  }, []);
 
   const load = useCallback(async () => {
     const { data, error } = await supabase
       .from('group_members')
       .select('user_id, role, profiles(id, display_name, email, avatar_url)')
       .eq('group_id', group.id);
+    if (!mountedRef.current) return;
 
     if (error) {
       console.warn('group_members load failed', error);
@@ -154,10 +162,10 @@ export function AdminGroupMembersScreen() {
     await load();
   };
 
-  const renderMemberRow = (m: MemberRow) => {
+  const renderMemberRow = (m: MemberRow, isLast: boolean) => {
     const busy = busyUserId === m.user_id;
     return (
-      <View key={m.user_id} style={styles.memberRow}>
+      <View key={m.user_id} style={[styles.memberRow, isLast && styles.memberRowLast]}>
         <Avatar uri={m.avatar_url} name={m.display_name ?? m.email} size={38} />
         <View style={styles.memberInfo}>
           <Text style={styles.memberName} numberOfLines={1}>
@@ -211,32 +219,25 @@ export function AdminGroupMembersScreen() {
       {loading ? (
         <View style={styles.center}><ActivityIndicator color={colors.primary} /></View>
       ) : (
-        <FlatList
-          data={[]}
-          keyExtractor={() => 'noop'}
-          renderItem={null as any}
-          ListHeaderComponent={
-            <View style={styles.content}>
-              <Text style={styles.sectionLabel}>Leaders</Text>
-              <View style={styles.card}>
-                {leaders.length === 0
-                  ? <Text style={styles.empty}>No leaders yet</Text>
-                  : leaders.map(renderMemberRow)}
-              </View>
+        <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+          <Text style={styles.sectionLabel}>Leaders</Text>
+          <View style={styles.card}>
+            {leaders.length === 0
+              ? <Text style={styles.empty}>No leaders yet</Text>
+              : leaders.map((m, i) => renderMemberRow(m, i === leaders.length - 1))}
+          </View>
 
-              <Text style={styles.sectionLabel}>Members</Text>
-              <View style={styles.card}>
-                {regulars.length === 0
-                  ? <Text style={styles.empty}>No members yet</Text>
-                  : regulars.map(renderMemberRow)}
-              </View>
+          <Text style={styles.sectionLabel}>Members</Text>
+          <View style={styles.card}>
+            {regulars.length === 0
+              ? <Text style={styles.empty}>No members yet</Text>
+              : regulars.map((m, i) => renderMemberRow(m, i === regulars.length - 1))}
+          </View>
 
-              <Text style={styles.hint}>
-                Tap the role pill to swap leader / member. Tap the X to remove a person from this group.
-              </Text>
-            </View>
-          }
-        />
+          <Text style={styles.hint}>
+            Tap the role pill to swap leader / member. Tap the X to remove a person from this group.
+          </Text>
+        </ScrollView>
       )}
 
       <AddMemberModal
@@ -274,6 +275,12 @@ function AddMemberModal({
   const [adding, setAdding] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const reqIdRef = useRef(0);
+  const mountedRef = useRef(true);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => { mountedRef.current = false; };
+  }, []);
 
   useEffect(() => {
     if (!visible) {
@@ -297,12 +304,16 @@ function AddMemberModal({
     setSearching(true);
     debounceRef.current = setTimeout(async () => {
       const reqId = ++reqIdRef.current;
-      const safe = trimmed.replace(/[%,]/g, '');
+      // Strip characters that have special meaning in PostgREST's .or() filter
+      // syntax. ilike treats % as a wildcard, so wrapping in %...% is the
+      // intended match anyway.
+      const safe = trimmed.replace(/[%,()]/g, '');
       const { data, error } = await supabase
         .from('profiles')
         .select('id, display_name, email, avatar_url')
         .or(`display_name.ilike.%${safe}%,email.ilike.%${safe}%`)
         .limit(20);
+      if (!mountedRef.current) return;
       if (reqId !== reqIdRef.current) return;
       if (error) {
         console.warn('user search failed', error);
@@ -483,6 +494,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: colors.borderSoft,
   },
+  memberRowLast: { borderBottomWidth: 0 },
   memberInfo: { flex: 1 },
   memberName: { fontSize: 14.5, fontWeight: '600', color: colors.text },
   memberEmail: { fontSize: 12, color: colors.textMuted, marginTop: 1 },
