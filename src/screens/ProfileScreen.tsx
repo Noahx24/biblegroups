@@ -123,8 +123,10 @@ export function ProfileScreen() {
         Alert.alert('Bad birthday', 'Month must be between 1 and 12.');
         return;
       }
-      if (isNaN(d) || d < 1 || d > 31) {
-        Alert.alert('Bad birthday', 'Day must be between 1 and 31.');
+      // Max days per month; allow day 29 for February (covers leap years).
+      const maxDay = m === 2 ? 29 : [4, 6, 9, 11].includes(m) ? 30 : 31;
+      if (isNaN(d) || d < 1 || d > maxDay) {
+        Alert.alert('Bad birthday', `Day must be between 1 and ${maxDay} for that month.`);
         return;
       }
       birthMonthValue = m;

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -159,6 +159,8 @@ export function ThisWeekScreen() {
     }
   };
 
+  const weekDays = useMemo(() => getWeekReadingDays(currentWeek), [currentWeek]);
+
   if (loading) {
     return (
       <View style={styles.center}>
@@ -170,7 +172,6 @@ export function ThisWeekScreen() {
   const showClaimButton = isLeader && !!slot && !slot.assignee_id && !leadingThisWeek;
   const showAddDateHint = isLeader && !slot;
   const showMemberHint = !isLeader && !slot?.assignee_id;
-  const weekDays = getWeekReadingDays(currentWeek);
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>

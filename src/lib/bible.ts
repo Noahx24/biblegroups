@@ -66,7 +66,7 @@ async function writeCache(entries: CacheEntry[]): Promise<void> {
 }
 
 function cacheKey(reference: string, translation: string): string {
-  return `${translation.toLowerCase()}:${reference.trim().toLowerCase()}`;
+  return `${translation.toLowerCase()}:${reference.trim().replace(/\s+/g, ' ').toLowerCase()}`;
 }
 
 async function cacheGet(reference: string, translation: string): Promise<CacheEntry | null> {
@@ -169,6 +169,8 @@ function toOsisId(reference: string): string | null {
   const rawBook = ((numPrefix ?? '').trim() + bookName).toLowerCase().replace(/\s+/g, '');
   const bookId = OSIS_BOOKS[rawBook];
   if (!bookId) return null;
+  if (parseInt(chapter, 10) < 1) return null;
+  if (verseStart && parseInt(verseStart, 10) < 1) return null;
   if (!verseStart) return `${bookId}.${chapter}`;
   if (!verseEnd) return `${bookId}.${chapter}.${verseStart}`;
   return `${bookId}.${chapter}.${verseStart}-${bookId}.${chapter}.${verseEnd}`;
@@ -251,6 +253,9 @@ const YouVersionBibleBackend: BibleProvider = {
     };
 
     const rawText = json.data?.content ?? '';
+    if (!rawText) {
+      throw new Error(`Could not find passage "${reference}" — empty response from API.`);
+    }
     // Strip any residual markup and collapse whitespace
     const cleanText = rawText.replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim();
 
