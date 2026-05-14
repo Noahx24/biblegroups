@@ -551,9 +551,11 @@ function ManageProgrammesModal({
     const trimmedName = name.trim();
     if (!trimmedName) { Alert.alert('Name required'); return; }
     const trimmedTime = defaultTime.trim();
-    if (trimmedTime && !/^\d{1,2}:\d{2}$/.test(trimmedTime)) {
-      Alert.alert('Bad time', 'Use HH:MM format (e.g. 11:00 or 19:30).');
-      return;
+    if (trimmedTime) {
+      const tm = trimmedTime.match(/^(\d{1,2}):(\d{2})$/);
+      if (!tm) { Alert.alert('Bad time', 'Use HH:MM format (e.g. 11:00 or 19:30).'); return; }
+      const hh = Number(tm[1]); const mins = Number(tm[2]);
+      if (hh > 23 || mins > 59) { Alert.alert('Bad time', `${trimmedTime} isn't a real time.`); return; }
     }
     setSaving(true);
     const { error } = await supabase.from('volunteer_programmes').insert({
@@ -685,11 +687,13 @@ function AssignSlotModal({
       return;
     }
     setDate(initialDate ?? '');
+    let cancelled = false;
     (async () => {
       const { data, error } = await supabase
         .from('group_members')
         .select('user_id, profiles(id, display_name, email)')
         .eq('group_id', groupId);
+      if (cancelled) return;
       if (error) {
         console.warn('member load failed', error);
         setMembers([]);
@@ -705,6 +709,7 @@ function AssignSlotModal({
       );
       setMembers(rows);
     })();
+    return () => { cancelled = true; };
   }, [visible, initialDate, groupId]);
 
   // When admin picks a programme, prefill the time with its default.
@@ -718,12 +723,21 @@ function AssignSlotModal({
   const save = async () => {
     if (!date) { Alert.alert('Date required', 'Pick a date for the slot.'); return; }
     if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) { Alert.alert('Bad date', 'Use YYYY-MM-DD.'); return; }
+    // Detect overflowed dates (e.g. 2026-02-30 silently rolls to Mar 2).
+    const [yy, mm, dd] = date.split('-').map(Number);
+    const parsedDate = new Date(yy, mm - 1, dd);
+    if (parsedDate.getFullYear() !== yy || parsedDate.getMonth() + 1 !== mm || parsedDate.getDate() !== dd) {
+      Alert.alert('Bad date', `${date} isn't a real date.`);
+      return;
+    }
     if (date < weekStart()) { Alert.alert('Past date', 'Pick a date this week or later.'); return; }
     if (!pickedUserId) { Alert.alert('Member required', 'Pick a member to assign.'); return; }
     const trimmedTime = time.trim();
-    if (trimmedTime && !/^\d{1,2}:\d{2}$/.test(trimmedTime)) {
-      Alert.alert('Bad time', 'Use HH:MM format (e.g. 19:30).');
-      return;
+    if (trimmedTime) {
+      const tm = trimmedTime.match(/^(\d{1,2}):(\d{2})$/);
+      if (!tm) { Alert.alert('Bad time', 'Use HH:MM format (e.g. 19:30).'); return; }
+      const hh = Number(tm[1]); const mins = Number(tm[2]);
+      if (hh > 23 || mins > 59) { Alert.alert('Bad time', `${trimmedTime} isn't a real time.`); return; }
     }
     setSaving(true);
     const { error } = await supabase.from('schedule').insert({

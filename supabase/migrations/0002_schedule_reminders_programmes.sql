@@ -64,6 +64,35 @@ alter table public.schedule
 
 create index if not exists schedule_programme_id_idx on public.schedule(programme_id);
 
+-- The earlier migrations carried a unique constraint on (group_id, slot_date)
+-- so a class group couldn't have two entries on the same date. Volunteer
+-- groups want multiple slots per day (11:00 service + 18:00 service), so
+-- relax it to (group_id, slot_date, coalesce(slot_time, '00:00:00')). The
+-- old constraint's name isn't known here — drop anything matching the old
+-- column set defensively.
+do $$
+declare
+  con_name text;
+begin
+  select c.conname into con_name
+  from pg_constraint c
+  join pg_class t on t.oid = c.conrelid
+  where t.relname = 'schedule'
+    and c.contype = 'u'
+    and (
+      select array_agg(att.attname order by att.attname)
+      from unnest(c.conkey) as k(attnum)
+      join pg_attribute att on att.attrelid = c.conrelid and att.attnum = k.attnum
+    ) = array['group_id', 'slot_date'];
+  if con_name is not null then
+    execute format('alter table public.schedule drop constraint %I', con_name);
+  end if;
+end$$;
+
+-- New unique index: same date+time can't be double-booked within a group.
+create unique index if not exists schedule_group_date_time_unique
+  on public.schedule(group_id, slot_date, coalesce(slot_time, time '00:00:00'));
+
 -- ─── device_push_tokens ─────────────────────────────────────────────────────
 -- One row per (user, push_token). A user can have several tokens — multiple
 -- devices, plus token rotation by Expo. The reminder edge function fans out
