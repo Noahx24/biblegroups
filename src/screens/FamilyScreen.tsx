@@ -383,26 +383,45 @@ function RegisterModal({ visible, child, programs, existingRegs, userId, onClose
 
 // ─── Create Program Modal (admin only) ───────────────────────────────────────
 
+// UI-only preset key. "other" is a free-form programme that internally stores
+// as the `holiday_club` enum value (the only enum option without a fixed age
+// constraint) so we don't need a DB migration. The name field is what carries
+// the programme's real identity for display.
+type ProgramPreset = 'youth' | 'childrens' | 'holiday_club' | 'other';
+
+const PRESET_LABEL: Record<ProgramPreset, string> = {
+  youth: 'Youth Group',
+  childrens: "Children's Church",
+  holiday_club: 'Holiday Club',
+  other: 'Other',
+};
+
+// Each preset prefills the name (only when the admin hasn't typed something
+// custom) plus a sensible default age range.
+const PRESET_DEFAULTS: Record<ProgramPreset, { name: string; ageMin: string; ageMax: string }> = {
+  youth: { name: 'Youth Group', ageMin: '13', ageMax: '18' },
+  childrens: { name: "Children's Church", ageMin: '4', ageMax: '12' },
+  holiday_club: { name: 'Holiday Club', ageMin: '', ageMax: '' },
+  other: { name: '', ageMin: '', ageMax: '' },
+};
+
 function CreateProgramModal({ visible, userId, onClose, onSaved }: {
   visible: boolean; userId: string; onClose: () => void; onSaved: () => void;
 }) {
-  const [name, setName] = useState('');
-  const [type, setType] = useState<'youth' | 'childrens' | 'holiday_club'>('youth');
+  const [preset, setPreset] = useState<ProgramPreset>('youth');
+  const [name, setName] = useState(PRESET_DEFAULTS.youth.name);
   const [desc, setDesc] = useState('');
-  const [ageMin, setAgeMin] = useState('13');
-  const [ageMax, setAgeMax] = useState('18');
+  const [ageMin, setAgeMin] = useState(PRESET_DEFAULTS.youth.ageMin);
+  const [ageMax, setAgeMax] = useState(PRESET_DEFAULTS.youth.ageMax);
 
-  const AGE_DEFAULTS: Record<string, [string, string]> = {
-    youth: ['13', '18'],
-    childrens: ['4', '12'],
-    holiday_club: ['', ''],
-  };
-
-  const handleTypeChange = (t: 'youth' | 'childrens' | 'holiday_club') => {
-    setType(t);
-    const [min, max] = AGE_DEFAULTS[t];
-    setAgeMin(min);
-    setAgeMax(max);
+  const handlePresetChange = (p: ProgramPreset) => {
+    const previous = PRESET_DEFAULTS[preset];
+    setPreset(p);
+    const next = PRESET_DEFAULTS[p];
+    // Only auto-fill name if the admin hasn't typed something custom
+    if (!name.trim() || name.trim() === previous.name) setName(next.name);
+    setAgeMin(next.ageMin);
+    setAgeMax(next.ageMax);
   };
   const [location, setLocation] = useState('');
   const [startDate, setStartDate] = useState('');
@@ -417,8 +436,10 @@ function CreateProgramModal({ visible, userId, onClose, onSaved }: {
       Alert.alert('Invalid age range', 'Minimum age cannot exceed maximum age.'); return;
     }
     setSaving(true);
+    // "other" is UI-only — store as holiday_club (the open-age enum value)
+    const dbType = preset === 'other' ? 'holiday_club' : preset;
     const { error } = await supabase.from('youth_programs').insert({
-      name: name.trim(), type,
+      name: name.trim(), type: dbType,
       description: desc.trim() || null,
       age_min: parsedMin,
       age_max: parsedMax,
@@ -429,7 +450,11 @@ function CreateProgramModal({ visible, userId, onClose, onSaved }: {
     });
     setSaving(false);
     if (error) { Alert.alert('Error', error.message); return; }
-    setName(''); setType('youth'); setDesc(''); setAgeMin('13'); setAgeMax('18');
+    setPreset('youth');
+    setName(PRESET_DEFAULTS.youth.name);
+    setDesc('');
+    setAgeMin(PRESET_DEFAULTS.youth.ageMin);
+    setAgeMax(PRESET_DEFAULTS.youth.ageMax);
     setLocation(''); setStartDate(''); setEndDate('');
     onSaved();
   };
@@ -451,14 +476,19 @@ function CreateProgramModal({ visible, userId, onClose, onSaved }: {
 
           <Text style={styles.fieldLabel}>Type</Text>
           <View style={styles.typeRow}>
-            {(['youth', 'childrens', 'holiday_club'] as const).map(t => (
-              <Pressable key={t} style={[styles.typeOption, type === t && styles.typeOptionActive]} onPress={() => handleTypeChange(t)}>
-                <Text style={[styles.typeOptionText, type === t && styles.typeOptionTextActive]}>
-                  {PROGRAM_TYPE_LABEL[t]}
+            {(['youth', 'childrens', 'holiday_club', 'other'] as const).map(p => (
+              <Pressable key={p} style={[styles.typeOption, preset === p && styles.typeOptionActive]} onPress={() => handlePresetChange(p)}>
+                <Text style={[styles.typeOptionText, preset === p && styles.typeOptionTextActive]}>
+                  {PRESET_LABEL[p]}
                 </Text>
               </Pressable>
             ))}
           </View>
+          {preset === 'other' && (
+            <Text style={styles.presetHint}>
+              Enter any programme name above (e.g. Sunday School, Bible Study).
+            </Text>
+          )}
 
           <Text style={styles.fieldLabel}>Description</Text>
           <TextInput style={[styles.textInput, { minHeight: 70, textAlignVertical: 'top' }]}
@@ -553,6 +583,7 @@ const styles = StyleSheet.create({
   typeOptionActive: { borderColor: colors.primary, backgroundColor: colors.primaryLight },
   typeOptionText: { fontSize: 12, fontWeight: '600', color: colors.textMuted },
   typeOptionTextActive: { color: colors.primary },
+  presetHint: { fontSize: 12, color: colors.textMuted, fontStyle: 'italic', paddingHorizontal: 2, marginTop: -spacing.xs },
   modalSubtitle: { fontSize: 12, color: colors.textMuted, marginTop: 1 },
   programRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: spacing.md, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border, gap: spacing.md, overflow: 'hidden' },
   programRowIneligible: { opacity: 0.45 },

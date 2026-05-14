@@ -1,10 +1,10 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
-  FlatList,
   Modal,
   Pressable,
   RefreshControl,
+  SectionList,
   StyleSheet,
   Text,
   View,
@@ -22,19 +22,29 @@ export function ChurchNewsScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selected, setSelected] = useState<NewsletterItem | null>(null);
+  const mountedRef = useRef(true);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => { mountedRef.current = false; };
+  }, []);
 
   const load = useCallback(async () => {
     setError(null);
     try {
       const list = await fetchNewsletters();
+      if (!mountedRef.current) return;
       setItems(list);
     } catch (e) {
+      if (!mountedRef.current) return;
       setError(e instanceof Error ? e.message : String(e));
     }
   }, []);
 
   useEffect(() => {
-    load().finally(() => setLoading(false));
+    load().finally(() => {
+      if (mountedRef.current) setLoading(false);
+    });
   }, [load]);
 
   useFocusEffect(
@@ -48,6 +58,25 @@ export function ChurchNewsScreen() {
     await load();
     setRefreshing(false);
   };
+
+  // Group newsletters by month of publication; sort sections newest-first.
+  const sections = useMemo(() => {
+    const byMonth = new Map<string, { title: string; sortKey: number; data: NewsletterItem[] }>();
+    for (const item of items) {
+      if (!isValid(item.pubDate)) continue;
+      const key = format(item.pubDate, 'yyyy-MM');
+      const title = format(item.pubDate, 'MMMM yyyy');
+      const sortKey = new Date(item.pubDate.getFullYear(), item.pubDate.getMonth(), 1).getTime();
+      const existing = byMonth.get(key);
+      if (existing) existing.data.push(item);
+      else byMonth.set(key, { title, sortKey, data: [item] });
+    }
+    return Array.from(byMonth.values())
+      .sort((a, b) => b.sortKey - a.sortKey)
+      .map(s => ({ title: s.title, data: s.data }));
+  }, [items]);
+
+  const latestId = items[0]?.id;
 
   if (loading) {
     return (
@@ -71,10 +100,11 @@ export function ChurchNewsScreen() {
           </Pressable>
         </View>
       ) : (
-        <FlatList
-          data={items}
+        <SectionList
+          sections={sections}
           keyExtractor={(it) => it.id}
           contentContainerStyle={styles.list}
+          stickySectionHeadersEnabled={false}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
@@ -93,7 +123,10 @@ export function ChurchNewsScreen() {
               No newsletters yet. Pull down to refresh after the next In Touch is sent.
             </Text>
           }
-          renderItem={({ item, index }) => {
+          renderSectionHeader={({ section }) => (
+            <Text style={styles.monthHeader}>{section.title}</Text>
+          )}
+          renderItem={({ item }) => {
             const dateLabel = isValid(item.pubDate)
               ? format(item.pubDate, 'EEE, MMM d, yyyy')
               : 'Undated';
@@ -102,7 +135,7 @@ export function ChurchNewsScreen() {
                 onPress={() => setSelected(item)}
                 style={({ pressed }) => [styles.card, pressed && styles.pressed]}
               >
-                {index === 0 && (
+                {item.id === latestId && (
                   <View style={styles.latestPill}>
                     <Text style={styles.latestPillText}>Latest</Text>
                   </View>
@@ -119,6 +152,61 @@ export function ChurchNewsScreen() {
     </SafeAreaView>
   );
 }
+
+// CSS + DOM scrub that strips Mailchimp's Subscribe / Past Issues bar and
+// the "View this email in your browser" preheader so the in-app reader shows
+// just the newsletter body. Runs on every load and after a short delay in
+// case Mailchimp adds the chrome with a script tag.
+const HIDE_MAILCHIMP_CHROME = `
+  (function () {
+    var css = \`
+      #awesomebar-sandbox,
+      #awesomebar,
+      div[id^="awesomebar"],
+      .campaign-info,
+      .preheader,
+      #templatePreheader {
+        display: none !important;
+        height: 0 !important;
+        overflow: hidden !important;
+      }
+    \`;
+    var style = document.getElementById('cf-hide-mc');
+    if (!style) {
+      style = document.createElement('style');
+      style.id = 'cf-hide-mc';
+      style.appendChild(document.createTextNode(css));
+      (document.head || document.documentElement).appendChild(style);
+    }
+    function scrubViewInBrowser() {
+      var nodes = document.querySelectorAll('a, span, td, p, div');
+      var PHRASE = 'view this email in your browser';
+      for (var i = 0; i < nodes.length; i++) {
+        var el = nodes[i];
+        var text = (el.innerText || el.textContent || '').trim().toLowerCase();
+        var matches = text === PHRASE ||
+          (text.indexOf(PHRASE) !== -1 && text.length < 80);
+        if (!matches) continue;
+        // Walk up to the enclosing row, but never past <body> -- otherwise
+        // we'd hide the entire newsletter.
+        var target = el;
+        for (var j = 0; j < 5; j++) {
+          var parent = target.parentElement;
+          if (!parent || parent.tagName === 'BODY' || parent.tagName === 'HTML') break;
+          if (target.tagName === 'TR') break;
+          target = parent;
+        }
+        if (target.tagName !== 'BODY' && target.tagName !== 'HTML') {
+          target.style.display = 'none';
+        }
+      }
+    }
+    scrubViewInBrowser();
+    setTimeout(scrubViewInBrowser, 300);
+    setTimeout(scrubViewInBrowser, 1000);
+    true;
+  })();
+`;
 
 function NewsletterReader({
   item,
@@ -153,7 +241,6 @@ function NewsletterReader({
             <Text style={styles.toolbarTitle} numberOfLines={1}>
               BMC Announcements
             </Text>
-            <Text style={styles.toolbarDomain}>mailchi.mp</Text>
           </View>
 
           <Pressable
@@ -171,6 +258,12 @@ function NewsletterReader({
               ref={webRef}
               source={{ uri: item.link }}
               onLoadEnd={() => setReaderLoading(false)}
+              injectedJavaScript={HIDE_MAILCHIMP_CHROME}
+              onLoadProgress={({ nativeEvent }) => {
+                if (nativeEvent.progress > 0.4) {
+                  webRef.current?.injectJavaScript(HIDE_MAILCHIMP_CHROME);
+                }
+              }}
             />
             {readerLoading && (
               <View pointerEvents="none" style={styles.loaderOverlay}>
@@ -208,6 +301,17 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
     marginTop: 4,
   },
+  monthHeader: {
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 1.6,
+    color: colors.primary,
+    textTransform: 'uppercase',
+    paddingHorizontal: spacing.xl,
+    paddingTop: spacing.lg,
+    paddingBottom: spacing.sm,
+    backgroundColor: colors.background,
+  },
 
   card: {
     backgroundColor: colors.surface,
@@ -244,8 +348,6 @@ const styles = StyleSheet.create({
     letterSpacing: -0.1,
     marginBottom: 6,
   },
-  cardSnippet: { fontSize: 14, color: colors.textMuted, lineHeight: 20 },
-  cardCta: { fontSize: 13, color: colors.primary, fontWeight: '600', marginTop: spacing.sm },
 
   pressed: { opacity: 0.75 },
 
@@ -273,13 +375,6 @@ const styles = StyleSheet.create({
     color: colors.text,
     letterSpacing: -0.1,
     lineHeight: 20,
-  },
-  toolbarDomain: {
-    fontSize: 10.5,
-    fontWeight: '500',
-    color: colors.textMuted,
-    marginTop: 2,
-    letterSpacing: 0.2,
   },
   loaderOverlay: { position: 'absolute', top: spacing.md, right: spacing.md },
 
