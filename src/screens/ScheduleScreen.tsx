@@ -418,10 +418,17 @@ function EditSlotModal({
       Alert.alert('Past date', 'Pick a date this week or later.');
       return;
     }
-    // Conflict check: if the assignee or date changed, warn about double-booking
+    // Conflict check: warn about double-booking whenever the assignee, date,
+    // or time changed. Time matters because the DB unique on
+    // (group_id, slot_date, slot_time) only prevents two slots at the *same*
+    // time — moving Bob's 10:00 to 14:30 on a day he's also at 14:00 is fine
+    // for the index but still a double-booking.
     const assigneeChanged = assigneeId !== slot.assignee_id;
     const dateChanged = isoDate !== slot.slot_date;
-    if (assigneeId && (assigneeChanged || dateChanged)) {
+    const currentTime = time ?? null;
+    const originalTime = slot.slot_time ? String(slot.slot_time).slice(0, 5) : null;
+    const timeChanged = currentTime !== originalTime;
+    if (assigneeId && (assigneeChanged || dateChanged || timeChanged)) {
       const ok = await checkConflict(assigneeId, isoDate, slot.id);
       if (!ok) return;
     }
@@ -1050,8 +1057,12 @@ export function ScheduleScreen() {
       const buttons: Array<{ text: string; style?: 'cancel' | 'destructive'; onPress?: () => void }> = [
         { text: 'Close', style: 'cancel' },
       ];
+      // Once a volunteer accepts, the commitment is sealed — only admins
+      // can change the schedule from here on. Decline is offered only while
+      // the slot is still pending. Accept can still be offered to a
+      // volunteer who previously declined, before they commit.
       if (mine && slot.status !== 'accepted') buttons.push({ text: 'Accept', onPress: () => respondToSlot(slot.id, 'accepted') });
-      if (mine && slot.status !== 'declined') buttons.push({ text: 'Decline', style: 'destructive', onPress: () => respondToSlot(slot.id, 'declined') });
+      if (mine && slot.status === 'pending') buttons.push({ text: 'Decline', style: 'destructive', onPress: () => respondToSlot(slot.id, 'declined') });
       if (isAdmin) buttons.push({ text: 'Edit slot', onPress: () => setEditingSlot(slot) });
       const statusLabel = STATUS_LABEL[slot.status] ?? slot.status;
       const assigneeLabel = slot.assignee?.display_name ?? (open ? 'Open' : 'Assigned');

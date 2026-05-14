@@ -306,10 +306,14 @@ function ChildEditorModal({ visible, userId, existing, onClose, onSaved }: {
     setEc1Phone(existing?.emergency_contact_1_phone ?? '');
     setEc2Name(existing?.emergency_contact_2_name ?? '');
     setEc2Phone(existing?.emergency_contact_2_phone ?? '');
-    // Already-consented children keep their consent unless health fields are
-    // edited again. We still require ticking the box if the parent wants to
-    // *change* health data, to make the consent renewed.
-    setConsented(!!existing?.consent_given_at && !!existing?.consent_version);
+    // Already-consented children keep their consent only when the stored
+    // consent_version matches the current CHILD_CONSENT_VERSION. If the
+    // text has been updated since they last consented, untick so they
+    // re-confirm against the new wording — never silently upgrade.
+    const versionMatches =
+      !!existing?.consent_given_at
+      && existing?.consent_version === CHILD_CONSENT_VERSION;
+    setConsented(versionMatches);
     setShowConsent(false);
   }, [visible, existing]);
 
@@ -389,6 +393,7 @@ function ChildEditorModal({ visible, userId, existing, onClose, onSaved }: {
     });
     setBusy(false);
     if (error) { Alert.alert('Export failed', error.message); return; }
+    if (data == null) { Alert.alert('Export empty', 'No data was returned for this child.'); return; }
     try {
       await Share.share({
         message: JSON.stringify(data, null, 2),
