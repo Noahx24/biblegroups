@@ -91,13 +91,16 @@ export function MyWeekScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [hasGroups, setHasGroups] = useState(true);
 
-  const today = format(new Date(), 'yyyy-MM-dd');
-  const windowEnd = format(addDays(new Date(), 13), 'yyyy-MM-dd');
-  const nowIso = new Date().toISOString();
-  const windowEndIso = addDays(new Date(), 14).toISOString();
-
   const load = useCallback(async () => {
     if (!userId) return;
+
+    // Compute window bounds fresh on each load so date changes (e.g. midnight
+    // rollover) are picked up without remounting.
+    const now = new Date();
+    const today = format(now, 'yyyy-MM-dd');
+    const windowEnd = format(addDays(now, 13), 'yyyy-MM-dd');
+    const nowIso = now.toISOString();
+    const windowEndIso = addDays(now, 14).toISOString();
 
     // Step 1: user's group memberships
     const { data: memberRows, error: memberErr } = await supabase
@@ -268,7 +271,7 @@ export function MyWeekScreen() {
         data,
       })),
     );
-  }, [userId, today, windowEnd, nowIso, windowEndIso]);
+  }, [userId]);
 
   useEffect(() => {
     load().finally(() => setLoading(false));
