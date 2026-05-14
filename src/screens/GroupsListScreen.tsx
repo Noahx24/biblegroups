@@ -177,6 +177,7 @@ export function GroupsListScreen() {
     // Volunteer groups don't surface leaders at all.
     const isClass = item.type === 'class';
     const primaryLeader = isClass ? item.leaders[0] ?? null : null;
+    const coLeaderCount = isClass ? Math.max(item.leaders.length - 1, 0) : 0;
     return (
       <TouchableOpacity
         style={styles.card}
@@ -193,6 +194,9 @@ export function GroupsListScreen() {
                 <Text style={styles.classLeaderName} numberOfLines={1}>
                   {primaryLeader.display_name ?? 'Leader'}
                 </Text>
+                {coLeaderCount > 0 && (
+                  <Text style={styles.classLeaderMore}>+{coLeaderCount}</Text>
+                )}
               </View>
             )}
             <View style={[styles.typePill, { backgroundColor: TYPE_COLOR[item.type] + '22' }]}>
@@ -364,6 +368,7 @@ const styles = StyleSheet.create({
   cardDesc: { fontSize: 13, color: colors.textMuted, marginTop: 3 },
   classLeader: { flexDirection: 'row', alignItems: 'center', gap: 6, maxWidth: 180 },
   classLeaderName: { fontSize: 13, color: colors.textSoft, fontWeight: '500' },
+  classLeaderMore: { fontSize: 11, color: colors.textMuted, fontWeight: '700' },
   miniAvatar: { backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center' },
   miniAvatarText: { color: '#fff', fontWeight: '700' },
   roleBadge: { alignSelf: 'flex-start', marginTop: spacing.sm, paddingHorizontal: spacing.sm, paddingVertical: 2, borderRadius: radius.pill, backgroundColor: colors.backgroundSoft, borderWidth: 1, borderColor: colors.border },

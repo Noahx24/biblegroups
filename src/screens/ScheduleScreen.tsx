@@ -1206,13 +1206,61 @@ export function ScheduleScreen() {
                     </Text>
                     {!!programmeName && <Text style={styles.upcomingProgramme}>{programmeName}</Text>}
                   </View>
-                  {!isClass && !open && (
+                  {!isClass && mine && s.status === 'pending' ? (
+                    // Inline respond actions for the assignee. Nested
+                    // Pressables prevent the row's onPress from also firing.
+                    <View style={styles.respondRow}>
+                      <Pressable
+                        onPress={() => respondToSlot(s.id, 'accepted')}
+                        disabled={busy}
+                        style={({ pressed }) => [
+                          styles.respondBtn, styles.respondAccept,
+                          pressed && styles.respondPressed, busy && { opacity: 0.5 },
+                        ]}
+                        hitSlop={6}
+                        accessibilityRole="button"
+                        accessibilityLabel="Accept this slot"
+                      >
+                        <Ionicons name="checkmark" size={16} color="#fff" />
+                        <Text style={styles.respondBtnText}>Accept</Text>
+                      </Pressable>
+                      <Pressable
+                        onPress={() => respondToSlot(s.id, 'declined')}
+                        disabled={busy}
+                        style={({ pressed }) => [
+                          styles.respondBtn, styles.respondDecline,
+                          pressed && styles.respondPressed, busy && { opacity: 0.5 },
+                        ]}
+                        hitSlop={6}
+                        accessibilityRole="button"
+                        accessibilityLabel="Decline this slot"
+                      >
+                        <Ionicons name="close" size={16} color={colors.danger} />
+                      </Pressable>
+                    </View>
+                  ) : !isClass && mine && s.status === 'declined' ? (
+                    // After declining, let them flip back to accepting.
+                    <Pressable
+                      onPress={() => respondToSlot(s.id, 'accepted')}
+                      disabled={busy}
+                      style={({ pressed }) => [
+                        styles.respondBtn, styles.respondAccept,
+                        pressed && styles.respondPressed, busy && { opacity: 0.5 },
+                      ]}
+                      hitSlop={6}
+                      accessibilityRole="button"
+                      accessibilityLabel="Change mind and accept"
+                    >
+                      <Ionicons name="refresh" size={14} color="#fff" />
+                      <Text style={styles.respondBtnText}>Accept</Text>
+                    </Pressable>
+                  ) : !isClass && !open ? (
                     <View style={[styles.statusBadge, { borderColor: statusColor }]}>
                       <Text style={[styles.statusBadgeText, { color: statusColor }]}>
                         {STATUS_LABEL[s.status] ?? s.status}
                       </Text>
                     </View>
-                  )}
+                  ) : null}
                   {isClass && open && <Text style={[styles.upcomingTag, { color: colors.open }]}>Tap to claim</Text>}
                   {isClass && mine && <Text style={[styles.upcomingTag, { color: colors.primary }]}>You're leading</Text>}
                   {busy && <ActivityIndicator color={colors.primary} size="small" />}
@@ -1340,6 +1388,16 @@ const styles = StyleSheet.create({
   upcomingTag: { fontSize: 11.5, fontWeight: '700', letterSpacing: 0.4, textTransform: 'uppercase' },
   statusBadge: { paddingHorizontal: spacing.sm, paddingVertical: 3, borderRadius: radius.pill, borderWidth: 1 },
   statusBadgeText: { fontSize: 11, fontWeight: '700', letterSpacing: 0.3, textTransform: 'uppercase' },
+  respondRow: { flexDirection: 'row', gap: 6 },
+  respondBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    paddingHorizontal: 10, paddingVertical: 6,
+    borderRadius: radius.pill, borderWidth: 1,
+  },
+  respondAccept: { backgroundColor: colors.success, borderColor: colors.success },
+  respondDecline: { backgroundColor: colors.surface, borderColor: colors.danger },
+  respondPressed: { opacity: 0.7 },
+  respondBtnText: { color: '#fff', fontSize: 11.5, fontWeight: '700', letterSpacing: 0.3 },
   empty: { textAlign: 'center', color: colors.textMuted, marginTop: spacing.md, paddingHorizontal: spacing.xl },
 
   adminActions: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.md, flexWrap: 'wrap' },
