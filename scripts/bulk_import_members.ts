@@ -40,7 +40,9 @@ function die(msg: string): never {
 }
 
 function parseCsv(text: string): Entry[] {
-  const lines = text.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+  // Strip UTF-8 BOM if present — Excel and some editors add it.
+  const body = text.charCodeAt(0) === 0xfeff ? text.slice(1) : text;
+  const lines = body.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
   if (lines.length < 2) die('CSV must have a header row and at least one data row.');
 
   const header = lines[0].split(',').map(s => s.trim().toLowerCase());

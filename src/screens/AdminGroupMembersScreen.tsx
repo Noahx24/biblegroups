@@ -345,6 +345,8 @@ export function AdminGroupMembersScreen() {
               onPress={() => bulkSetRole('leader')}
               disabled={bulkBusy || selectedIds.size === 0}
               hitSlop={4}
+              accessibilityLabel="Make selected members leaders"
+              accessibilityRole="button"
             >
               <Ionicons name="star-outline" size={18} color={colors.primary} />
             </Pressable>
@@ -355,6 +357,8 @@ export function AdminGroupMembersScreen() {
               onPress={() => bulkSetRole('member')}
               disabled={bulkBusy || selectedIds.size === 0}
               hitSlop={4}
+              accessibilityLabel="Make selected leaders members"
+              accessibilityRole="button"
             >
               <Ionicons name="person-outline" size={18} color={colors.primary} />
             </Pressable>
@@ -364,6 +368,8 @@ export function AdminGroupMembersScreen() {
             onPress={bulkRemove}
             disabled={bulkBusy || selectedIds.size === 0}
             hitSlop={4}
+            accessibilityLabel={`Remove ${selectedIds.size} selected members from group`}
+            accessibilityRole="button"
           >
             {bulkBusy
               ? <ActivityIndicator size="small" color={colors.danger} />
