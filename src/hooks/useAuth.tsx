@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useState, type ReactNode } from '
 import type { Session } from '@supabase/supabase-js';
 import * as Linking from 'expo-linking';
 import { supabase } from '@/lib/supabase';
+import { registerForPushNotificationsAsync, resetPushRegistrationCache } from '@/lib/push';
 
 type AuthContextValue = {
   session: Session | null;
@@ -115,6 +116,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     loadProfile();
 
+    // Register for push notifications on first session for this user.
+    // Errors / missing permission / simulator are handled inside the lib.
+    registerForPushNotificationsAsync(userId).catch(e =>
+      console.warn('push register threw', e),
+    );
+
     const channel = supabase
       .channel(`auth-profile:${userId}`)
       .on(
@@ -168,6 +175,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = async () => {
     setRecoveryMode(false);
+    resetPushRegistrationCache();
     await supabase.auth.signOut();
   };
 
