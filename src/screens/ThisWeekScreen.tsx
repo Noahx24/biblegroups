@@ -14,7 +14,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { addDays, format } from 'date-fns';
 import { supabase } from '@/lib/supabase';
-import { fetchVerse, openInYouVersion } from '@/lib/bible';
+import { fetchVerse } from '@/lib/bible';
 import { formatWeek, nextWeekStart, weekStart } from '@/lib/week';
 import { useAuth } from '@/hooks/useAuth';
 import { useGroup } from '@/context/GroupContext';
@@ -48,7 +48,7 @@ export function ThisWeekScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [reference, setReference] = useState('');
-  const [translation, setTranslation] = useState<string>('web');
+  const [translation, setTranslation] = useState<string>('kjv');
   const [saving, setSaving] = useState(false);
   const [claiming, setClaiming] = useState(false);
 
@@ -133,14 +133,15 @@ export function ThisWeekScreen() {
   };
 
   const saveVerse = async () => {
-    if (!reference.trim() || !session?.user || !slot) return;
+    if (!reference.trim() || !session?.user) return;
+    const weekDate = slot?.slot_date ?? currentWeek;
     setSaving(true);
     try {
       const fetched = await fetchVerse(reference, translation);
       const { error } = await supabase.from('weekly_verses').upsert(
         {
           group_id: group.id,
-          week_start: slot.slot_date,
+          week_start: weekDate,
           reference: fetched.reference,
           text: fetched.text,
           translation: fetched.translation,
@@ -196,21 +197,13 @@ export function ThisWeekScreen() {
               <View style={styles.verseDivider} />
               <View style={styles.verseFooter}>
                 <Text style={styles.translation}>{verse.translation}</Text>
-                <Pressable
-                  onPress={() => openInYouVersion(verse.reference)}
-                  style={({ pressed }) => [styles.youversionBtn, pressed && styles.pressed]}
-                  accessibilityLabel="Read in YouVersion"
-                  accessibilityRole="link"
-                >
-                  <Text style={styles.youversionBtnText}>Read in YouVersion ↗</Text>
-                </Pressable>
               </View>
             </>
           ) : (
             <Text style={styles.muted}>No verse set yet for this week.</Text>
           )}
 
-          {leadingThisWeek && (
+          {isLeader && (
             <View style={styles.editor}>
               <TextInput
                 value={reference}
@@ -369,11 +362,11 @@ export function ThisWeekScreen() {
   );
 }
 
-// bible-api.com provides free open-license translations (public domain / open license only).
 const TRANSLATIONS: { value: string; label: string; name: string }[] = [
-  { value: 'web',    label: 'WEB', name: 'World English Bible' },
-  { value: 'oeb-us', label: 'OEB', name: 'Open English Bible' },
-  { value: 'bbe',    label: 'BBE', name: 'Bible in Basic English' },
+  { value: 'kjv', label: 'KJV', name: 'King James Version' },
+  { value: 'esv', label: 'ESV', name: 'English Standard Version' },
+  { value: 'niv', label: 'NIV', name: 'New International Version' },
+  { value: 'nlt', label: 'NLT', name: 'New Living Translation' },
 ];
 
 function TranslationPicker({ value, onChange }: { value: string; onChange: (v: string) => void }) {
@@ -444,8 +437,6 @@ const styles = StyleSheet.create({
   verseDivider: { height: StyleSheet.hairlineWidth, backgroundColor: colors.borderSoft, marginVertical: 12 },
   verseFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: spacing.sm },
   translation: { fontSize: 12, color: colors.textMuted, letterSpacing: 0.4, textTransform: 'uppercase', fontWeight: '600' },
-  youversionBtn: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  youversionBtnText: { fontSize: 12, color: colors.primary, fontWeight: '600' },
   muted: { color: colors.textMuted, fontSize: 14 },
   leaderRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, marginBottom: 14 },
   leaderMeta: { flex: 1 },

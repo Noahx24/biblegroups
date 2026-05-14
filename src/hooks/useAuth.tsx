@@ -2,7 +2,7 @@ import { createContext, useContext, useEffect, useState, type ReactNode } from '
 import type { Session } from '@supabase/supabase-js';
 import * as Linking from 'expo-linking';
 import { supabase } from '@/lib/supabase';
-import { registerForPushNotificationsAsync, resetPushRegistrationCache } from '@/lib/push';
+import { getCurrentPushToken, registerForPushNotificationsAsync, resetPushRegistrationCache } from '@/lib/push';
 
 type AuthContextValue = {
   session: Session | null;
@@ -175,7 +175,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = async () => {
     setRecoveryMode(false);
+    const tokenToDelete = getCurrentPushToken();
+    const userIdToClean = session?.user?.id;
     resetPushRegistrationCache();
+    // Remove this device's token so it no longer receives notifications after sign-out.
+    if (tokenToDelete && userIdToClean) {
+      await supabase
+        .from('device_push_tokens')
+        .delete()
+        .eq('user_id', userIdToClean)
+        .eq('expo_push_token', tokenToDelete);
+    }
     await supabase.auth.signOut();
   };
 

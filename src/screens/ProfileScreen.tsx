@@ -18,7 +18,6 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
-import { format, parse } from 'date-fns';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
 import { colors, fonts, radius, shadow, spacing } from '@/theme';
@@ -34,7 +33,8 @@ export function ProfileScreen() {
   const [displayName, setDisplayName] = useState('');
   const [favoriteVerse, setFavoriteVerse] = useState('');
   const [favoriteHymn, setFavoriteHymn] = useState('');
-  const [birthday, setBirthday] = useState('');
+  const [birthMonth, setBirthMonth] = useState('');
+  const [birthDay, setBirthDay] = useState('');
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -44,7 +44,7 @@ export function ProfileScreen() {
     if (!userId) return;
     supabase
       .from('profiles')
-      .select('display_name, favorite_verse, favorite_hymn, birthday, avatar_url')
+      .select('display_name, favorite_verse, favorite_hymn, birth_month, birth_day, avatar_url')
       .eq('id', userId)
       .maybeSingle()
       .then(({ data, error }) => {
@@ -52,7 +52,8 @@ export function ProfileScreen() {
         setDisplayName(data?.display_name ?? '');
         setFavoriteVerse(data?.favorite_verse ?? '');
         setFavoriteHymn(data?.favorite_hymn ?? '');
-        setBirthday(data?.birthday ?? '');
+        setBirthMonth(data?.birth_month != null ? String(data.birth_month) : '');
+        setBirthDay(data?.birth_day != null ? String(data.birth_day) : '');
         setAvatarUrl(data?.avatar_url ?? null);
         setLoading(false);
       });
@@ -113,22 +114,21 @@ export function ProfileScreen() {
 
   const save = async () => {
     if (!userId) return;
-    const trimmedBirthday = birthday.trim();
-    let birthdayValue: string | null = null;
-    if (trimmedBirthday) {
-      const parsed = parse(trimmedBirthday, 'yyyy-MM-dd', new Date());
-      if (Number.isNaN(parsed.getTime())) {
-        Alert.alert('Bad birthday', 'Use format YYYY-MM-DD (e.g. 1990-04-15)');
+    let birthMonthValue: number | null = null;
+    let birthDayValue: number | null = null;
+    if (birthMonth.trim() || birthDay.trim()) {
+      const m = parseInt(birthMonth, 10);
+      const d = parseInt(birthDay, 10);
+      if (isNaN(m) || m < 1 || m > 12) {
+        Alert.alert('Bad birthday', 'Month must be between 1 and 12.');
         return;
       }
-      // Catch overflowed dates (e.g. "2024-02-30" -> Mar 2): date-fns parse
-      // silently rolls over. Round-trip and compare to the typed string.
-      const roundTrip = format(parsed, 'yyyy-MM-dd');
-      if (roundTrip !== trimmedBirthday) {
-        Alert.alert('Bad birthday', `${trimmedBirthday} isn't a real date — did you mean ${roundTrip}?`);
+      if (isNaN(d) || d < 1 || d > 31) {
+        Alert.alert('Bad birthday', 'Day must be between 1 and 31.');
         return;
       }
-      birthdayValue = trimmedBirthday;
+      birthMonthValue = m;
+      birthDayValue = d;
     }
     setSaving(true);
     const { error } = await supabase
@@ -137,7 +137,8 @@ export function ProfileScreen() {
         display_name: displayName.trim() || null,
         favorite_verse: favoriteVerse.trim() || null,
         favorite_hymn: favoriteHymn.trim() || null,
-        birthday: birthdayValue,
+        birth_month: birthMonthValue,
+        birth_day: birthDayValue,
       })
       .eq('id', userId);
     setSaving(false);
@@ -190,10 +191,28 @@ export function ProfileScreen() {
                 placeholderTextColor={colors.textMuted} style={styles.fieldInput} />
             </ProfileField>
             <FieldDivider />
-            <ProfileField label="Birthday">
-              <TextInput value={birthday} onChangeText={setBirthday} placeholder="YYYY-MM-DD"
-                placeholderTextColor={colors.textMuted} autoCapitalize="none"
-                keyboardType="numbers-and-punctuation" style={styles.fieldInput} />
+            <ProfileField label="Birthday (month / day)">
+              <View style={styles.birthdayRow}>
+                <TextInput
+                  value={birthMonth}
+                  onChangeText={v => setBirthMonth(v.replace(/[^0-9]/g, '').slice(0, 2))}
+                  placeholder="MM"
+                  placeholderTextColor={colors.textMuted}
+                  keyboardType="number-pad"
+                  maxLength={2}
+                  style={[styles.fieldInput, styles.birthdayInput]}
+                />
+                <Text style={styles.birthdaySep}>/</Text>
+                <TextInput
+                  value={birthDay}
+                  onChangeText={v => setBirthDay(v.replace(/[^0-9]/g, '').slice(0, 2))}
+                  placeholder="DD"
+                  placeholderTextColor={colors.textMuted}
+                  keyboardType="number-pad"
+                  maxLength={2}
+                  style={[styles.fieldInput, styles.birthdayInput]}
+                />
+              </View>
             </ProfileField>
             <FieldDivider />
             <ProfileField label="Favourite verse">
@@ -293,6 +312,9 @@ const styles = StyleSheet.create({
   fieldInput: { backgroundColor: colors.background, borderWidth: 1, borderColor: colors.border, borderRadius: radius.md, padding: 11, paddingHorizontal: 13, fontSize: 15.5, color: colors.text, fontWeight: '500' },
   fieldTextarea: { minHeight: 80, textAlignVertical: 'top', fontFamily: fonts.serif, fontStyle: 'italic', fontSize: 15, lineHeight: 22, color: colors.textSoft },
   fieldDivider: { height: StyleSheet.hairlineWidth, backgroundColor: colors.borderSoft, marginVertical: 6 },
+  birthdayRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  birthdayInput: { width: 72, textAlign: 'center' },
+  birthdaySep: { fontSize: 20, color: colors.textMuted, fontWeight: '300' },
   saveBtn: { backgroundColor: colors.primary, borderRadius: radius.md, paddingVertical: 14, paddingHorizontal: 18, alignItems: 'center', marginTop: 14, shadowColor: colors.primary, shadowOpacity: 0.28, shadowRadius: 8, shadowOffset: { width: 0, height: 4 }, elevation: 3 },
   saveBtnText: { color: '#fff', fontWeight: '600', fontSize: 16, letterSpacing: 0.1 },
   disabled: { opacity: 0.5 },
