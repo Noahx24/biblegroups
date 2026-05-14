@@ -711,7 +711,8 @@ function AssignSlotModal({
         setMembers([]);
         return;
       }
-      const rows: GroupMemberRow[] = (data ?? []).map((row: any) => ({
+      type MemberJoinRow = { user_id: string; profiles: { display_name: string | null; email: string | null } | null };
+      const rows: GroupMemberRow[] = ((data ?? []) as unknown as MemberJoinRow[]).map((row) => ({
         user_id: row.user_id,
         display_name: row.profiles?.display_name ?? null,
         email: row.profiles?.email ?? null,

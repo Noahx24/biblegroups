@@ -90,7 +90,8 @@ export function AdminGroupMembersScreen() {
       console.warn('group_members load failed', error);
       setMembers([]);
     } else {
-      const rows: MemberRow[] = (data ?? []).map((row: any) => ({
+      type JoinRow = { user_id: string; role: string; profiles: { display_name: string | null; email: string | null; avatar_url: string | null } | null };
+      const rows: MemberRow[] = ((data ?? []) as unknown as JoinRow[]).map((row) => ({
         user_id: row.user_id,
         role: row.role as MemberRole,
         display_name: row.profiles?.display_name ?? null,

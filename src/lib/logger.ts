@@ -12,11 +12,9 @@
 type Extras = Record<string, unknown>;
 
 export function captureException(error: unknown, extras?: Extras): void {
-  // eslint-disable-next-line no-console
   console.error('[error]', error, extras);
 }
 
 export function captureMessage(message: string, extras?: Extras): void {
-  // eslint-disable-next-line no-console
   console.warn('[message]', message, extras);
 }

@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
-  FlatList,
   Image,
   Modal,
   Platform,
@@ -20,13 +19,14 @@ import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
 import { colors, fonts, radius, shadow, spacing } from '@/theme';
-import type { Group, GroupMember, MemberRole, Profile } from '@/types';
+import type { Group, MemberRole, Profile } from '@/types';
 import type { AppStackParamList } from '@/navigation/RootNavigator';
 
 type Nav = NativeStackNavigationProp<AppStackParamList, 'MainTabs'>;
 
 type GroupWithRole = Group & { myRole: MemberRole };
 type GroupWithLeaders = Group & { leaders: Pick<Profile, 'id' | 'display_name' | 'avatar_url'>[] };
+type GroupSection = { title: string; data: GroupWithLeaders[]; isMember: boolean };
 
 const TYPE_LABEL: Record<string, string> = { class: 'Class', volunteer: 'Volunteer' };
 const TYPE_COLOR: Record<string, string> = { class: colors.primary, volunteer: colors.accent };
@@ -76,8 +76,11 @@ export function GroupsListScreen() {
     if (myRes.error) console.warn('myGroups load failed', myRes.error);
     if (membersRes.error) console.warn('members load failed', membersRes.error);
 
+    type MyGroupRow = { groups: Group; role: string };
+    type MemberRow = { group_id: string; profiles: Pick<Profile, 'id' | 'display_name' | 'avatar_url'> | null };
+
     const myGroupIds = new Set<string>();
-    const mapped: GroupWithRole[] = (myRes.data ?? []).map((row: any) => {
+    const mapped: GroupWithRole[] = ((myRes.data ?? []) as unknown as MyGroupRow[]).map((row) => {
       myGroupIds.add(row.groups.id);
       return { ...row.groups, myRole: row.role as MemberRole };
     });
@@ -85,13 +88,13 @@ export function GroupsListScreen() {
 
     // Attach leaders to each group
     const leadersByGroup: Record<string, Pick<Profile, 'id' | 'display_name' | 'avatar_url'>[]> = {};
-    for (const row of (membersRes.data ?? []) as any[]) {
+    for (const row of ((membersRes.data ?? []) as unknown as MemberRow[])) {
       if (!row.profiles) continue;
       const p = row.profiles;
       (leadersByGroup[row.group_id] ??= []).push({ id: p.id, display_name: p.display_name, avatar_url: p.avatar_url });
     }
 
-    const withLeaders: GroupWithLeaders[] = (allRes.data ?? []).map((g: any) => ({
+    const withLeaders: GroupWithLeaders[] = ((allRes.data ?? []) as Group[]).map((g) => ({
       ...g,
       leaders: leadersByGroup[g.id] ?? [],
     }));
@@ -252,10 +255,10 @@ export function GroupsListScreen() {
           </View>
         }
         renderSectionHeader={({ section }) => (
-          <Text style={styles.sectionHeader}>{(section as any).title}</Text>
+          <Text style={styles.sectionHeader}>{(section as GroupSection).title}</Text>
         )}
         renderItem={({ item, section }) => (
-          <GroupCard item={item as GroupWithLeaders} isMember={(section as any).isMember} />
+          <GroupCard item={item} isMember={(section as GroupSection).isMember} />
         )}
         ListEmptyComponent={
           <View style={styles.center}>

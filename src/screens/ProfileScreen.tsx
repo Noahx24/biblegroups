@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -222,7 +222,7 @@ export function ProfileScreen() {
 
           {/* Super admin link */}
           {isAdmin && (
-            <TouchableOpacity style={styles.adminLink} onPress={() => (navigation as any).navigate('Admin')}>
+            <TouchableOpacity style={styles.adminLink} onPress={() => navigation.navigate('Admin')}>
               <Ionicons name="shield-checkmark-outline" size={16} color={colors.primary} />
               <Text style={styles.adminLinkText}>Admin Panel</Text>
               <Ionicons name="chevron-forward" size={14} color={colors.textMuted} />
