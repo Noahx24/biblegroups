@@ -18,6 +18,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
+import { useRealtime } from '@/hooks/useRealtime';
 import { colors, fonts, radius, shadow, spacing } from '@/theme';
 import type { Group, MemberRole, Profile } from '@/types';
 import type { AppStackParamList } from '@/navigation/RootNavigator';
@@ -104,6 +105,9 @@ export function GroupsListScreen() {
   useEffect(() => {
     load().finally(() => setLoading(false));
   }, [load]);
+
+  useRealtime('groups', load);
+  useRealtime('group_members', load);
 
   const openGroup = (g: GroupWithRole) => {
     navigation.navigate('GroupDetail', { group: g, myRole: g.myRole });

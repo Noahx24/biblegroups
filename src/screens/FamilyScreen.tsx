@@ -18,6 +18,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { format } from 'date-fns';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
+import { useRealtime } from '@/hooks/useRealtime';
 import { colors, fonts, radius, shadow, spacing } from '@/theme';
 import type { FamilyMember, ProgramRegistration, YouthProgram } from '@/types';
 
@@ -63,6 +64,9 @@ export function FamilyScreen() {
   useEffect(() => {
     load().finally(() => setLoading(false));
   }, [load]);
+
+  useRealtime('youth_programs', load);
+  useRealtime('program_registrations', load, `registered_by=eq.${userId}`);
 
   const deregister = (reg: ProgramRegistration) => {
     Alert.alert('Remove registration?', `${reg.family_member?.name ?? 'Child'} from ${reg.program?.name ?? 'program'}`, [

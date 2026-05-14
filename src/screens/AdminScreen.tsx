@@ -30,6 +30,7 @@ import {
   View,
 } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { useRealtime } from '@/hooks/useRealtime';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import * as DocumentPicker from 'expo-document-picker';
@@ -177,6 +178,9 @@ export function AdminScreen() {
 
   // Reload on focus so changes made in AdminGroupMembersScreen show up here too.
   useFocusEffect(useCallback(() => { loadGroups(); }, [loadGroups]));
+
+  useRealtime('groups', loadGroups);
+  useRealtime('group_members', loadGroups);
 
   const filteredGroups = useMemo(() => {
     const q = groupQuery.trim().toLowerCase();
