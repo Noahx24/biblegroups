@@ -25,8 +25,25 @@ export type FamilyMember = {
   parent_user_id: string;
   name: string;
   birth_year: number | null;
+  // POPIA-classified special personal information. Only stored when
+  // consent_given_at / consent_version are set (DB CHECK enforces this).
+  allergies: string | null;
+  medical_notes: string | null;
+  emergency_contact_1_name: string | null;
+  emergency_contact_1_phone: string | null;
+  emergency_contact_2_name: string | null;
+  emergency_contact_2_phone: string | null;
+  consent_given_at: string | null;
+  consent_version: string | null;
   created_at: string;
 };
+
+export const CHILD_CONSENT_VERSION = '2026-01-popia-v1';
+export const CHILD_CONSENT_TEXT =
+  'I am the parent or legal guardian of this child. I consent to ChurchFlow storing the health and ' +
+  'emergency-contact details I provide here so that programme leaders can respond appropriately during ' +
+  'church programmes my child attends. I understand I can view, export, or delete this information at ' +
+  'any time, and that it will be automatically removed once my child turns 18.';
 
 export type YouthProgram = {
   id: string;
