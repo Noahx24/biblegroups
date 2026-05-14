@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  ActivityIndicator,
   Alert,
   FlatList,
   KeyboardAvoidingView,
@@ -15,12 +14,14 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
+import { Ionicons } from '@expo/vector-icons';
 import { format, parse } from 'date-fns';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
 import { useGroup } from '@/context/GroupContext';
 import { useRealtime } from '@/hooks/useRealtime';
 import { colors, fonts, radius, shadow, spacing } from '@/theme';
+import { SkeletonList } from '@/components/LoadingSkeleton';
 import type { EventRsvp, GroupEvent, RsvpStatus } from '@/types';
 
 const RSVP_OPTIONS: { value: RsvpStatus; label: string }[] = [
@@ -145,9 +146,15 @@ export function EventsScreen() {
 
   if (loading) {
     return (
-      <View style={styles.center}>
-        <ActivityIndicator color={colors.primary} />
-      </View>
+      <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
+        <View style={styles.sectionHeader}>
+          <View>
+            <Text style={styles.pageTitle}>Events</Text>
+            <Text style={styles.pageSubtitle}>Loading…</Text>
+          </View>
+        </View>
+        <SkeletonList rows={3} />
+      </SafeAreaView>
     );
   }
 
@@ -172,9 +179,28 @@ export function EventsScreen() {
           </View>
         }
         ListEmptyComponent={
-          <Text style={styles.empty}>
-            No upcoming events yet.{isLeader ? ' Tap + to add one.' : ''}
-          </Text>
+          <View style={styles.emptyState}>
+            <View style={styles.emptyIconCircle}>
+              <Ionicons name="calendar-outline" size={28} color={colors.primary} />
+            </View>
+            <Text style={styles.emptyTitle}>No upcoming events</Text>
+            <Text style={styles.emptySubtitle}>
+              {isLeader
+                ? 'Plan your next gathering — your group will see it here.'
+                : "Your group hasn't announced any events yet. Check back soon."}
+            </Text>
+            {isLeader && (
+              <Pressable
+                onPress={() => { if (!userId) return; setEditing(null); setModalOpen(true); }}
+                style={({ pressed }) => [styles.emptyCta, pressed && styles.pressed]}
+                accessibilityRole="button"
+                accessibilityLabel="Create an event"
+              >
+                <Ionicons name="add" size={18} color="#fff" />
+                <Text style={styles.emptyCtaText}>Create an event</Text>
+              </Pressable>
+            )}
+          </View>
         }
         renderItem={({ item }) => {
           const eventRsvps = rsvpsByEvent[item.id] ?? [];
@@ -428,6 +454,30 @@ const styles = StyleSheet.create({
   rsvpTextActive: { color: '#fff' },
   goingCount: { fontSize: 12.5, color: colors.textMuted, fontWeight: '600' },
   empty: { textAlign: 'center', color: colors.textMuted, marginTop: spacing.xxl, paddingHorizontal: spacing.xl },
+  emptyState: {
+    alignItems: 'center', paddingHorizontal: spacing.xl, paddingTop: spacing.xxl + spacing.md,
+    gap: spacing.sm,
+  },
+  emptyIconCircle: {
+    width: 64, height: 64, borderRadius: 32,
+    backgroundColor: colors.primaryLight,
+    alignItems: 'center', justifyContent: 'center',
+    marginBottom: spacing.sm,
+  },
+  emptyTitle: {
+    fontFamily: fonts.serif, fontSize: 18, fontWeight: '700', color: colors.text,
+    letterSpacing: -0.1,
+  },
+  emptySubtitle: {
+    fontSize: 14, color: colors.textMuted, textAlign: 'center', lineHeight: 20,
+    maxWidth: 280, marginBottom: spacing.md,
+  },
+  emptyCta: {
+    flexDirection: 'row', alignItems: 'center', gap: spacing.sm - 2,
+    backgroundColor: colors.primary, paddingHorizontal: spacing.lg, paddingVertical: spacing.sm + 2,
+    borderRadius: radius.pill,
+  },
+  emptyCtaText: { color: '#fff', fontWeight: '700', fontSize: 14, letterSpacing: 0.2 },
   fab: {
     position: 'absolute', right: 18, bottom: 100, width: 58, height: 58, borderRadius: 29,
     backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center',

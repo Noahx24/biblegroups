@@ -38,6 +38,7 @@ export function ProfileScreen() {
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [savedAt, setSavedAt] = useState<number | null>(null);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
 
   useEffect(() => {
@@ -144,9 +145,19 @@ export function ProfileScreen() {
       })
       .eq('id', userId);
     setSaving(false);
-    if (error) Alert.alert('Error', error.message);
-    else Alert.alert('Saved');
+    if (error) {
+      Alert.alert('Could not save', error.message);
+      return;
+    }
+    setSavedAt(Date.now());
   };
+
+  // Clear the inline "Saved" badge after 2.5s.
+  useEffect(() => {
+    if (savedAt == null) return;
+    const t = setTimeout(() => setSavedAt(null), 2500);
+    return () => clearTimeout(t);
+  }, [savedAt]);
 
   if (loading) {
     return (
@@ -227,9 +238,24 @@ export function ProfileScreen() {
                 placeholderTextColor={colors.textMuted} style={styles.fieldInput} />
             </ProfileField>
 
-            <Pressable onPress={save} disabled={saving || uploadingAvatar}
-              style={({ pressed }) => [styles.saveBtn, (saving || uploadingAvatar) && styles.disabled, pressed && styles.pressed]}>
-              <Text style={styles.saveBtnText}>{saving ? 'Saving…' : 'Save'}</Text>
+            <Pressable onPress={save} disabled={saving || uploadingAvatar || savedAt != null}
+              style={({ pressed }) => [
+                styles.saveBtn,
+                (saving || uploadingAvatar) && styles.disabled,
+                savedAt != null && styles.saveBtnSaved,
+                pressed && styles.pressed,
+              ]}
+              accessibilityRole="button"
+              accessibilityLabel={savedAt != null ? 'Profile saved' : 'Save profile'}
+              accessibilityState={{ busy: saving, disabled: saving || uploadingAvatar }}>
+              {savedAt != null ? (
+                <View style={styles.saveBtnContent}>
+                  <Ionicons name="checkmark-circle" size={18} color="#fff" />
+                  <Text style={styles.saveBtnText}>Saved</Text>
+                </View>
+              ) : (
+                <Text style={styles.saveBtnText}>{saving ? 'Saving…' : 'Save'}</Text>
+              )}
             </Pressable>
           </View>
 
@@ -318,6 +344,8 @@ const styles = StyleSheet.create({
   birthdayInput: { width: 72, textAlign: 'center' },
   birthdaySep: { fontSize: 20, color: colors.textMuted, fontWeight: '300' },
   saveBtn: { backgroundColor: colors.primary, borderRadius: radius.md, paddingVertical: 14, paddingHorizontal: 18, alignItems: 'center', marginTop: 14, shadowColor: colors.primary, shadowOpacity: 0.28, shadowRadius: 8, shadowOffset: { width: 0, height: 4 }, elevation: 3 },
+  saveBtnSaved: { backgroundColor: colors.success, shadowColor: colors.success, shadowOpacity: 0.28 },
+  saveBtnContent: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm - 2 },
   saveBtnText: { color: '#fff', fontWeight: '600', fontSize: 16, letterSpacing: 0.1 },
   disabled: { opacity: 0.5 },
   pressed: { opacity: 0.85 },

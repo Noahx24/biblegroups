@@ -14,6 +14,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { WebView } from 'react-native-webview';
 import { format, isValid } from 'date-fns';
 import { fetchNewsletters, type NewsletterItem } from '@/lib/newsletter';
+import { SkeletonList } from '@/components/LoadingSkeleton';
 import { colors, fonts, radius, shadow, spacing } from '@/theme';
 
 export function ChurchNewsScreen() {
@@ -80,9 +81,13 @@ export function ChurchNewsScreen() {
 
   if (loading) {
     return (
-      <View style={styles.center}>
-        <ActivityIndicator color={colors.primary} />
-      </View>
+      <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
+        <View style={styles.sectionHeader}>
+          <Text style={styles.pageTitle}>Church News</Text>
+          <Text style={styles.pageSubtitle}>BMC News & Newsletters</Text>
+        </View>
+        <SkeletonList rows={4} />
+      </SafeAreaView>
     );
   }
 
