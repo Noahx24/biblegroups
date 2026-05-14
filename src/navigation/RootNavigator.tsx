@@ -11,6 +11,7 @@ import { GroupNavigator } from '@/navigation/GroupNavigator';
 import { AdminScreen } from '@/screens/AdminScreen';
 import { AdminGroupMembersScreen } from '@/screens/AdminGroupMembersScreen';
 import { FamilyScreen } from '@/screens/FamilyScreen';
+import { MyWeekScreen } from '@/screens/MyWeekScreen';
 import { colors } from '@/theme';
 import { TabBarIcon } from '@/components/TabBarIcon';
 import type { Group, MemberRole } from '@/types';
@@ -24,6 +25,7 @@ export type AppStackParamList = {
 
 export type MainTabsParamList = {
   Groups: undefined;
+  'My Week': undefined;
   News: undefined;
   Family: undefined;
   Profile: undefined;
@@ -50,6 +52,7 @@ function MainTabs() {
       })}
     >
       <Tabs.Screen name="Groups" component={GroupsListScreen} />
+      <Tabs.Screen name="My Week" component={MyWeekScreen} />
       <Tabs.Screen name="News" component={ChurchNewsScreen} />
       <Tabs.Screen name="Family" component={FamilyScreen} />
       <Tabs.Screen name="Profile" component={ProfileScreen} />

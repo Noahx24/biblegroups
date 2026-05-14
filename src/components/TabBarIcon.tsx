@@ -11,6 +11,7 @@ interface Props {
 
 const ICON_MAP: Record<string, { outline: IoniconsName; filled: IoniconsName }> = {
   'Groups':        { outline: 'people-outline',    filled: 'people' },
+  'My Week':       { outline: 'today-outline',     filled: 'today' },
   'News':          { outline: 'newspaper-outline', filled: 'newspaper' },
   'Profile':       { outline: 'person-outline',    filled: 'person' },
   'Family':        { outline: 'heart-outline',     filled: 'heart' },
