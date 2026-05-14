@@ -14,7 +14,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { addDays, format } from 'date-fns';
 import { supabase } from '@/lib/supabase';
-import { fetchVerse } from '@/lib/bible';
+import { fetchVerse, openInYouVersion } from '@/lib/bible';
 import { formatWeek, nextWeekStart, weekStart } from '@/lib/week';
 import { useAuth } from '@/hooks/useAuth';
 import { useGroup } from '@/context/GroupContext';
@@ -196,6 +196,14 @@ export function ThisWeekScreen() {
               <View style={styles.verseDivider} />
               <View style={styles.verseFooter}>
                 <Text style={styles.translation}>{verse.translation}</Text>
+                <Pressable
+                  onPress={() => openInYouVersion(verse.reference)}
+                  style={({ pressed }) => [styles.youversionBtn, pressed && styles.pressed]}
+                  accessibilityLabel="Read in YouVersion"
+                  accessibilityRole="link"
+                >
+                  <Text style={styles.youversionBtnText}>Read in YouVersion ↗</Text>
+                </Pressable>
               </View>
             </>
           ) : (
@@ -437,8 +445,10 @@ const styles = StyleSheet.create({
   verseRef: { fontFamily: fonts.serif, fontSize: 22, fontWeight: '700', color: colors.primary, letterSpacing: -0.2, marginBottom: 10 },
   verseText: { fontFamily: fonts.serif, fontSize: 18, lineHeight: 27, color: colors.textSoft },
   verseDivider: { height: StyleSheet.hairlineWidth, backgroundColor: colors.borderSoft, marginVertical: 12 },
-  verseFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  verseFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: spacing.sm },
   translation: { fontSize: 12, color: colors.textMuted, letterSpacing: 0.4, textTransform: 'uppercase', fontWeight: '600' },
+  youversionBtn: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  youversionBtnText: { fontSize: 12, color: colors.primary, fontWeight: '600' },
   muted: { color: colors.textMuted, fontSize: 14 },
   leaderRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, marginBottom: 14 },
   leaderMeta: { flex: 1 },
