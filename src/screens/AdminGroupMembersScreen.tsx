@@ -174,6 +174,8 @@ export function AdminGroupMembersScreen() {
     await load();
   };
 
+  const isVolunteer = group.type === 'volunteer';
+
   const renderMemberRow = (m: MemberRow, isLast: boolean) => {
     const busy = busyUserId === m.user_id;
     return (
@@ -187,14 +189,20 @@ export function AdminGroupMembersScreen() {
             <Text style={styles.memberEmail} numberOfLines={1}>{m.email}</Text>
           )}
         </View>
-        <Pressable
-          style={styles.rolePill}
-          onPress={() => toggleRole(m)}
-          disabled={busy}
-        >
-          <Text style={styles.rolePillText}>{m.role === 'leader' ? 'Leader' : 'Member'}</Text>
-          <Ionicons name="swap-vertical" size={11} color={colors.primary} />
-        </Pressable>
+        {isVolunteer ? (
+          <View style={styles.rolePillStatic}>
+            <Text style={styles.rolePillText}>Member</Text>
+          </View>
+        ) : (
+          <Pressable
+            style={styles.rolePill}
+            onPress={() => toggleRole(m)}
+            disabled={busy}
+          >
+            <Text style={styles.rolePillText}>{m.role === 'leader' ? 'Leader' : 'Member'}</Text>
+            <Ionicons name="swap-vertical" size={11} color={colors.primary} />
+          </Pressable>
+        )}
         <Pressable
           style={styles.removeBtn}
           onPress={() => confirmRemove(m)}
@@ -232,22 +240,31 @@ export function AdminGroupMembersScreen() {
         <View style={styles.center}><ActivityIndicator color={colors.primary} /></View>
       ) : (
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-          <Text style={styles.sectionLabel}>Leaders</Text>
-          <View style={styles.card}>
-            {leaders.length === 0
-              ? <Text style={styles.empty}>No leaders yet</Text>
-              : leaders.map((m, i) => renderMemberRow(m, i === leaders.length - 1))}
-          </View>
+          {!isVolunteer && (
+            <>
+              <Text style={styles.sectionLabel}>Leaders</Text>
+              <View style={styles.card}>
+                {leaders.length === 0
+                  ? <Text style={styles.empty}>No leaders yet</Text>
+                  : leaders.map((m, i) => renderMemberRow(m, i === leaders.length - 1))}
+              </View>
+            </>
+          )}
 
           <Text style={styles.sectionLabel}>Members</Text>
           <View style={styles.card}>
-            {regulars.length === 0
+            {(isVolunteer ? members : regulars).length === 0
               ? <Text style={styles.empty}>No members yet</Text>
-              : regulars.map((m, i) => renderMemberRow(m, i === regulars.length - 1))}
+              : (isVolunteer ? members : regulars).map((m, i) => {
+                  const list = isVolunteer ? members : regulars;
+                  return renderMemberRow(m, i === list.length - 1);
+                })}
           </View>
 
           <Text style={styles.hint}>
-            Tap the role pill to swap leader / member. Tap the X to remove a person from this group.
+            {isVolunteer
+              ? 'Volunteer groups have members only — no leader role. Tap the X to remove someone.'
+              : 'Tap the role pill to swap leader / member. Tap the X to remove a person from this group.'}
           </Text>
         </ScrollView>
       )}
@@ -298,8 +315,9 @@ function AddMemberModal({
     if (!visible) {
       setTerm('');
       setResults([]);
-      setPickedRole('member');
     }
+    // Volunteer groups are members-only; always reset to 'member'
+    setPickedRole('member');
   }, [visible]);
 
   useEffect(() => {
@@ -375,20 +393,31 @@ function AddMemberModal({
         </View>
 
         <View style={styles.modalBody}>
-          <Text style={styles.fieldLabel}>Role</Text>
-          <View style={styles.roleRow}>
-            {(['member', 'leader'] as const).map(r => (
-              <Pressable
-                key={r}
-                style={[styles.roleOption, pickedRole === r && styles.roleOptionActive]}
-                onPress={() => setPickedRole(r)}
-              >
-                <Text style={[styles.roleOptionText, pickedRole === r && styles.roleOptionTextActive]}>
-                  {r === 'leader' ? 'Leader' : 'Member'}
-                </Text>
-              </Pressable>
-            ))}
-          </View>
+          {group.type === 'volunteer' ? (
+            <View style={styles.volunteerRoleNote}>
+              <Ionicons name="information-circle-outline" size={15} color={colors.textMuted} />
+              <Text style={styles.volunteerRoleNoteText}>
+                Volunteer groups have members only — no leader role.
+              </Text>
+            </View>
+          ) : (
+            <>
+              <Text style={styles.fieldLabel}>Role</Text>
+              <View style={styles.roleRow}>
+                {(['member', 'leader'] as const).map(r => (
+                  <Pressable
+                    key={r}
+                    style={[styles.roleOption, pickedRole === r && styles.roleOptionActive]}
+                    onPress={() => setPickedRole(r)}
+                  >
+                    <Text style={[styles.roleOptionText, pickedRole === r && styles.roleOptionTextActive]}>
+                      {r === 'leader' ? 'Leader' : 'Member'}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+            </>
+          )}
 
           <Text style={styles.fieldLabel}>Search by name or email</Text>
           <View style={styles.searchRow}>
@@ -520,6 +549,12 @@ const styles = StyleSheet.create({
     borderRadius: radius.pill,
   },
   rolePillText: { fontSize: 11, fontWeight: '700', color: colors.primary, letterSpacing: 0.3 },
+  rolePillStatic: {
+    backgroundColor: colors.borderSoft,
+    paddingHorizontal: spacing.sm + 2,
+    paddingVertical: 4,
+    borderRadius: radius.pill,
+  },
   removeBtn: { padding: 2 },
 
   initialsAvatar: { backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center' },
@@ -588,4 +623,17 @@ const styles = StyleSheet.create({
   searchResultInfo: { flex: 1 },
   alreadyText: { fontSize: 11, color: colors.textMuted, fontStyle: 'italic' },
   separator: { height: StyleSheet.hairlineWidth, backgroundColor: colors.borderSoft },
+
+  volunteerRoleNote: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    backgroundColor: colors.surface,
+    borderRadius: radius.md,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.borderSoft,
+    padding: spacing.md,
+    marginTop: spacing.sm,
+  },
+  volunteerRoleNoteText: { fontSize: 13, color: colors.textMuted, flex: 1 },
 });

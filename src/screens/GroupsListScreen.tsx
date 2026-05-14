@@ -152,13 +152,13 @@ export function GroupsListScreen() {
       return;
     }
 
+    // Volunteer groups have no leaders — creator is added as a plain member.
+    const creatorRole = newType === 'class' ? 'leader' : 'member';
     const { error: memberErr } = await supabase
       .from('group_members')
-      .insert({ group_id: grp.id, user_id: userId, role: 'leader' });
+      .insert({ group_id: grp.id, user_id: userId, role: creatorRole });
     if (memberErr) {
-      // Group was created but we couldn't add the creator as leader. Surface
-      // the error so they don't end up locked out of their own group.
-      setError(`Group "${groupName}" was created, but you weren't added as leader: ${memberErr.message}`);
+      setError(`Group "${groupName}" was created, but you weren't added: ${memberErr.message}`);
       setSaving(false);
       load();
       return;
