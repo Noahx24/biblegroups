@@ -8,6 +8,8 @@
  *   - Promote / demote between leader and member
  *   - Remove someone from the group
  *   - Add a user by searching the directory of registered users by name or email
+ *   - Bulk select rows (long-press or "Select" header button) to remove or
+ *     change role for multiple members at once
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -72,6 +74,9 @@ export function AdminGroupMembersScreen() {
   const [loading, setLoading] = useState(true);
   const [busyUserId, setBusyUserId] = useState<string | null>(null);
   const [showAdd, setShowAdd] = useState(false);
+  const [selectMode, setSelectMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkBusy, setBulkBusy] = useState(false);
   const mountedRef = useRef(true);
 
   useEffect(() => {
@@ -176,10 +181,110 @@ export function AdminGroupMembersScreen() {
 
   const isVolunteer = group.type === 'volunteer';
 
+  // ── Bulk select ────────────────────────────────────────────────────────────
+  // Long-press a row to enter select mode; tap rows to toggle. Bulk remove uses
+  // a single delete with .in('user_id', […]) so we don't make N round trips.
+
+  const enterSelect = (initialId?: string) => {
+    setSelectMode(true);
+    if (initialId) setSelectedIds(new Set([initialId]));
+  };
+
+  const exitSelect = () => {
+    setSelectMode(false);
+    setSelectedIds(new Set());
+  };
+
+  const toggleSelect = (userId: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(userId)) next.delete(userId);
+      else next.add(userId);
+      return next;
+    });
+  };
+
+  const selectAllVisible = () => {
+    setSelectedIds(new Set(members.map(m => m.user_id)));
+  };
+
+  const bulkRemove = () => {
+    if (selectedIds.size === 0) return;
+    const ids = Array.from(selectedIds);
+    Alert.alert(
+      `Remove ${ids.length} member${ids.length === 1 ? '' : 's'}?`,
+      `They will no longer belong to ${group.name}.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Remove',
+          style: 'destructive',
+          onPress: async () => {
+            setBulkBusy(true);
+            const { error } = await supabase
+              .from('group_members')
+              .delete()
+              .eq('group_id', group.id)
+              .in('user_id', ids);
+            if (!mountedRef.current) return;
+            setBulkBusy(false);
+            if (error) { Alert.alert('Bulk remove failed', error.message); return; }
+            exitSelect();
+            await load();
+          },
+        },
+      ],
+    );
+  };
+
+  const bulkSetRole = (nextRole: MemberRole) => {
+    if (selectedIds.size === 0) return;
+    if (isVolunteer && nextRole === 'leader') {
+      Alert.alert('Not allowed', 'Volunteer groups have members only.');
+      return;
+    }
+    const ids = Array.from(selectedIds);
+    (async () => {
+      setBulkBusy(true);
+      const { error } = await supabase
+        .from('group_members')
+        .update({ role: nextRole })
+        .eq('group_id', group.id)
+        .in('user_id', ids);
+      if (!mountedRef.current) return;
+      setBulkBusy(false);
+      if (error) { Alert.alert('Bulk role change failed', error.message); return; }
+      exitSelect();
+      await load();
+    })();
+  };
+
   const renderMemberRow = (m: MemberRow, isLast: boolean) => {
     const busy = busyUserId === m.user_id;
+    const selected = selectedIds.has(m.user_id);
+    const onPress = selectMode ? () => toggleSelect(m.user_id) : undefined;
+    const onLongPress = selectMode ? undefined : () => enterSelect(m.user_id);
+
     return (
-      <View key={m.user_id} style={[styles.memberRow, isLast && styles.memberRowLast]}>
+      <TouchableOpacity
+        key={m.user_id}
+        style={[
+          styles.memberRow,
+          isLast && styles.memberRowLast,
+          selected && styles.memberRowSelected,
+        ]}
+        activeOpacity={selectMode ? 0.7 : 1}
+        onPress={onPress}
+        onLongPress={onLongPress}
+        delayLongPress={350}
+      >
+        {selectMode && (
+          <Ionicons
+            name={selected ? 'checkbox' : 'square-outline'}
+            size={22}
+            color={selected ? colors.primary : colors.textMuted}
+          />
+        )}
         <Avatar uri={m.avatar_url} name={m.display_name ?? m.email} size={38} />
         <View style={styles.memberInfo}>
           <Text style={styles.memberName} numberOfLines={1}>
@@ -189,7 +294,7 @@ export function AdminGroupMembersScreen() {
             <Text style={styles.memberEmail} numberOfLines={1}>{m.email}</Text>
           )}
         </View>
-        {isVolunteer ? (
+        {!selectMode && (isVolunteer ? (
           <View style={styles.rolePillStatic}>
             <Text style={styles.rolePillText}>Member</Text>
           </View>
@@ -202,39 +307,96 @@ export function AdminGroupMembersScreen() {
             <Text style={styles.rolePillText}>{m.role === 'leader' ? 'Leader' : 'Member'}</Text>
             <Ionicons name="swap-vertical" size={11} color={colors.primary} />
           </Pressable>
+        ))}
+        {!selectMode && (
+          <Pressable
+            style={styles.removeBtn}
+            onPress={() => confirmRemove(m)}
+            disabled={busy}
+            hitSlop={6}
+          >
+            {busy
+              ? <ActivityIndicator size="small" color={colors.danger} />
+              : <Ionicons name="close-circle" size={22} color={colors.danger} />}
+          </Pressable>
         )}
-        <Pressable
-          style={styles.removeBtn}
-          onPress={() => confirmRemove(m)}
-          disabled={busy}
-          hitSlop={6}
-        >
-          {busy
-            ? <ActivityIndicator size="small" color={colors.danger} />
-            : <Ionicons name="close-circle" size={22} color={colors.danger} />}
-        </Pressable>
-      </View>
+      </TouchableOpacity>
     );
   };
 
   return (
     <SafeAreaView style={styles.safe}>
-      <View style={styles.header}>
-        <Pressable onPress={() => navigation.goBack()} hitSlop={10}>
-          <Ionicons name="arrow-back" size={22} color={colors.text} />
-        </Pressable>
-        <View style={styles.headerTextWrap}>
-          <Text style={styles.headerTitle} numberOfLines={1}>{group.name}</Text>
-          <Text style={styles.headerSub}>{group.type === 'class' ? 'Class group' : 'Volunteer group'}</Text>
+      {selectMode ? (
+        <View style={[styles.header, styles.headerSelect]}>
+          <Pressable onPress={exitSelect} hitSlop={10}>
+            <Ionicons name="close" size={22} color={colors.text} />
+          </Pressable>
+          <View style={styles.headerTextWrap}>
+            <Text style={styles.headerTitle}>
+              {selectedIds.size} selected
+            </Text>
+            <Pressable onPress={selectAllVisible} hitSlop={4}>
+              <Text style={styles.headerSelectAction}>Select all</Text>
+            </Pressable>
+          </View>
+          {!isVolunteer && (
+            <Pressable
+              style={styles.bulkActionBtn}
+              onPress={() => bulkSetRole('leader')}
+              disabled={bulkBusy || selectedIds.size === 0}
+              hitSlop={4}
+            >
+              <Ionicons name="star-outline" size={18} color={colors.primary} />
+            </Pressable>
+          )}
+          {!isVolunteer && (
+            <Pressable
+              style={styles.bulkActionBtn}
+              onPress={() => bulkSetRole('member')}
+              disabled={bulkBusy || selectedIds.size === 0}
+              hitSlop={4}
+            >
+              <Ionicons name="person-outline" size={18} color={colors.primary} />
+            </Pressable>
+          )}
+          <Pressable
+            style={[styles.bulkActionBtn, styles.bulkActionDanger]}
+            onPress={bulkRemove}
+            disabled={bulkBusy || selectedIds.size === 0}
+            hitSlop={4}
+          >
+            {bulkBusy
+              ? <ActivityIndicator size="small" color={colors.danger} />
+              : <Ionicons name="trash-outline" size={18} color={colors.danger} />}
+          </Pressable>
         </View>
-        <Pressable
-          style={styles.addBtn}
-          onPress={() => setShowAdd(true)}
-          hitSlop={6}
-        >
-          <Ionicons name="person-add" size={18} color={colors.surface} />
-        </Pressable>
-      </View>
+      ) : (
+        <View style={styles.header}>
+          <Pressable onPress={() => navigation.goBack()} hitSlop={10}>
+            <Ionicons name="arrow-back" size={22} color={colors.text} />
+          </Pressable>
+          <View style={styles.headerTextWrap}>
+            <Text style={styles.headerTitle} numberOfLines={1}>{group.name}</Text>
+            <Text style={styles.headerSub}>{group.type === 'class' ? 'Class group' : 'Volunteer group'}</Text>
+          </View>
+          {members.length > 0 && (
+            <Pressable
+              onPress={() => enterSelect()}
+              hitSlop={6}
+              style={styles.selectBtn}
+            >
+              <Text style={styles.selectBtnText}>Select</Text>
+            </Pressable>
+          )}
+          <Pressable
+            style={styles.addBtn}
+            onPress={() => setShowAdd(true)}
+            hitSlop={6}
+          >
+            <Ionicons name="person-add" size={18} color={colors.surface} />
+          </Pressable>
+        </View>
+      )}
 
       {loading ? (
         <View style={styles.center}><ActivityIndicator color={colors.primary} /></View>
@@ -262,9 +424,11 @@ export function AdminGroupMembersScreen() {
           </View>
 
           <Text style={styles.hint}>
-            {isVolunteer
-              ? 'Volunteer groups have members only — no leader role. Tap the X to remove someone.'
-              : 'Tap the role pill to swap leader / member. Tap the X to remove a person from this group.'}
+            {selectMode
+              ? 'Tap rows to add or remove from selection. Use the header icons to remove or change role for everyone selected.'
+              : isVolunteer
+                ? 'Volunteer groups have members only — no leader role. Tap the X to remove someone. Long-press a row or tap "Select" to bulk-edit.'
+                : 'Tap the role pill to swap leader / member. Tap the X to remove a person. Long-press a row or tap "Select" to bulk-edit.'}
           </Text>
         </ScrollView>
       )}
@@ -505,6 +669,24 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  selectBtn: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: 6,
+    borderRadius: radius.pill,
+    borderWidth: 1,
+    borderColor: colors.primary,
+    backgroundColor: colors.primaryLight,
+  },
+  selectBtnText: { fontSize: 12, fontWeight: '700', color: colors.primary, letterSpacing: 0.4 },
+  headerSelect: { backgroundColor: colors.primaryLight, gap: spacing.sm },
+  headerSelectAction: { fontSize: 12, color: colors.primary, fontWeight: '600', marginTop: 2 },
+  bulkActionBtn: {
+    width: 34, height: 34, borderRadius: 17,
+    alignItems: 'center', justifyContent: 'center',
+    backgroundColor: colors.surface,
+    borderWidth: StyleSheet.hairlineWidth, borderColor: colors.borderSoft,
+  },
+  bulkActionDanger: { backgroundColor: '#fff' },
 
   content: { padding: spacing.lg, gap: spacing.md, paddingBottom: spacing.xxl },
   sectionLabel: {
@@ -536,6 +718,7 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.borderSoft,
   },
   memberRowLast: { borderBottomWidth: 0 },
+  memberRowSelected: { backgroundColor: colors.primaryLight },
   memberInfo: { flex: 1 },
   memberName: { fontSize: 14.5, fontWeight: '600', color: colors.text },
   memberEmail: { fontSize: 12, color: colors.textMuted, marginTop: 1 },
