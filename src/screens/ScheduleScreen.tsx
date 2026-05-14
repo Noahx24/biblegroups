@@ -10,6 +10,7 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
@@ -545,6 +546,16 @@ function EditSlotModal({
             </>
           )}
 
+          <Text style={[styles.fieldLabel, { marginTop: spacing.sm }]}>Notes (optional)</Text>
+          <TextInput
+            style={[styles.textInput, styles.notesInput]}
+            value={notes}
+            onChangeText={setNotes}
+            placeholder="Any notes for this slot…"
+            placeholderTextColor={colors.textMuted}
+            multiline
+          />
+
           <Pressable onPress={deleteSlot} style={styles.deleteBtn}>
             <Ionicons name="trash-outline" size={16} color={colors.danger} />
             <Text style={styles.deleteBtnText}>Remove this slot</Text>
@@ -792,9 +803,6 @@ function ManageProgrammesModal({
     );
   };
 
-  // Name field needs a TextInput (kept for programme naming)
-  const { TextInput } = require('react-native');
-
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
       <SafeAreaView style={styles.modalSafe}>
@@ -1012,7 +1020,7 @@ export function ScheduleScreen() {
 
     if (!slot) {
       if (!isClass && isAdmin) { setShowAssign({ date }); return; }
-      if (!isLeader) { Alert.alert('Not scheduled', 'A leader needs to add this date first.'); return; }
+      if (!isLeader && !isAdmin) { Alert.alert('Not scheduled', 'A leader needs to add this date first.'); return; }
       setAddClassModal({ date });
       return;
     }
@@ -1366,6 +1374,7 @@ const styles = StyleSheet.create({
     paddingVertical: Platform.OS === 'ios' ? spacing.md : spacing.sm,
     fontSize: 15, color: colors.text,
   },
+  notesInput: { minHeight: 72, textAlignVertical: 'top' },
 
   // DatePickerField / TimePickerField
   pickerField: {
