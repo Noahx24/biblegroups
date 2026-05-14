@@ -12,7 +12,6 @@ export type Profile = {
   avatar_url: string | null;
   favorite_verse: string | null;
   favorite_hymn: string | null;
-  birthday: string | null;
   birth_month: number | null;
   birth_day: number | null;
   is_admin: boolean;
