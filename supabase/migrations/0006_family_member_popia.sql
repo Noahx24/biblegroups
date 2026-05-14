@@ -178,9 +178,19 @@ begin
     return new;
 
   elsif tg_op = 'DELETE' then
+    -- family_member_id MUST be null here. AFTER DELETE fires after the row
+    -- is gone AND after the ON DELETE SET NULL cascade has nulled existing
+    -- audit references. Setting family_member_id = old.id on the new audit
+    -- row would point at a non-existent family_members.id and fail the FK
+    -- check at end-of-statement, breaking every delete. Carry the deleted
+    -- child's id in metadata so admins can still trace the action.
     insert into public.family_member_audits (family_member_id, actor_id, action, metadata)
-    values (old.id, auth.uid(), 'delete',
-            jsonb_build_object('child_name', old.name, 'birth_year', old.birth_year));
+    values (null, auth.uid(), 'delete',
+            jsonb_build_object(
+              'child_id', old.id,
+              'child_name', old.name,
+              'birth_year', old.birth_year
+            ));
     return old;
   end if;
 
