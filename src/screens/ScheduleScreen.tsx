@@ -89,7 +89,7 @@ export function ScheduleScreen() {
   }, [load]);
 
   useFocusEffect(useCallback(() => { load(); }, [load]));
-  useRealtime('schedule', load);
+  useRealtime('schedule', load, `group_id=eq.${group.id}`);
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -213,13 +213,17 @@ export function ScheduleScreen() {
 
   const respondToSlot = async (slotId: string, status: 'accepted' | 'declined') => {
     setBusyDate(slotId);
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('schedule')
       .update({ status })
       .eq('id', slotId)
-      .eq('assignee_id', userId);
+      .eq('assignee_id', userId)
+      .select();
     setBusyDate(null);
-    if (error) Alert.alert('Error', error.message);
+    if (error) { Alert.alert('Error', error.message); await load(); return; }
+    if (!data || data.length === 0) {
+      Alert.alert('Could not update', 'This slot may have been removed or reassigned. Pull to refresh.');
+    }
     await load();
   };
 
@@ -284,17 +288,25 @@ export function ScheduleScreen() {
 
   const birthdaysThisMonth = useMemo(() => {
     const currentMonth = getMonth(new Date());
+    const dayOfMonth = (iso: string): number | null => {
+      const parts = iso.split('-');
+      if (parts.length !== 3) return null;
+      const d = Number(parts[2]);
+      return Number.isFinite(d) ? d : null;
+    };
+    const monthOfYear = (iso: string): number | null => {
+      const parts = iso.split('-');
+      if (parts.length !== 3) return null;
+      const m = Number(parts[1]);
+      return Number.isFinite(m) ? m : null;
+    };
     return birthdays
       .filter(b => {
         if (!b.birthday) return false;
-        const [, mm] = b.birthday.split('-').map(Number);
-        return mm - 1 === currentMonth;
+        const m = monthOfYear(b.birthday);
+        return m !== null && m - 1 === currentMonth;
       })
-      .sort((a, b) => {
-        const da = parseInt(a.birthday!.split('-')[2], 10);
-        const db = parseInt(b.birthday!.split('-')[2], 10);
-        return da - db;
-      });
+      .sort((a, b) => (dayOfMonth(a.birthday!) ?? 99) - (dayOfMonth(b.birthday!) ?? 99));
   }, [birthdays]);
 
   if (loading) {

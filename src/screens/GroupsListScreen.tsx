@@ -145,7 +145,17 @@ export function GroupsListScreen() {
       return;
     }
 
-    await supabase.from('group_members').insert({ group_id: grp.id, user_id: userId, role: 'leader' });
+    const { error: memberErr } = await supabase
+      .from('group_members')
+      .insert({ group_id: grp.id, user_id: userId, role: 'leader' });
+    if (memberErr) {
+      // Group was created but we couldn't add the creator as leader. Surface
+      // the error so they don't end up locked out of their own group.
+      setError(`Group "${groupName}" was created, but you weren't added as leader: ${memberErr.message}`);
+      setSaving(false);
+      load();
+      return;
+    }
     setSaving(false);
     setShowCreate(false);
     setNewClassNumber(''); setNewVolunteerName(''); setNewType('class'); setNewDesc(''); setNewMeetingTime('');
@@ -156,6 +166,10 @@ export function GroupsListScreen() {
 
   const GroupCard = ({ item, isMember }: { item: GroupWithLeaders; isMember?: boolean }) => {
     const myVersion = myGroups.find(g => g.id === item.id);
+    // Class groups have a single leader displayed inline ("Class 38 — Jane Doe").
+    // Volunteer groups don't surface leaders at all.
+    const isClass = item.type === 'class';
+    const primaryLeader = isClass ? item.leaders[0] ?? null : null;
     return (
       <TouchableOpacity
         style={styles.card}
@@ -166,6 +180,14 @@ export function GroupsListScreen() {
         <View style={styles.cardBody}>
           <View style={styles.cardTop}>
             <Text style={styles.cardName}>{item.name}</Text>
+            {isClass && primaryLeader && (
+              <View style={styles.classLeader}>
+                <Avatar uri={primaryLeader.avatar_url} name={primaryLeader.display_name} size={22} />
+                <Text style={styles.classLeaderName} numberOfLines={1}>
+                  {primaryLeader.display_name ?? 'Leader'}
+                </Text>
+              </View>
+            )}
             <View style={[styles.typePill, { backgroundColor: TYPE_COLOR[item.type] + '22' }]}>
               <Text style={[styles.typePillText, { color: TYPE_COLOR[item.type] }]}>
                 {TYPE_LABEL[item.type]}
@@ -174,20 +196,6 @@ export function GroupsListScreen() {
           </View>
           {!!item.description && (
             <Text style={styles.cardDesc} numberOfLines={1}>{item.description}</Text>
-          )}
-          {item.leaders.length > 0 && (
-            <View style={styles.leadersRow}>
-              <View style={styles.avatarStack}>
-                {item.leaders.slice(0, 3).map((l, i) => (
-                  <View key={l.id} style={[styles.avatarWrap, { zIndex: 10 - i, marginLeft: i > 0 ? -8 : 0 }]}>
-                    <Avatar uri={l.avatar_url} name={l.display_name} size={26} />
-                  </View>
-                ))}
-              </View>
-              <Text style={styles.leadersText}>
-                {item.leaders.map(l => l.display_name ?? 'Leader').join(', ')}
-              </Text>
-            </View>
           )}
           {isMember && myVersion && (
             <View style={styles.roleBadge}>
@@ -339,12 +347,10 @@ const styles = StyleSheet.create({
   typePill: { paddingHorizontal: spacing.sm, paddingVertical: 2, borderRadius: radius.pill },
   typePillText: { fontSize: 11, fontWeight: '600', letterSpacing: 0.2 },
   cardDesc: { fontSize: 13, color: colors.textMuted, marginTop: 3 },
-  leadersRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginTop: spacing.sm },
-  avatarStack: { flexDirection: 'row' },
-  avatarWrap: { borderRadius: 14, borderWidth: 1.5, borderColor: colors.surface },
+  classLeader: { flexDirection: 'row', alignItems: 'center', gap: 6, maxWidth: 180 },
+  classLeaderName: { fontSize: 13, color: colors.textSoft, fontWeight: '500' },
   miniAvatar: { backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center' },
   miniAvatarText: { color: '#fff', fontWeight: '700' },
-  leadersText: { fontSize: 12, color: colors.textMuted, flex: 1 },
   roleBadge: { alignSelf: 'flex-start', marginTop: spacing.sm, paddingHorizontal: spacing.sm, paddingVertical: 2, borderRadius: radius.pill, backgroundColor: colors.backgroundSoft, borderWidth: 1, borderColor: colors.border },
   roleBadgeText: { fontSize: 11, color: colors.textSoft, fontWeight: '600' },
   chevron: { paddingRight: spacing.md },

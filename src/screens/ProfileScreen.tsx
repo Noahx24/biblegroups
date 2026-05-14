@@ -18,7 +18,7 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
-import { parse } from 'date-fns';
+import { format, parse } from 'date-fns';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
 import { colors, fonts, radius, shadow, spacing } from '@/theme';
@@ -119,6 +119,13 @@ export function ProfileScreen() {
       const parsed = parse(trimmedBirthday, 'yyyy-MM-dd', new Date());
       if (Number.isNaN(parsed.getTime())) {
         Alert.alert('Bad birthday', 'Use format YYYY-MM-DD (e.g. 1990-04-15)');
+        return;
+      }
+      // Catch overflowed dates (e.g. "2024-02-30" -> Mar 2): date-fns parse
+      // silently rolls over. Round-trip and compare to the typed string.
+      const roundTrip = format(parsed, 'yyyy-MM-dd');
+      if (roundTrip !== trimmedBirthday) {
+        Alert.alert('Bad birthday', `${trimmedBirthday} isn't a real date — did you mean ${roundTrip}?`);
         return;
       }
       birthdayValue = trimmedBirthday;
