@@ -31,7 +31,23 @@
         {
           "photosPermission": "ChurchFlow needs access to your photos to let you set a profile picture."
         }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/adaptive-icon.png",
+          "color": "#B0202C"
+        }
       ]
-    ]
+    ],
+    "notification": {
+      "icon": "./assets/adaptive-icon.png",
+      "color": "#B0202C"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "REPLACE_WITH_EAS_PROJECT_ID"
+      }
+    }
   }
 }

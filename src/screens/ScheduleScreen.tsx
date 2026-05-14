@@ -2,23 +2,30 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  FlatList,
+  Modal,
+  Platform,
+  Pressable,
   RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
+  TouchableOpacity,
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { Calendar, type DateData } from 'react-native-calendars';
 import { format, getDate, getMonth } from 'date-fns';
+import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
 import { useGroup } from '@/context/GroupContext';
 import { useRealtime } from '@/hooks/useRealtime';
 import { formatWeek, weekStart } from '@/lib/week';
 import { colors, fonts, radius, shadow, spacing } from '@/theme';
-import type { Profile, ScheduleSlot } from '@/types';
+import type { Profile, ScheduleSlot, VolunteerProgramme } from '@/types';
 
 type Marked = Record<string, {
   selected?: boolean;
@@ -53,26 +60,40 @@ export function ScheduleScreen() {
 
   const [slots, setSlots] = useState<ScheduleSlot[]>([]);
   const [birthdays, setBirthdays] = useState<BirthdayProfile[]>([]);
+  const [programmes, setProgrammes] = useState<VolunteerProgramme[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [busyDate, setBusyDate] = useState<string | null>(null);
   const [displayMonth, setDisplayMonth] = useState(() => format(new Date(), 'yyyy-MM'));
+  const [showAssign, setShowAssign] = useState<{ date?: string } | null>(null);
+  const [showProgrammes, setShowProgrammes] = useState(false);
 
   const load = useCallback(async () => {
-    const [scheduleRes, profileRes] = await Promise.all([
+    const [scheduleRes, profileRes, programmesRes] = await Promise.all([
       supabase
         .from('schedule')
-        .select('*, assignee:profiles(id, display_name, avatar_url)')
+        .select(
+          '*, assignee:profiles(id, display_name, avatar_url), programme:volunteer_programmes(id, name, default_time)'
+        )
         .eq('group_id', group.id)
         .gte('slot_date', weekStart())
         .order('slot_date', { ascending: true })
+        .order('slot_time', { ascending: true, nullsFirst: false })
         .limit(52),
       supabase
         .from('group_members')
         .select('profiles(id, display_name, birthday)')
         .eq('group_id', group.id)
         .not('profiles.birthday', 'is', null),
+      // Programmes only matter for volunteer groups. We always fetch them
+      // (returns [] for class groups) to keep load() simple.
+      supabase
+        .from('volunteer_programmes')
+        .select('*')
+        .eq('group_id', group.id)
+        .order('name', { ascending: true }),
     ]);
+
     if (scheduleRes.error) {
       Alert.alert('Error', scheduleRes.error.message);
       return;
@@ -82,6 +103,7 @@ export function ScheduleScreen() {
       .flatMap(r => r.profiles)
       .filter((p): p is BirthdayProfile => !!p && !!p.birthday && p.birthday.trim().length > 0);
     setBirthdays(bdays);
+    setProgrammes((programmesRes.data as VolunteerProgramme[] | null) ?? []);
   }, [group.id]);
 
   useEffect(() => {
@@ -234,6 +256,11 @@ export function ScheduleScreen() {
     const slot = slots.find(s => s.slot_date === date);
 
     if (!slot) {
+      if (!isClass && isAdmin) {
+        // Volunteer group admin: open the Assign Slot modal pre-filled with the date.
+        setShowAssign({ date });
+        return;
+      }
       if (!isLeader) {
         Alert.alert('Not scheduled', 'A leader needs to add this date first.');
         return;
@@ -331,6 +358,24 @@ export function ScheduleScreen() {
           {group.meeting_time ? (
             <Text style={styles.pageSubtitle}>{group.meeting_time}</Text>
           ) : null}
+          {!isClass && isAdmin && (
+            <View style={styles.adminActions}>
+              <Pressable
+                style={styles.adminBtn}
+                onPress={() => setShowAssign({})}
+              >
+                <Ionicons name="add-circle-outline" size={16} color={colors.primary} />
+                <Text style={styles.adminBtnText}>Assign slot</Text>
+              </Pressable>
+              <Pressable
+                style={styles.adminBtn}
+                onPress={() => setShowProgrammes(true)}
+              >
+                <Ionicons name="list" size={16} color={colors.primary} />
+                <Text style={styles.adminBtnText}>Programmes</Text>
+              </Pressable>
+            </View>
+          )}
         </View>
 
         <View style={styles.calendarCard}>
@@ -410,14 +455,21 @@ export function ScheduleScreen() {
               const barColor = mine ? colors.primary : open ? colors.open : colors.accent;
               const statusColor = STATUS_COLOR[s.status] ?? colors.textMuted;
 
+              const timeShort = s.slot_time ? String(s.slot_time).slice(0, 5) : null;
+              const programmeName = s.programme?.name ?? null;
               return (
                 <View key={s.id} style={styles.upcomingRow}>
                   <View style={[styles.upcomingBar, { backgroundColor: barColor }]} />
                   <View style={styles.flex1}>
-                    <Text style={styles.upcomingDateLabel}>{formatWeek(s.slot_date)}</Text>
+                    <Text style={styles.upcomingDateLabel}>
+                      {formatWeek(s.slot_date)}{timeShort ? ` · ${timeShort}` : ''}
+                    </Text>
                     <Text style={[styles.upcomingLeader, mine && styles.upcomingLeaderMine]}>
                       {open ? 'Open slot' : (s.assignee?.display_name ?? 'Unknown')}
                     </Text>
+                    {!!programmeName && (
+                      <Text style={styles.upcomingProgramme}>{programmeName}</Text>
+                    )}
                   </View>
                   {!isClass && !open && (
                     <View style={[styles.statusBadge, { borderColor: statusColor }]}>
@@ -436,6 +488,26 @@ export function ScheduleScreen() {
           </View>
         )}
       </ScrollView>
+
+      {!isClass && isAdmin && (
+        <>
+          <AssignSlotModal
+            visible={showAssign !== null}
+            initialDate={showAssign?.date}
+            groupId={group.id}
+            programmes={programmes}
+            onClose={() => setShowAssign(null)}
+            onSaved={() => { setShowAssign(null); load(); }}
+          />
+          <ManageProgrammesModal
+            visible={showProgrammes}
+            groupId={group.id}
+            programmes={programmes}
+            onClose={() => setShowProgrammes(false)}
+            onChanged={() => { load(); }}
+          />
+        </>
+      )}
     </SafeAreaView>
   );
 }
@@ -446,6 +518,316 @@ function LegendDot({ color, label }: { color: string; label: string }) {
       <View style={[styles.legendSwatch, { backgroundColor: color }]} />
       <Text style={styles.legendLabel}>{label}</Text>
     </View>
+  );
+}
+
+// ─── ManageProgrammesModal ───────────────────────────────────────────────────
+
+function ManageProgrammesModal({
+  visible,
+  groupId,
+  programmes,
+  onClose,
+  onChanged,
+}: {
+  visible: boolean;
+  groupId: string;
+  programmes: VolunteerProgramme[];
+  onClose: () => void;
+  onChanged: () => void;
+}) {
+  const [name, setName] = useState('');
+  const [defaultTime, setDefaultTime] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (!visible) {
+      setName('');
+      setDefaultTime('');
+    }
+  }, [visible]);
+
+  const addProgramme = async () => {
+    const trimmedName = name.trim();
+    if (!trimmedName) { Alert.alert('Name required'); return; }
+    const trimmedTime = defaultTime.trim();
+    if (trimmedTime && !/^\d{1,2}:\d{2}$/.test(trimmedTime)) {
+      Alert.alert('Bad time', 'Use HH:MM format (e.g. 11:00 or 19:30).');
+      return;
+    }
+    setSaving(true);
+    const { error } = await supabase.from('volunteer_programmes').insert({
+      group_id: groupId,
+      name: trimmedName,
+      default_time: trimmedTime || null,
+    });
+    setSaving(false);
+    if (error) {
+      Alert.alert('Could not add programme',
+        error.code === '23505' ? `A programme called "${trimmedName}" already exists.` : error.message);
+      return;
+    }
+    setName('');
+    setDefaultTime('');
+    onChanged();
+  };
+
+  const removeProgramme = (p: VolunteerProgramme) => {
+    Alert.alert('Delete programme?', `${p.name} will be removed. Slots assigned to it will keep the time but lose the programme label.`, [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete', style: 'destructive',
+        onPress: async () => {
+          const { error } = await supabase.from('volunteer_programmes').delete().eq('id', p.id);
+          if (error) Alert.alert('Could not delete', error.message);
+          else onChanged();
+        },
+      },
+    ]);
+  };
+
+  return (
+    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
+      <SafeAreaView style={styles.modalSafe}>
+        <View style={styles.modalHeader}>
+          <Pressable onPress={onClose}><Text style={styles.modalCancel}>Close</Text></Pressable>
+          <Text style={styles.modalTitle}>Programmes</Text>
+          <View style={{ minWidth: 60 }} />
+        </View>
+        <ScrollView contentContainerStyle={styles.modalBody}>
+          <Text style={styles.fieldLabel}>Add a programme</Text>
+          <TextInput
+            style={styles.textInput}
+            value={name}
+            onChangeText={setName}
+            placeholder="e.g. Friday Night Youth"
+            placeholderTextColor={colors.textMuted}
+          />
+          <Text style={styles.fieldLabel}>Default time (optional)</Text>
+          <TextInput
+            style={styles.textInput}
+            value={defaultTime}
+            onChangeText={setDefaultTime}
+            placeholder="HH:MM (e.g. 11:00)"
+            placeholderTextColor={colors.textMuted}
+            keyboardType="numbers-and-punctuation"
+            autoCapitalize="none"
+          />
+          <Pressable
+            onPress={addProgramme}
+            disabled={saving || !name.trim()}
+            style={[styles.adminBtn, { alignSelf: 'flex-start', marginTop: spacing.md, opacity: saving || !name.trim() ? 0.5 : 1 }]}
+          >
+            <Ionicons name="add-circle-outline" size={16} color={colors.primary} />
+            <Text style={styles.adminBtnText}>{saving ? 'Adding…' : 'Add programme'}</Text>
+          </Pressable>
+
+          <Text style={[styles.fieldLabel, { marginTop: spacing.xl }]}>Existing programmes</Text>
+          {programmes.length === 0 ? (
+            <Text style={styles.progEmpty}>No programmes yet</Text>
+          ) : (
+            programmes.map(p => (
+              <View key={p.id} style={styles.progRow}>
+                <View style={styles.progRowInfo}>
+                  <Text style={styles.progRowName}>{p.name}</Text>
+                  {!!p.default_time && (
+                    <Text style={styles.progRowMeta}>Default time {String(p.default_time).slice(0, 5)}</Text>
+                  )}
+                </View>
+                <Pressable onPress={() => removeProgramme(p)} hitSlop={6}>
+                  <Ionicons name="trash-outline" size={20} color={colors.danger} />
+                </Pressable>
+              </View>
+            ))
+          )}
+        </ScrollView>
+      </SafeAreaView>
+    </Modal>
+  );
+}
+
+// ─── AssignSlotModal ─────────────────────────────────────────────────────────
+
+type GroupMemberRow = {
+  user_id: string;
+  display_name: string | null;
+  email: string | null;
+};
+
+function AssignSlotModal({
+  visible,
+  initialDate,
+  groupId,
+  programmes,
+  onClose,
+  onSaved,
+}: {
+  visible: boolean;
+  initialDate?: string;
+  groupId: string;
+  programmes: VolunteerProgramme[];
+  onClose: () => void;
+  onSaved: () => void;
+}) {
+  const [date, setDate] = useState(initialDate ?? '');
+  const [time, setTime] = useState('');
+  const [programmeId, setProgrammeId] = useState<string | null>(null);
+  const [members, setMembers] = useState<GroupMemberRow[]>([]);
+  const [pickedUserId, setPickedUserId] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (!visible) {
+      setDate('');
+      setTime('');
+      setProgrammeId(null);
+      setPickedUserId(null);
+      return;
+    }
+    setDate(initialDate ?? '');
+    (async () => {
+      const { data, error } = await supabase
+        .from('group_members')
+        .select('user_id, profiles(id, display_name, email)')
+        .eq('group_id', groupId);
+      if (error) {
+        console.warn('member load failed', error);
+        setMembers([]);
+        return;
+      }
+      const rows: GroupMemberRow[] = (data ?? []).map((row: any) => ({
+        user_id: row.user_id,
+        display_name: row.profiles?.display_name ?? null,
+        email: row.profiles?.email ?? null,
+      }));
+      rows.sort((a, b) =>
+        (a.display_name ?? a.email ?? '').localeCompare(b.display_name ?? b.email ?? '')
+      );
+      setMembers(rows);
+    })();
+  }, [visible, initialDate, groupId]);
+
+  // When admin picks a programme, prefill the time with its default.
+  const onPickProgramme = (p: VolunteerProgramme | null) => {
+    setProgrammeId(p?.id ?? null);
+    if (p?.default_time && !time.trim()) {
+      setTime(String(p.default_time).slice(0, 5));
+    }
+  };
+
+  const save = async () => {
+    if (!date) { Alert.alert('Date required', 'Pick a date for the slot.'); return; }
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) { Alert.alert('Bad date', 'Use YYYY-MM-DD.'); return; }
+    if (date < weekStart()) { Alert.alert('Past date', 'Pick a date this week or later.'); return; }
+    if (!pickedUserId) { Alert.alert('Member required', 'Pick a member to assign.'); return; }
+    const trimmedTime = time.trim();
+    if (trimmedTime && !/^\d{1,2}:\d{2}$/.test(trimmedTime)) {
+      Alert.alert('Bad time', 'Use HH:MM format (e.g. 19:30).');
+      return;
+    }
+    setSaving(true);
+    const { error } = await supabase.from('schedule').insert({
+      group_id: groupId,
+      slot_date: date,
+      slot_time: trimmedTime || null,
+      programme_id: programmeId,
+      assignee_id: pickedUserId,
+      status: 'pending',
+    });
+    setSaving(false);
+    if (error) {
+      Alert.alert('Could not assign',
+        error.code === '23505' ? 'A slot already exists at that date and time.' : error.message);
+      return;
+    }
+    onSaved();
+  };
+
+  return (
+    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
+      <SafeAreaView style={styles.modalSafe}>
+        <View style={styles.modalHeader}>
+          <Pressable onPress={onClose}><Text style={styles.modalCancel}>Cancel</Text></Pressable>
+          <Text style={styles.modalTitle}>Assign volunteer</Text>
+          <Pressable onPress={save} disabled={saving}>
+            <Text style={[styles.modalAction, saving && { opacity: 0.5 }]}>{saving ? '…' : 'Assign'}</Text>
+          </Pressable>
+        </View>
+        <ScrollView contentContainerStyle={styles.modalBody} keyboardShouldPersistTaps="handled">
+          <Text style={styles.fieldLabel}>Date</Text>
+          <TextInput
+            style={styles.textInput}
+            value={date}
+            onChangeText={setDate}
+            placeholder="YYYY-MM-DD"
+            placeholderTextColor={colors.textMuted}
+            keyboardType="numbers-and-punctuation"
+            autoCapitalize="none"
+          />
+
+          <Text style={styles.fieldLabel}>Time</Text>
+          <TextInput
+            style={styles.textInput}
+            value={time}
+            onChangeText={setTime}
+            placeholder="HH:MM (e.g. 19:30)"
+            placeholderTextColor={colors.textMuted}
+            keyboardType="numbers-and-punctuation"
+            autoCapitalize="none"
+          />
+
+          <Text style={styles.fieldLabel}>Programme</Text>
+          {programmes.length === 0 ? (
+            <Text style={styles.progEmpty}>No programmes yet — add one from the Programmes button.</Text>
+          ) : (
+            <View style={styles.pickerRow}>
+              <Pressable
+                style={[styles.pickerOption, programmeId === null && styles.pickerOptionActive]}
+                onPress={() => onPickProgramme(null)}
+              >
+                <Text style={[styles.pickerOptionText, programmeId === null && styles.pickerOptionTextActive]}>None</Text>
+              </Pressable>
+              {programmes.map(p => (
+                <Pressable
+                  key={p.id}
+                  style={[styles.pickerOption, programmeId === p.id && styles.pickerOptionActive]}
+                  onPress={() => onPickProgramme(p)}
+                >
+                  <Text style={[styles.pickerOptionText, programmeId === p.id && styles.pickerOptionTextActive]}>{p.name}</Text>
+                </Pressable>
+              ))}
+            </View>
+          )}
+
+          <Text style={styles.fieldLabel}>Volunteer</Text>
+          {members.length === 0 ? (
+            <Text style={styles.progEmpty}>No members in this group yet.</Text>
+          ) : (
+            <FlatList
+              scrollEnabled={false}
+              data={members}
+              keyExtractor={m => m.user_id}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  style={[styles.memberRow, pickedUserId === item.user_id && styles.memberRowActive]}
+                  onPress={() => setPickedUserId(item.user_id)}
+                >
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.memberName}>{item.display_name ?? item.email ?? 'Member'}</Text>
+                    {!!item.email && item.display_name && (
+                      <Text style={styles.memberSubtle}>{item.email}</Text>
+                    )}
+                  </View>
+                  {pickedUserId === item.user_id && (
+                    <Ionicons name="checkmark-circle" size={20} color={colors.primary} />
+                  )}
+                </TouchableOpacity>
+              )}
+            />
+          )}
+        </ScrollView>
+      </SafeAreaView>
+    </Modal>
   );
 }
 
@@ -499,8 +881,73 @@ const styles = StyleSheet.create({
   upcomingDateLabel: { fontSize: 12, color: colors.textMuted, fontWeight: '600', letterSpacing: 0.2, marginBottom: 2 },
   upcomingLeader: { fontFamily: fonts.serif, fontSize: 17, fontWeight: '600', color: colors.text, letterSpacing: -0.1 },
   upcomingLeaderMine: { color: colors.primaryDark },
+  upcomingProgramme: { fontSize: 12.5, color: colors.textMuted, marginTop: 2, fontStyle: 'italic' },
   upcomingTag: { fontSize: 11.5, fontWeight: '700', letterSpacing: 0.4, textTransform: 'uppercase' },
   statusBadge: { paddingHorizontal: spacing.sm, paddingVertical: 3, borderRadius: radius.pill, borderWidth: 1 },
   statusBadgeText: { fontSize: 11, fontWeight: '700', letterSpacing: 0.3, textTransform: 'uppercase' },
   empty: { textAlign: 'center', color: colors.textMuted, marginTop: spacing.md, paddingHorizontal: spacing.xl },
+
+  // Admin header actions (volunteer groups)
+  adminActions: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.md, flexWrap: 'wrap' },
+  adminBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    paddingHorizontal: spacing.md, paddingVertical: 8,
+    borderRadius: radius.pill, borderWidth: 1,
+    borderColor: colors.primary, backgroundColor: colors.primaryLight,
+  },
+  adminBtnText: { fontSize: 13, color: colors.primary, fontWeight: '700' },
+
+  // Modal-shared styles
+  modalSafe: { flex: 1, backgroundColor: colors.background },
+  modalHeader: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingHorizontal: spacing.lg, paddingVertical: spacing.md,
+    borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border,
+    backgroundColor: colors.surface,
+  },
+  modalTitle: { fontFamily: fonts.serif, fontSize: 18, fontWeight: '700', color: colors.text },
+  modalCancel: { fontSize: 15, color: colors.textMuted, minWidth: 60 },
+  modalAction: { fontSize: 15, color: colors.primary, fontWeight: '700', minWidth: 60, textAlign: 'right' },
+  modalBody: { padding: spacing.lg, gap: spacing.sm },
+  fieldLabel: {
+    fontSize: 11.5, fontWeight: '700', letterSpacing: 1.2,
+    color: colors.textMuted, textTransform: 'uppercase', marginTop: spacing.sm,
+  },
+  textInput: {
+    backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border,
+    borderRadius: radius.md, paddingHorizontal: spacing.md,
+    paddingVertical: Platform.OS === 'ios' ? spacing.md : spacing.sm,
+    fontSize: 15, color: colors.text,
+  },
+  pickerRow: { flexDirection: 'row', gap: spacing.sm, flexWrap: 'wrap' },
+  pickerOption: {
+    paddingHorizontal: spacing.md, paddingVertical: spacing.sm,
+    borderRadius: radius.md, borderWidth: 1, borderColor: colors.border,
+    backgroundColor: colors.surface,
+  },
+  pickerOptionActive: { borderColor: colors.primary, backgroundColor: colors.primaryLight },
+  pickerOptionText: { fontSize: 13, fontWeight: '600', color: colors.textMuted },
+  pickerOptionTextActive: { color: colors.primary },
+
+  // Programme list rows
+  progRow: {
+    flexDirection: 'row', alignItems: 'center', gap: spacing.md,
+    paddingHorizontal: spacing.md, paddingVertical: spacing.md,
+    borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.borderSoft,
+    backgroundColor: colors.surface,
+  },
+  progRowInfo: { flex: 1 },
+  progRowName: { fontSize: 15, fontWeight: '600', color: colors.text },
+  progRowMeta: { fontSize: 12, color: colors.textMuted, marginTop: 2 },
+  progEmpty: { padding: spacing.lg, fontSize: 13, color: colors.textMuted, textAlign: 'center' },
+
+  // Member picker
+  memberRow: {
+    flexDirection: 'row', alignItems: 'center', gap: spacing.md,
+    paddingVertical: spacing.sm + 2, paddingHorizontal: 4,
+    borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.borderSoft,
+  },
+  memberRowActive: { backgroundColor: colors.primaryLight, borderRadius: radius.sm },
+  memberName: { fontSize: 14.5, fontWeight: '600', color: colors.text },
+  memberSubtle: { fontSize: 12, color: colors.textMuted, marginTop: 1 },
 });
