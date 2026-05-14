@@ -237,28 +237,6 @@ export function AdminGroupMembersScreen() {
     );
   };
 
-  const bulkSetRole = (nextRole: MemberRole) => {
-    if (selectedIds.size === 0) return;
-    if (isVolunteer && nextRole === 'leader') {
-      Alert.alert('Not allowed', 'Volunteer groups have members only.');
-      return;
-    }
-    const ids = Array.from(selectedIds);
-    (async () => {
-      setBulkBusy(true);
-      const { error } = await supabase
-        .from('group_members')
-        .update({ role: nextRole })
-        .eq('group_id', group.id)
-        .in('user_id', ids);
-      if (!mountedRef.current) return;
-      setBulkBusy(false);
-      if (error) { Alert.alert('Bulk role change failed', error.message); return; }
-      exitSelect();
-      await load();
-    })();
-  };
-
   const renderMemberRow = (m: MemberRow, isLast: boolean) => {
     const busy = busyUserId === m.user_id;
     const selected = selectedIds.has(m.user_id);
@@ -339,30 +317,6 @@ export function AdminGroupMembersScreen() {
               <Text style={styles.headerSelectAction}>Select all</Text>
             </Pressable>
           </View>
-          {!isVolunteer && (
-            <Pressable
-              style={styles.bulkActionBtn}
-              onPress={() => bulkSetRole('leader')}
-              disabled={bulkBusy || selectedIds.size === 0}
-              hitSlop={4}
-              accessibilityLabel="Make selected members leaders"
-              accessibilityRole="button"
-            >
-              <Ionicons name="star-outline" size={18} color={colors.primary} />
-            </Pressable>
-          )}
-          {!isVolunteer && (
-            <Pressable
-              style={styles.bulkActionBtn}
-              onPress={() => bulkSetRole('member')}
-              disabled={bulkBusy || selectedIds.size === 0}
-              hitSlop={4}
-              accessibilityLabel="Make selected leaders members"
-              accessibilityRole="button"
-            >
-              <Ionicons name="person-outline" size={18} color={colors.primary} />
-            </Pressable>
-          )}
           <Pressable
             style={[styles.bulkActionBtn, styles.bulkActionDanger]}
             onPress={bulkRemove}
@@ -431,10 +385,10 @@ export function AdminGroupMembersScreen() {
 
           <Text style={styles.hint}>
             {selectMode
-              ? 'Tap rows to add or remove from selection. Use the header icons to remove or change role for everyone selected.'
+              ? 'Tap rows to add or remove from selection. Use the trash icon to remove everyone selected.'
               : isVolunteer
-                ? 'Volunteer groups have members only — no leader role. Tap the X to remove someone. Long-press a row or tap "Select" to bulk-edit.'
-                : 'Tap the role pill to swap leader / member. Tap the X to remove a person. Long-press a row or tap "Select" to bulk-edit.'}
+                ? 'Volunteer groups have members only — no leader role. Tap the X to remove someone. Long-press a row or tap "Select" to remove several at once.'
+                : 'Tap the role pill to swap leader / member. Tap the X to remove a person. Long-press a row or tap "Select" to remove several at once.'}
           </Text>
         </ScrollView>
       )}
@@ -472,6 +426,10 @@ function AddMemberModal({
   const [searching, setSearching] = useState(false);
   const [pickedRole, setPickedRole] = useState<MemberRole>('member');
   const [adding, setAdding] = useState(false);
+  // Multi-select: users staged for batch add. Stores the full DirectoryRow
+  // so we can show name / email in the staged-chips strip even when the
+  // current search results no longer include the row.
+  const [staged, setStaged] = useState<DirectoryRow[]>([]);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const reqIdRef = useRef(0);
   const mountedRef = useRef(true);
@@ -485,6 +443,7 @@ function AddMemberModal({
     if (!visible) {
       setTerm('');
       setResults([]);
+      setStaged([]);
     }
     // Volunteer groups are members-only; always reset to 'member'
     setPickedRole('member');
@@ -529,24 +488,34 @@ function AddMemberModal({
     };
   }, [term, visible]);
 
-  const addUser = async (user: DirectoryRow) => {
+  const toggleStage = (user: DirectoryRow) => {
     if (existingUserIds.includes(user.id)) {
-      Alert.alert('Already in group', `${user.display_name ?? user.email ?? 'This user'} is already in ${group.name}.`);
+      Alert.alert(
+        'Already in group',
+        `${user.display_name ?? user.email ?? 'This user'} is already in ${group.name}.`,
+      );
       return;
     }
+    setStaged(prev =>
+      prev.some(u => u.id === user.id)
+        ? prev.filter(u => u.id !== user.id)
+        : [...prev, user],
+    );
+  };
+
+  const commitStaged = async () => {
+    if (staged.length === 0) return;
     setAdding(true);
+    const rows = staged.map(u => ({ group_id: group.id, user_id: u.id, role: pickedRole }));
     const { error } = await supabase
       .from('group_members')
-      .upsert(
-        { group_id: group.id, user_id: user.id, role: pickedRole },
-        { onConflict: 'group_id,user_id' },
-      );
+      .upsert(rows, { onConflict: 'group_id,user_id' });
     setAdding(false);
     if (error) {
       const msg = error.message.includes('one class group')
-        ? `${user.display_name ?? user.email ?? 'This user'} is already in a different class group.`
+        ? 'One of the selected users is already in a different class group.'
         : error.message;
-      Alert.alert('Could not add member', msg);
+      Alert.alert('Could not add members', msg);
       return;
     }
     onAdded();
@@ -620,13 +589,19 @@ function AddMemberModal({
               data={results}
               keyExtractor={u => u.id}
               keyboardShouldPersistTaps="handled"
+              style={styles.flex1}
               renderItem={({ item }) => {
                 const already = existingUserIds.includes(item.id);
+                const isStaged = staged.some(u => u.id === item.id);
                 return (
                   <TouchableOpacity
-                    style={[styles.searchResult, already && styles.searchResultDisabled]}
+                    style={[
+                      styles.searchResult,
+                      already && styles.searchResultDisabled,
+                      isStaged && styles.searchResultStaged,
+                    ]}
                     disabled={already || adding}
-                    onPress={() => addUser(item)}
+                    onPress={() => toggleStage(item)}
                   >
                     <Avatar uri={item.avatar_url} name={item.display_name ?? item.email} size={36} />
                     <View style={styles.searchResultInfo}>
@@ -639,7 +614,13 @@ function AddMemberModal({
                     </View>
                     {already
                       ? <Text style={styles.alreadyText}>In group</Text>
-                      : <Ionicons name="add-circle" size={22} color={colors.primary} />}
+                      : (
+                        <Ionicons
+                          name={isStaged ? 'checkbox' : 'square-outline'}
+                          size={22}
+                          color={isStaged ? colors.primary : colors.textMuted}
+                        />
+                      )}
                   </TouchableOpacity>
                 );
               }}
@@ -647,6 +628,25 @@ function AddMemberModal({
             />
           )}
         </View>
+
+        {staged.length > 0 && (
+          <View style={styles.stagedBar}>
+            <Text style={styles.stagedCount}>
+              {staged.length} selected
+            </Text>
+            <Pressable
+              style={[styles.commitBtn, adding && { opacity: 0.5 }]}
+              onPress={commitStaged}
+              disabled={adding}
+            >
+              {adding
+                ? <ActivityIndicator size="small" color="#fff" />
+                : <Text style={styles.commitBtnText}>
+                    Add {staged.length} to {group.name}
+                  </Text>}
+            </Pressable>
+          </View>
+        )}
       </SafeAreaView>
     </Modal>
   );
@@ -809,9 +809,24 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
   },
   searchResultDisabled: { opacity: 0.5 },
+  searchResultStaged: { backgroundColor: colors.primaryLight, borderRadius: radius.sm },
   searchResultInfo: { flex: 1 },
   alreadyText: { fontSize: 11, color: colors.textMuted, fontStyle: 'italic' },
   separator: { height: StyleSheet.hairlineWidth, backgroundColor: colors.borderSoft },
+  flex1: { flex: 1 },
+  stagedBar: {
+    flexDirection: 'row', alignItems: 'center', gap: spacing.md,
+    paddingHorizontal: spacing.lg, paddingVertical: spacing.md,
+    borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border,
+    backgroundColor: colors.surface,
+  },
+  stagedCount: { fontSize: 13, color: colors.textMuted, fontWeight: '600' },
+  commitBtn: {
+    flex: 1, alignItems: 'center', justifyContent: 'center',
+    paddingVertical: spacing.sm + 2, borderRadius: radius.md,
+    backgroundColor: colors.primary,
+  },
+  commitBtnText: { fontSize: 14, fontWeight: '700', color: '#fff', letterSpacing: 0.2 },
 
   volunteerRoleNote: {
     flexDirection: 'row',

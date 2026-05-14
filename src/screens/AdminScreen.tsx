@@ -3,12 +3,13 @@
  *
  * Manage group membership by browsing a group, then opening
  * AdminGroupMembersScreen to search the directory of registered users and
- * add / remove / change roles.
+ * add / remove / change roles. The "Add" flow in AdminGroupMembersScreen
+ * supports multi-select so an admin can add many existing users to a group
+ * in one pass.
  *
- * Bulk member imports are intentionally not done from the UI. See
- * scripts/bulk_import_members.ts and the admin_bulk_assign_members SQL RPC
- * for the supported backend flow — the RPC runs in a single transaction,
- * checks admin permission server-side, and returns a per-row result.
+ * Bulk CSV imports for migrating existing data are run by developers via
+ * scripts/bulk_import_members.ts → admin_bulk_assign_members SQL RPC.
+ * They're intentionally NOT exposed in the app UI.
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -149,25 +150,6 @@ export function AdminScreen() {
           )}
         </View>
 
-        <Text style={styles.sectionLabel}>Bulk import</Text>
-        <View style={styles.card}>
-          <View style={styles.infoRow}>
-            <Ionicons name="server-outline" size={18} color={colors.textMuted} />
-            <Text style={styles.infoTitle}>Done on the backend</Text>
-          </View>
-          <Text style={styles.instructions}>
-            Bulk member imports run server-side as a single transaction. An admin
-            executes <Text style={styles.mono}>scripts/bulk_import_members.ts</Text>{' '}
-            against the project's database, which calls the{' '}
-            <Text style={styles.mono}>admin_bulk_assign_members</Text> RPC.
-            {'\n\n'}
-            The RPC accepts a JSON array of{' '}
-            <Text style={styles.mono}>{'{ email, group_name, role }'}</Text>{' '}
-            entries, resolves each email against existing profiles, creates groups
-            on demand, upserts memberships, and returns a per-row result so
-            failures don't roll back successful rows.
-          </Text>
-        </View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -181,9 +163,6 @@ const styles = StyleSheet.create({
   sectionLabel: { fontSize: 11, fontWeight: '700', letterSpacing: 1.6, color: colors.textMuted, textTransform: 'uppercase', marginTop: spacing.md },
   card: { backgroundColor: colors.surface, borderRadius: radius.lg, padding: spacing.lg, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.borderSoft, ...shadow.card, gap: spacing.md },
   instructions: { fontSize: 13.5, color: colors.textSoft, lineHeight: 20 },
-  mono: { fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace', fontSize: 12.5, color: colors.primary },
-  infoRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-  infoTitle: { fontSize: 14, fontWeight: '700', color: colors.text, letterSpacing: 0.1 },
 
   searchRow: {
     flexDirection: 'row',
