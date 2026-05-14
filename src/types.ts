@@ -13,6 +13,8 @@ export type Profile = {
   favorite_verse: string | null;
   favorite_hymn: string | null;
   birthday: string | null;
+  birth_month: number | null;
+  birth_day: number | null;
   is_admin: boolean;
   is_super_admin: boolean;
   created_at: string;
