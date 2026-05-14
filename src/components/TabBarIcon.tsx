@@ -1,4 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
+import type { ComponentProps } from 'react';
+
+type IoniconsName = ComponentProps<typeof Ionicons>['name'];
 import { colors } from '@/theme';
 
 interface Props {
@@ -6,8 +9,9 @@ interface Props {
   focused: boolean;
 }
 
-const ICON_MAP: Record<string, { outline: string; filled: string }> = {
+const ICON_MAP: Record<string, { outline: IoniconsName; filled: IoniconsName }> = {
   'Groups':        { outline: 'people-outline',    filled: 'people' },
+  'My Week':       { outline: 'today-outline',     filled: 'today' },
   'News':          { outline: 'newspaper-outline', filled: 'newspaper' },
   'Profile':       { outline: 'person-outline',    filled: 'person' },
   'Family':        { outline: 'heart-outline',     filled: 'heart' },
@@ -22,7 +26,7 @@ export function TabBarIcon({ name, focused }: Props) {
   if (!map) return null;
   return (
     <Ionicons
-      name={(focused ? map.filled : map.outline) as any}
+      name={focused ? map.filled : map.outline}
       size={22}
       color={focused ? colors.primary : colors.textMuted}
     />

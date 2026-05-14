@@ -15,6 +15,7 @@ import {
   View,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
+import { Ionicons } from '@expo/vector-icons';
 import { format } from 'date-fns';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
@@ -33,6 +34,7 @@ export function AnnouncementsScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     const { data, error } = await supabase
@@ -40,7 +42,8 @@ export function AnnouncementsScreen() {
       .select('*, author:profiles(id, display_name, avatar_url)')
       .eq('group_id', group.id)
       .order('created_at', { ascending: false });
-    if (error) { Alert.alert('Could not load announcements', error.message); return; }
+    if (error) { setLoadError(error.message); return; }
+    setLoadError(null);
     setAnnouncements((data as Announcement[]) ?? []);
   }, [group.id]);
 
@@ -89,20 +92,40 @@ export function AnnouncementsScreen() {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
         }
         ListHeaderComponent={
-          <View style={styles.header}>
-            <View>
-              <Text style={styles.title}>Announcements</Text>
-              <Text style={styles.subtitle}>{group.name}</Text>
+          <>
+            <View style={styles.header}>
+              <View>
+                <Text style={styles.title}>Announcements</Text>
+                <Text style={styles.subtitle}>{group.name}</Text>
+              </View>
+              {isLeader && (
+                <Pressable
+                  style={({ pressed }) => [styles.addBtn, pressed && { opacity: 0.8 }]}
+                  onPress={() => setModalOpen(true)}
+                >
+                  <Text style={styles.addBtnText}>+</Text>
+                </Pressable>
+              )}
             </View>
-            {isLeader && (
-              <Pressable
-                style={({ pressed }) => [styles.addBtn, pressed && { opacity: 0.8 }]}
-                onPress={() => setModalOpen(true)}
-              >
-                <Text style={styles.addBtnText}>+</Text>
-              </Pressable>
+            {loadError && (
+              <View style={styles.errorBanner} accessibilityLiveRegion="polite">
+                <Ionicons name="alert-circle" size={18} color={colors.danger} />
+                <View style={styles.errorBannerBody}>
+                  <Text style={styles.errorBannerTitle}>Couldn't load announcements</Text>
+                  <Text style={styles.errorBannerMsg} numberOfLines={2}>{loadError}</Text>
+                </View>
+                <Pressable
+                  onPress={onRefresh}
+                  style={({ pressed }) => [styles.errorBannerRetry, pressed && { opacity: 0.7 }]}
+                  hitSlop={6}
+                  accessibilityRole="button"
+                  accessibilityLabel="Retry loading announcements"
+                >
+                  <Text style={styles.errorBannerRetryText}>Retry</Text>
+                </Pressable>
+              </View>
             )}
-          </View>
+          </>
         }
         ListEmptyComponent={
           <View style={styles.empty}>
@@ -248,6 +271,18 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center',
   },
   addBtnText: { color: colors.surface, fontSize: 22, lineHeight: 24, marginTop: -1 },
+  errorBanner: {
+    flexDirection: 'row', alignItems: 'center', gap: spacing.sm,
+    marginHorizontal: spacing.lg, marginBottom: spacing.md,
+    padding: spacing.md, borderRadius: radius.md,
+    backgroundColor: '#FBE6E6',
+    borderWidth: 1, borderColor: colors.danger,
+  },
+  errorBannerBody: { flex: 1 },
+  errorBannerTitle: { fontSize: 13, fontWeight: '700', color: colors.danger },
+  errorBannerMsg: { fontSize: 12, color: colors.textSoft, marginTop: 2 },
+  errorBannerRetry: { paddingHorizontal: spacing.sm + 2, paddingVertical: 6, borderRadius: radius.pill, backgroundColor: colors.danger },
+  errorBannerRetryText: { color: '#fff', fontSize: 12, fontWeight: '700', letterSpacing: 0.3 },
   card: {
     flexDirection: 'row',
     backgroundColor: colors.surface,

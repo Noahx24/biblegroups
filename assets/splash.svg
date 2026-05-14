@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ChurchFlow splash screen — 2048×2048 square that Expo scales to fit
+  any device. Cream background, centred scarlet mark.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" width="2048" height="2048" viewBox="0 0 2048 2048">
+  <rect width="2048" height="2048" fill="#FAF6EC"/>
+  <!-- Mark, centred, scaled down so there's breathing room either side. -->
+  <g transform="translate(1024 1024) scale(1.4)">
+    <!-- Background circle in scarlet -->
+    <circle r="380" fill="#B0202C"/>
+    <!-- Open book inside the circle -->
+    <g transform="translate(0 -30) scale(0.72)">
+      <path d="M -280 -180 L -20 -200 L -20 180 L -280 160 Z" fill="#FAF6EC"/>
+      <path d="M 20 -200 L 280 -180 L 280 160 L 20 180 Z" fill="#FAF6EC"/>
+      <rect x="-240" y="-130" width="180" height="16" rx="8" fill="#B0202C" opacity="0.85"/>
+      <rect x="-240" y="-80"  width="200" height="14" rx="7" fill="#B0202C" opacity="0.45"/>
+      <rect x="-240" y="-40"  width="200" height="14" rx="7" fill="#B0202C" opacity="0.45"/>
+      <rect x="-240" y="0"    width="160" height="14" rx="7" fill="#B0202C" opacity="0.45"/>
+      <rect x="60"   y="-130" width="180" height="14" rx="7" fill="#B0202C" opacity="0.45"/>
+      <rect x="60"   y="-80"  width="200" height="14" rx="7" fill="#B0202C" opacity="0.45"/>
+      <rect x="60"   y="-40"  width="200" height="14" rx="7" fill="#B0202C" opacity="0.45"/>
+      <rect x="60"   y="0"    width="160" height="14" rx="7" fill="#B0202C" opacity="0.45"/>
+      <path d="M -30 160 L -30 330 L 0 290 L 30 330 L 30 160 Z" fill="#C89441"/>
+    </g>
+  </g>
+</svg>

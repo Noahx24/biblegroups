@@ -11,6 +11,7 @@ import { GroupNavigator } from '@/navigation/GroupNavigator';
 import { AdminScreen } from '@/screens/AdminScreen';
 import { AdminGroupMembersScreen } from '@/screens/AdminGroupMembersScreen';
 import { FamilyScreen } from '@/screens/FamilyScreen';
+import { MyWeekScreen } from '@/screens/MyWeekScreen';
 import { colors } from '@/theme';
 import { TabBarIcon } from '@/components/TabBarIcon';
 import type { Group, MemberRole } from '@/types';
@@ -24,6 +25,7 @@ export type AppStackParamList = {
 
 export type MainTabsParamList = {
   Groups: undefined;
+  'My Week': undefined;
   News: undefined;
   Family: undefined;
   Profile: undefined;
@@ -35,6 +37,7 @@ const Tabs = createBottomTabNavigator<MainTabsParamList>();
 function MainTabs() {
   return (
     <Tabs.Navigator
+      id="MainTabs"
       screenOptions={({ route }) => ({
         headerShown: false,
         tabBarActiveTintColor: colors.primary,
@@ -49,6 +52,7 @@ function MainTabs() {
       })}
     >
       <Tabs.Screen name="Groups" component={GroupsListScreen} />
+      <Tabs.Screen name="My Week" component={MyWeekScreen} />
       <Tabs.Screen name="News" component={ChurchNewsScreen} />
       <Tabs.Screen name="Family" component={FamilyScreen} />
       <Tabs.Screen name="Profile" component={ProfileScreen} />
@@ -76,7 +80,7 @@ export function RootNavigator() {
   }
 
   return (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
+    <Stack.Navigator id="AppStack" screenOptions={{ headerShown: false }}>
       <Stack.Screen name="MainTabs" component={MainTabs} />
       <Stack.Screen
         name="GroupDetail"

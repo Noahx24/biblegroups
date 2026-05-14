@@ -32,6 +32,12 @@ export function setNotificationHandler() {
 // Track the last user the token was upserted for so we don't re-request the
 // token on every render of useAuth's effect.
 let registeredForUserId: string | null = null;
+let currentPushToken: string | null = null;
+
+/** Returns the Expo push token registered for the current device, or null if not yet registered. */
+export function getCurrentPushToken(): string | null {
+  return currentPushToken;
+}
 
 export async function registerForPushNotificationsAsync(userId: string): Promise<string | null> {
   if (!Device.isDevice) {
@@ -95,10 +101,12 @@ export async function registerForPushNotificationsAsync(userId: string): Promise
     return null;
   }
   registeredForUserId = userId;
+  currentPushToken = token;
   return token;
 }
 
 /** Clear the registered-user cache; call on sign-out. */
 export function resetPushRegistrationCache() {
   registeredForUserId = null;
+  currentPushToken = null;
 }

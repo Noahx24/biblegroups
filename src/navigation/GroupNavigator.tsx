@@ -46,6 +46,7 @@ export function GroupNavigator({ route }: Props) {
     <GroupProvider group={group} myRole={myRole}>
       {group.type === 'class' ? (
         <ClassTabs.Navigator
+          id="ClassTabs"
           screenOptions={({ route: r }) => ({
             ...sharedTabOptions,
             tabBarIcon: ({ focused }) => <TabBarIcon name={r.name} focused={focused} />,
@@ -58,6 +59,7 @@ export function GroupNavigator({ route }: Props) {
         </ClassTabs.Navigator>
       ) : (
         <VolunteerTabs.Navigator
+          id="VolunteerTabs"
           screenOptions={({ route: r }) => ({
             ...sharedTabOptions,
             tabBarIcon: ({ focused }) => <TabBarIcon name={r.name} focused={focused} />,

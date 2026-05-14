@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -48,7 +48,7 @@ export function ThisWeekScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [reference, setReference] = useState('');
-  const [translation, setTranslation] = useState<string>('web');
+  const [translation, setTranslation] = useState<string>('kjv');
   const [saving, setSaving] = useState(false);
   const [claiming, setClaiming] = useState(false);
 
@@ -133,14 +133,15 @@ export function ThisWeekScreen() {
   };
 
   const saveVerse = async () => {
-    if (!reference.trim() || !session?.user || !slot) return;
+    if (!reference.trim() || !session?.user) return;
+    const weekDate = slot?.slot_date ?? currentWeek;
     setSaving(true);
     try {
       const fetched = await fetchVerse(reference, translation);
       const { error } = await supabase.from('weekly_verses').upsert(
         {
           group_id: group.id,
-          week_start: slot.slot_date,
+          week_start: weekDate,
           reference: fetched.reference,
           text: fetched.text,
           translation: fetched.translation,
@@ -158,6 +159,8 @@ export function ThisWeekScreen() {
     }
   };
 
+  const weekDays = useMemo(() => getWeekReadingDays(currentWeek), [currentWeek]);
+
   if (loading) {
     return (
       <View style={styles.center}>
@@ -169,7 +172,6 @@ export function ThisWeekScreen() {
   const showClaimButton = isLeader && !!slot && !slot.assignee_id && !leadingThisWeek;
   const showAddDateHint = isLeader && !slot;
   const showMemberHint = !isLeader && !slot?.assignee_id;
-  const weekDays = getWeekReadingDays(currentWeek);
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
@@ -202,7 +204,7 @@ export function ThisWeekScreen() {
             <Text style={styles.muted}>No verse set yet for this week.</Text>
           )}
 
-          {leadingThisWeek && (
+          {isLeader && (
             <View style={styles.editor}>
               <TextInput
                 value={reference}
@@ -361,14 +363,11 @@ export function ThisWeekScreen() {
   );
 }
 
-// bible-api.com provides free open-license translations. KJV is public domain.
-// WEB closely mirrors modern English translations. For licensed translations
-// (NIV, NLT, ESV), integrate api.bible with your own API key.
 const TRANSLATIONS: { value: string; label: string; name: string }[] = [
-  { value: 'kjv',    label: 'KJV', name: 'King James Version' },
-  { value: 'web',    label: 'WEB', name: 'World English Bible' },
-  { value: 'oeb-us', label: 'OEB', name: 'Open English Bible' },
-  { value: 'bbe',    label: 'BBE', name: 'Bible in Basic English' },
+  { value: 'kjv', label: 'KJV', name: 'King James Version' },
+  { value: 'esv', label: 'ESV', name: 'English Standard Version' },
+  { value: 'niv', label: 'NIV', name: 'New International Version' },
+  { value: 'nlt', label: 'NLT', name: 'New Living Translation' },
 ];
 
 function TranslationPicker({ value, onChange }: { value: string; onChange: (v: string) => void }) {
@@ -437,7 +436,7 @@ const styles = StyleSheet.create({
   verseRef: { fontFamily: fonts.serif, fontSize: 22, fontWeight: '700', color: colors.primary, letterSpacing: -0.2, marginBottom: 10 },
   verseText: { fontFamily: fonts.serif, fontSize: 18, lineHeight: 27, color: colors.textSoft },
   verseDivider: { height: StyleSheet.hairlineWidth, backgroundColor: colors.borderSoft, marginVertical: 12 },
-  verseFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  verseFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: spacing.sm },
   translation: { fontSize: 12, color: colors.textMuted, letterSpacing: 0.4, textTransform: 'uppercase', fontWeight: '600' },
   muted: { color: colors.textMuted, fontSize: 14 },
   leaderRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, marginBottom: 14 },

@@ -8,7 +8,7 @@ import {
   Pressable,
   SafeAreaView,
   ScrollView,
-  SectionList,
+  Share,
   StyleSheet,
   Text,
   TextInput,
@@ -16,11 +16,13 @@ import {
   View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { format, isAfter } from 'date-fns';
+import { format } from 'date-fns';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
+import { useRealtime } from '@/hooks/useRealtime';
 import { colors, fonts, radius, shadow, spacing } from '@/theme';
 import type { FamilyMember, ProgramRegistration, YouthProgram } from '@/types';
+import { CHILD_CONSENT_TEXT, CHILD_CONSENT_VERSION } from '@/types';
 
 const PROGRAM_TYPE_LABEL: Record<string, string> = {
   youth: 'Youth Group',
@@ -43,7 +45,7 @@ export function FamilyScreen() {
   const [registrations, setRegistrations] = useState<ProgramRegistration[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const [showAddChild, setShowAddChild] = useState(false);
+  const [editorChild, setEditorChild] = useState<FamilyMember | 'new' | null>(null);
   const [showRegister, setShowRegister] = useState<FamilyMember | null>(null);
   const [showCreateProgram, setShowCreateProgram] = useState(false);
 
@@ -64,6 +66,9 @@ export function FamilyScreen() {
   useEffect(() => {
     load().finally(() => setLoading(false));
   }, [load]);
+
+  useRealtime('youth_programs', load);
+  useRealtime('program_registrations', load, `registered_by=eq.${userId}`);
 
   const deregister = (reg: ProgramRegistration) => {
     Alert.alert('Remove registration?', `${reg.family_member?.name ?? 'Child'} from ${reg.program?.name ?? 'program'}`, [
@@ -102,7 +107,7 @@ export function FamilyScreen() {
             <Text style={styles.title}>Family</Text>
             <Text style={styles.subtitle}>Children's programs & registration</Text>
           </View>
-          <TouchableOpacity style={styles.addBtn} onPress={() => setShowAddChild(true)}>
+          <TouchableOpacity style={styles.addBtn} onPress={() => setEditorChild('new')}>
             <Ionicons name="add" size={20} color={colors.surface} />
           </TouchableOpacity>
         </View>
@@ -113,43 +118,63 @@ export function FamilyScreen() {
           <View style={styles.emptyCard}>
             <Ionicons name="people-outline" size={36} color={colors.border} />
             <Text style={styles.emptyText}>No children added yet.</Text>
-            <TouchableOpacity onPress={() => setShowAddChild(true)}>
+            <TouchableOpacity onPress={() => setEditorChild('new')}>
               <Text style={styles.emptyAction}>Add a child →</Text>
             </TouchableOpacity>
           </View>
         ) : (
-          family.map(child => (
-            <View key={child.id} style={styles.childCard}>
-              <View style={styles.childAvatar}>
-                <Text style={styles.childAvatarText}>{child.name[0]?.toUpperCase() ?? '?'}</Text>
-              </View>
-              <View style={styles.childInfo}>
-                <Text style={styles.childName}>{child.name}</Text>
-                {(() => {
-                  const currentYear = new Date().getFullYear();
-                  const by = child.birth_year;
-                  if (!by || by < 1900 || by > currentYear) return null;
-                  return (
-                    <Text style={styles.childSub}>Born {by} · Age {currentYear - by}</Text>
-                  );
-                })()}
-                <View style={styles.childRegs}>
-                  {(regsByChild[child.id] ?? []).map(r => (
-                    <Pressable key={r.id} onPress={() => deregister(r)}>
-                      <View style={[styles.regPill, { backgroundColor: PROGRAM_TYPE_COLOR[r.program?.type ?? 'youth'] + '22' }]}>
-                        <Text style={[styles.regPillText, { color: PROGRAM_TYPE_COLOR[r.program?.type ?? 'youth'] }]}>
-                          {r.program?.name ?? 'Program'}
-                        </Text>
+          family.map(child => {
+            const hasHealthInfo = !!(child.allergies || child.medical_notes || child.emergency_contact_1_name);
+            return (
+              <View key={child.id} style={styles.childCard}>
+                <Pressable
+                  style={styles.childAvatar}
+                  onPress={() => setEditorChild(child)}
+                  accessibilityLabel={`Edit ${child.name}`}
+                >
+                  <Text style={styles.childAvatarText}>{child.name[0]?.toUpperCase() ?? '?'}</Text>
+                </Pressable>
+                <Pressable
+                  style={styles.childInfo}
+                  onPress={() => setEditorChild(child)}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Edit ${child.name}`}
+                >
+                  <View style={styles.childNameRow}>
+                    <Text style={styles.childName}>{child.name}</Text>
+                    {hasHealthInfo && (
+                      <View style={styles.healthBadge}>
+                        <Ionicons name="shield-checkmark" size={11} color={colors.success} />
+                        <Text style={styles.healthBadgeText}>Health info</Text>
                       </View>
-                    </Pressable>
-                  ))}
-                </View>
+                    )}
+                  </View>
+                  {(() => {
+                    const currentYear = new Date().getFullYear();
+                    const by = child.birth_year;
+                    if (!by || by < 1900 || by > currentYear) return null;
+                    return (
+                      <Text style={styles.childSub}>Born {by} · Age {currentYear - by}</Text>
+                    );
+                  })()}
+                  <View style={styles.childRegs}>
+                    {(regsByChild[child.id] ?? []).map(r => (
+                      <Pressable key={r.id} onPress={() => deregister(r)}>
+                        <View style={[styles.regPill, { backgroundColor: PROGRAM_TYPE_COLOR[r.program?.type ?? 'youth'] + '22' }]}>
+                          <Text style={[styles.regPillText, { color: PROGRAM_TYPE_COLOR[r.program?.type ?? 'youth'] }]}>
+                            {r.program?.name ?? 'Program'}
+                          </Text>
+                        </View>
+                      </Pressable>
+                    ))}
+                  </View>
+                </Pressable>
+                <TouchableOpacity style={styles.registerBtn} onPress={() => setShowRegister(child)}>
+                  <Text style={styles.registerBtnText}>Register</Text>
+                </TouchableOpacity>
               </View>
-              <TouchableOpacity style={styles.registerBtn} onPress={() => setShowRegister(child)}>
-                <Text style={styles.registerBtnText}>Register</Text>
-              </TouchableOpacity>
-            </View>
-          ))
+            );
+          })
         )}
 
         {/* Programs */}
@@ -213,11 +238,12 @@ export function FamilyScreen() {
         )}
       </ScrollView>
 
-      <AddChildModal
-        visible={showAddChild}
+      <ChildEditorModal
+        visible={editorChild !== null}
         userId={userId}
-        onClose={() => setShowAddChild(false)}
-        onSaved={() => { setShowAddChild(false); load(); }}
+        existing={editorChild === 'new' ? null : editorChild}
+        onClose={() => setEditorChild(null)}
+        onSaved={() => { setEditorChild(null); load(); }}
       />
 
       <RegisterModal
@@ -242,28 +268,163 @@ export function FamilyScreen() {
   );
 }
 
-// ─── Add Child Modal ──────────────────────────────────────────────────────────
+// ─── Child Editor Modal ───────────────────────────────────────────────────────
+// Handles both create and edit. Health and emergency-contact fields are gated
+// behind an explicit consent checkbox (the DB also enforces this — see
+// migration 0006).
 
-function AddChildModal({ visible, userId, onClose, onSaved }: {
-  visible: boolean; userId: string; onClose: () => void; onSaved: () => void;
+function ChildEditorModal({ visible, userId, existing, onClose, onSaved }: {
+  visible: boolean;
+  userId: string;
+  existing: FamilyMember | null;
+  onClose: () => void;
+  onSaved: () => void;
 }) {
+  const isEdit = !!existing;
+
   const [name, setName] = useState('');
   const [birthYear, setBirthYear] = useState('');
+  const [allergies, setAllergies] = useState('');
+  const [medicalNotes, setMedicalNotes] = useState('');
+  const [ec1Name, setEc1Name] = useState('');
+  const [ec1Phone, setEc1Phone] = useState('');
+  const [ec2Name, setEc2Name] = useState('');
+  const [ec2Phone, setEc2Phone] = useState('');
+  const [consented, setConsented] = useState(false);
+  const [showConsent, setShowConsent] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [busy, setBusy] = useState(false);
+
+  // Rehydrate from `existing` (or reset for "new") whenever the modal opens.
+  useEffect(() => {
+    if (!visible) return;
+    setName(existing?.name ?? '');
+    setBirthYear(existing?.birth_year != null ? String(existing.birth_year) : '');
+    setAllergies(existing?.allergies ?? '');
+    setMedicalNotes(existing?.medical_notes ?? '');
+    setEc1Name(existing?.emergency_contact_1_name ?? '');
+    setEc1Phone(existing?.emergency_contact_1_phone ?? '');
+    setEc2Name(existing?.emergency_contact_2_name ?? '');
+    setEc2Phone(existing?.emergency_contact_2_phone ?? '');
+    // Already-consented children keep their consent only when the stored
+    // consent_version matches the current CHILD_CONSENT_VERSION. If the
+    // text has been updated since they last consented, untick so they
+    // re-confirm against the new wording — never silently upgrade.
+    const versionMatches =
+      !!existing?.consent_given_at
+      && existing?.consent_version === CHILD_CONSENT_VERSION;
+    setConsented(versionMatches);
+    setShowConsent(false);
+  }, [visible, existing]);
+
+  const hasHealthInfo =
+    !!allergies.trim() || !!medicalNotes.trim() ||
+    !!ec1Name.trim()   || !!ec1Phone.trim() ||
+    !!ec2Name.trim()   || !!ec2Phone.trim();
 
   const save = async () => {
     if (!name.trim()) { Alert.alert('Name required'); return; }
-    const yearNum = birthYear.trim() ? parseInt(birthYear.trim(), 10) : null;
+
     const currentYear = new Date().getFullYear();
-    if (birthYear.trim() && (isNaN(yearNum!) || yearNum! < currentYear - 18 || yearNum! > currentYear)) {
-      Alert.alert('Invalid birth year', `Please enter a birth year for a child under 18 (${currentYear - 18}–${currentYear}).`); return;
+    let yearNum: number | null = null;
+    if (birthYear.trim()) {
+      yearNum = parseInt(birthYear.trim(), 10);
+      if (isNaN(yearNum) || yearNum < currentYear - 18 || yearNum > currentYear) {
+        Alert.alert('Invalid birth year', `Enter a birth year for a child under 18 (${currentYear - 18}–${currentYear}).`);
+        return;
+      }
     }
+
+    if (hasHealthInfo && !consented) {
+      Alert.alert(
+        'Consent needed',
+        'Please tick the consent box at the bottom of the form before saving health or emergency-contact information.',
+      );
+      return;
+    }
+
     setSaving(true);
-    const { error } = await supabase.from('family_members').insert({ parent_user_id: userId, name: name.trim(), birth_year: yearNum });
+
+    // Consent timestamp policy:
+    //   - hasHealthInfo=false → null both fields (no health data, no consent needed)
+    //   - hasHealthInfo=true with the existing record's consent still on
+    //     the current version → preserve the original timestamp so we don't
+    //     falsify when the consent actually happened
+    //   - otherwise (new record, version bump) → stamp now()
+    const preservedConsentAt =
+      hasHealthInfo
+      && existing?.consent_version === CHILD_CONSENT_VERSION
+      && existing?.consent_given_at
+        ? existing.consent_given_at
+        : null;
+
+    const consentGivenAt = !hasHealthInfo
+      ? null
+      : preservedConsentAt ?? new Date().toISOString();
+
+    const payload = {
+      parent_user_id: userId,
+      name: name.trim(),
+      birth_year: yearNum,
+      allergies: allergies.trim() || null,
+      medical_notes: medicalNotes.trim() || null,
+      emergency_contact_1_name:  ec1Name.trim()  || null,
+      emergency_contact_1_phone: ec1Phone.trim() || null,
+      emergency_contact_2_name:  ec2Name.trim()  || null,
+      emergency_contact_2_phone: ec2Phone.trim() || null,
+      consent_given_at: consentGivenAt,
+      consent_version: hasHealthInfo ? CHILD_CONSENT_VERSION : null,
+    };
+
+    const { error } = isEdit
+      ? await supabase.from('family_members').update(payload).eq('id', existing!.id)
+      : await supabase.from('family_members').insert(payload);
+
     setSaving(false);
-    if (error) { Alert.alert('Error', error.message); return; }
-    setName(''); setBirthYear('');
+    if (error) { Alert.alert('Could not save', error.message); return; }
     onSaved();
+  };
+
+  const exportData = async () => {
+    if (!existing) return;
+    setBusy(true);
+    const { data, error } = await supabase.rpc('parent_export_child_data', {
+      p_child_id: existing.id,
+    });
+    setBusy(false);
+    if (error) { Alert.alert('Export failed', error.message); return; }
+    if (data == null) { Alert.alert('Export empty', 'No data was returned for this child.'); return; }
+    try {
+      await Share.share({
+        message: JSON.stringify(data, null, 2),
+        title: `${existing.name} — data export`,
+      });
+    } catch {
+      // user dismissed share sheet — no-op
+    }
+  };
+
+  const deleteChild = () => {
+    if (!existing) return;
+    Alert.alert(
+      `Delete ${existing.name}?`,
+      'This permanently removes the child record, all programme registrations, and any stored health information. An entry is kept in the audit log proving the deletion happened.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete', style: 'destructive',
+          onPress: async () => {
+            setBusy(true);
+            const { error } = await supabase.rpc('parent_delete_child', {
+              p_child_id: existing.id,
+            });
+            setBusy(false);
+            if (error) { Alert.alert('Delete failed', error.message); return; }
+            onSaved();
+          },
+        },
+      ],
+    );
   };
 
   return (
@@ -271,19 +432,124 @@ function AddChildModal({ visible, userId, onClose, onSaved }: {
       <SafeAreaView style={styles.modalSafe}>
         <View style={styles.modalHeader}>
           <Pressable onPress={onClose}><Text style={styles.modalCancel}>Cancel</Text></Pressable>
-          <Text style={styles.modalTitle}>Add Child</Text>
-          <Pressable onPress={save} disabled={saving}>
-            <Text style={[styles.modalAction, saving && { opacity: 0.5 }]}>{saving ? '…' : 'Add'}</Text>
+          <Text style={styles.modalTitle}>{isEdit ? 'Edit child' : 'Add child'}</Text>
+          <Pressable onPress={save} disabled={saving || busy}>
+            <Text style={[styles.modalAction, (saving || busy) && { opacity: 0.5 }]}>
+              {saving ? '…' : isEdit ? 'Save' : 'Add'}
+            </Text>
           </Pressable>
         </View>
-        <View style={styles.modalBody}>
+
+        <ScrollView contentContainerStyle={styles.modalBody} keyboardShouldPersistTaps="handled">
+
           <Text style={styles.fieldLabel}>Child's name *</Text>
           <TextInput style={styles.textInput} value={name} onChangeText={setName}
             placeholder="e.g. Emma" placeholderTextColor={colors.textMuted} autoCapitalize="words" />
+
           <Text style={styles.fieldLabel}>Birth year</Text>
           <TextInput style={styles.textInput} value={birthYear} onChangeText={setBirthYear}
-            placeholder="e.g. 2015" placeholderTextColor={colors.textMuted} keyboardType="number-pad" />
-        </View>
+            placeholder="e.g. 2015" placeholderTextColor={colors.textMuted} keyboardType="number-pad" maxLength={4} />
+
+          <View style={styles.sectionDivider}>
+            <Ionicons name="medkit-outline" size={14} color={colors.textMuted} />
+            <Text style={styles.sectionDividerText}>Health (optional)</Text>
+          </View>
+
+          <Text style={styles.fieldLabel}>Allergies</Text>
+          <TextInput style={[styles.textInput, styles.textArea]} value={allergies} onChangeText={setAllergies}
+            placeholder="e.g. peanuts, bee stings" placeholderTextColor={colors.textMuted} multiline />
+
+          <Text style={styles.fieldLabel}>Medical notes</Text>
+          <TextInput style={[styles.textInput, styles.textArea]} value={medicalNotes} onChangeText={setMedicalNotes}
+            placeholder="e.g. uses an inhaler for asthma" placeholderTextColor={colors.textMuted} multiline />
+
+          <View style={styles.sectionDivider}>
+            <Ionicons name="call-outline" size={14} color={colors.textMuted} />
+            <Text style={styles.sectionDividerText}>Emergency contacts (optional)</Text>
+          </View>
+
+          <Text style={styles.fieldLabel}>Contact 1 — name</Text>
+          <TextInput style={styles.textInput} value={ec1Name} onChangeText={setEc1Name}
+            placeholder="e.g. Mum — Sarah" placeholderTextColor={colors.textMuted} autoCapitalize="words" />
+
+          <Text style={styles.fieldLabel}>Contact 1 — phone</Text>
+          <TextInput style={styles.textInput} value={ec1Phone} onChangeText={setEc1Phone}
+            placeholder="+27 …" placeholderTextColor={colors.textMuted} keyboardType="phone-pad" />
+
+          <Text style={styles.fieldLabel}>Contact 2 — name</Text>
+          <TextInput style={styles.textInput} value={ec2Name} onChangeText={setEc2Name}
+            placeholder="optional" placeholderTextColor={colors.textMuted} autoCapitalize="words" />
+
+          <Text style={styles.fieldLabel}>Contact 2 — phone</Text>
+          <TextInput style={styles.textInput} value={ec2Phone} onChangeText={setEc2Phone}
+            placeholder="optional" placeholderTextColor={colors.textMuted} keyboardType="phone-pad" />
+
+          {hasHealthInfo && (
+            <View style={styles.consentBox}>
+              <Pressable
+                style={styles.consentRow}
+                onPress={() => setConsented(v => !v)}
+                accessibilityRole="checkbox"
+                accessibilityState={{ checked: consented }}
+              >
+                <Ionicons
+                  name={consented ? 'checkbox' : 'square-outline'}
+                  size={22}
+                  color={consented ? colors.primary : colors.textMuted}
+                />
+                <Text style={styles.consentSummary}>
+                  I consent to ChurchFlow storing this health and emergency information for my child.
+                </Text>
+              </Pressable>
+              <Pressable onPress={() => setShowConsent(v => !v)} hitSlop={8}>
+                <Text style={styles.consentLink}>
+                  {showConsent ? 'Hide full consent text' : 'Read full consent text'}
+                </Text>
+              </Pressable>
+              {showConsent && (
+                <Text style={styles.consentBody}>{CHILD_CONSENT_TEXT}</Text>
+              )}
+              {existing?.consent_given_at && (
+                <Text style={styles.consentMeta}>
+                  Previously recorded {format(new Date(existing.consent_given_at), 'd MMM yyyy')} ({existing.consent_version ?? 'unknown version'}).
+                </Text>
+              )}
+            </View>
+          )}
+
+          {isEdit && (
+            <View style={styles.privacySection}>
+              <View style={styles.sectionDivider}>
+                <Ionicons name="lock-closed-outline" size={14} color={colors.textMuted} />
+                <Text style={styles.sectionDividerText}>Privacy & data</Text>
+              </View>
+              <Text style={styles.privacyHint}>
+                You may export everything we hold about {existing!.name}, or delete the record entirely.
+                Records are removed once your child turns 18 as part of our retention policy.
+              </Text>
+              <View style={styles.privacyRow}>
+                <Pressable
+                  style={styles.privacyBtn}
+                  onPress={exportData}
+                  disabled={busy}
+                >
+                  {busy
+                    ? <ActivityIndicator size="small" color={colors.primary} />
+                    : <Ionicons name="download-outline" size={16} color={colors.primary} />}
+                  <Text style={styles.privacyBtnText}>Export data</Text>
+                </Pressable>
+                <Pressable
+                  style={[styles.privacyBtn, styles.privacyBtnDanger]}
+                  onPress={deleteChild}
+                  disabled={busy}
+                >
+                  <Ionicons name="trash-outline" size={16} color={colors.danger} />
+                  <Text style={[styles.privacyBtnText, { color: colors.danger }]}>Delete child</Text>
+                </Pressable>
+              </View>
+            </View>
+          )}
+        </ScrollView>
       </SafeAreaView>
     </Modal>
   );
@@ -600,4 +866,41 @@ const styles = StyleSheet.create({
   registerRowBtn: { paddingHorizontal: spacing.md, paddingVertical: 7, borderRadius: radius.md, backgroundColor: colors.primary },
   registerRowBtnDone: { backgroundColor: colors.success },
   registerRowBtnText: { fontSize: 13, color: '#fff', fontWeight: '700' },
+
+  // Child editor — health, consent, privacy
+  childNameRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  healthBadge: {
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    paddingHorizontal: 8, paddingVertical: 2,
+    borderRadius: radius.pill, backgroundColor: colors.success + '1A',
+  },
+  healthBadgeText: { fontSize: 10.5, fontWeight: '700', color: colors.success, letterSpacing: 0.3 },
+  textArea: { minHeight: 70, textAlignVertical: 'top' },
+  sectionDivider: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    marginTop: spacing.lg, marginBottom: spacing.xs,
+    paddingTop: spacing.sm, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.borderSoft,
+  },
+  sectionDividerText: { fontSize: 11.5, fontWeight: '700', letterSpacing: 1.2, color: colors.textMuted, textTransform: 'uppercase' },
+  consentBox: {
+    marginTop: spacing.md, padding: spacing.md, borderRadius: radius.md,
+    backgroundColor: colors.primaryLight, gap: spacing.sm,
+    borderWidth: 1, borderColor: colors.primary,
+  },
+  consentRow: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.sm },
+  consentSummary: { flex: 1, fontSize: 13.5, color: colors.text, fontWeight: '600', lineHeight: 19 },
+  consentLink: { fontSize: 12.5, color: colors.primary, fontWeight: '600', textDecorationLine: 'underline' },
+  consentBody: { fontSize: 12.5, color: colors.textSoft, lineHeight: 18, fontStyle: 'italic' },
+  consentMeta: { fontSize: 11.5, color: colors.textMuted, fontStyle: 'italic' },
+  privacySection: { marginTop: spacing.lg, gap: spacing.sm },
+  privacyHint: { fontSize: 12.5, color: colors.textMuted, lineHeight: 18 },
+  privacyRow: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.xs },
+  privacyBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    paddingHorizontal: spacing.md, paddingVertical: spacing.sm,
+    borderRadius: radius.md, borderWidth: 1, borderColor: colors.primary,
+    backgroundColor: colors.surface,
+  },
+  privacyBtnDanger: { borderColor: colors.danger },
+  privacyBtnText: { fontSize: 13, color: colors.primary, fontWeight: '700' },
 });
