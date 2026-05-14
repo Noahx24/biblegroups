@@ -369,11 +369,8 @@ export function ThisWeekScreen() {
   );
 }
 
-// bible-api.com provides free open-license translations. KJV is public domain.
-// WEB closely mirrors modern English translations. For licensed translations
-// (NIV, NLT, ESV), integrate api.bible with your own API key.
+// bible-api.com provides free open-license translations (public domain / open license only).
 const TRANSLATIONS: { value: string; label: string; name: string }[] = [
-  { value: 'kjv',    label: 'KJV', name: 'King James Version' },
   { value: 'web',    label: 'WEB', name: 'World English Bible' },
   { value: 'oeb-us', label: 'OEB', name: 'Open English Bible' },
   { value: 'bbe',    label: 'BBE', name: 'Bible in Basic English' },

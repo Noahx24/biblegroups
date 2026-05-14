@@ -125,49 +125,6 @@ const OnlineBibleBackend: BibleProvider = {
 
 type OfflineVerse = { text: string; fullRef: string; translationName: string };
 
-const OFFLINE_KJV: Record<string, OfflineVerse> = {
-  'john 3:16': {
-    fullRef: 'John 3:16',
-    translationName: 'King James Version',
-    text: 'For God so loved the world, that he gave his only begotten Son, that whosoever believeth in him should not perish, but have everlasting life.',
-  },
-  'psalm 23:1': {
-    fullRef: 'Psalm 23:1',
-    translationName: 'King James Version',
-    text: 'The LORD is my shepherd; I shall not want.',
-  },
-  'psalm 23': {
-    fullRef: 'Psalm 23',
-    translationName: 'King James Version',
-    text: 'The LORD is my shepherd; I shall not want. He maketh me to lie down in green pastures: he leadeth me beside the still waters. He restoreth my soul: he leadeth me in the paths of righteousness for his name\'s sake. Yea, though I walk through the valley of the shadow of death, I will fear no evil: for thou art with me; thy rod and thy staff they comfort me. Thou preparest a table before me in the presence of mine enemies: thou anointest my head with oil; my cup runneth over. Surely goodness and mercy shall follow me all the days of my life: and I will dwell in the house of the LORD for ever.',
-  },
-  'romans 8:28': {
-    fullRef: 'Romans 8:28',
-    translationName: 'King James Version',
-    text: 'And we know that all things work together for good to them that love God, to them who are the called according to his purpose.',
-  },
-  'philippians 4:13': {
-    fullRef: 'Philippians 4:13',
-    translationName: 'King James Version',
-    text: 'I can do all things through Christ which strengtheneth me.',
-  },
-  'proverbs 3:5': {
-    fullRef: 'Proverbs 3:5',
-    translationName: 'King James Version',
-    text: 'Trust in the LORD with all thine heart; and lean not unto thine own understanding.',
-  },
-  'jeremiah 29:11': {
-    fullRef: 'Jeremiah 29:11',
-    translationName: 'King James Version',
-    text: 'For I know the thoughts that I think toward you, saith the LORD, thoughts of peace, and not of evil, to give you an expected end.',
-  },
-  'isaiah 40:31': {
-    fullRef: 'Isaiah 40:31',
-    translationName: 'King James Version',
-    text: 'But they that wait upon the LORD shall renew their strength; they shall mount up with wings as eagles; they shall run, and not be weary; and they shall walk, and not faint.',
-  },
-};
-
 const OFFLINE_WEB: Record<string, OfflineVerse> = {
   'john 3:16': {
     fullRef: 'John 3:16',
@@ -202,14 +159,13 @@ const OFFLINE_WEB: Record<string, OfflineVerse> = {
 };
 
 const OFFLINE_BY_TRANSLATION: Record<string, Record<string, OfflineVerse>> = {
-  kjv: OFFLINE_KJV,
   web: OFFLINE_WEB,
 };
 
 const OfflineBibleBackend: BibleProvider = {
   async fetch(reference, translation) {
     const key = reference.trim().toLowerCase();
-    const lookup = OFFLINE_BY_TRANSLATION[translation.toLowerCase()] ?? OFFLINE_KJV;
+    const lookup = OFFLINE_BY_TRANSLATION[translation.toLowerCase()] ?? OFFLINE_WEB;
     const verse = lookup[key];
     if (!verse) {
       throw new Error(
