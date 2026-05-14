@@ -340,6 +340,18 @@ function ChildEditorModal({ visible, userId, existing, onClose, onSaved }: {
     }
 
     setSaving(true);
+
+    // Consent timestamp policy:
+    //   - hasHealthInfo=false → null both fields (no health data, no consent needed)
+    //   - hasHealthInfo=true and the existing consent is still current
+    //     (same version, parent left the tick) → preserve the original
+    //     timestamp so we don't falsify when the consent actually happened
+    //   - otherwise (new record, or version changed) → stamp now()
+    const isPreservingConsent =
+      hasHealthInfo
+      && !!existing?.consent_given_at
+      && existing.consent_version === CHILD_CONSENT_VERSION;
+
     const payload = {
       parent_user_id: userId,
       name: name.trim(),
@@ -350,8 +362,12 @@ function ChildEditorModal({ visible, userId, existing, onClose, onSaved }: {
       emergency_contact_1_phone: ec1Phone.trim() || null,
       emergency_contact_2_name:  ec2Name.trim()  || null,
       emergency_contact_2_phone: ec2Phone.trim() || null,
-      consent_given_at: hasHealthInfo ? new Date().toISOString() : null,
-      consent_version:  hasHealthInfo ? CHILD_CONSENT_VERSION    : null,
+      consent_given_at: !hasHealthInfo
+        ? null
+        : isPreservingConsent
+          ? existing!.consent_given_at
+          : new Date().toISOString(),
+      consent_version: hasHealthInfo ? CHILD_CONSENT_VERSION : null,
     };
 
     const { error } = isEdit
@@ -502,7 +518,7 @@ function ChildEditorModal({ visible, userId, existing, onClose, onSaved }: {
               </View>
               <Text style={styles.privacyHint}>
                 You may export everything we hold about {existing!.name}, or delete the record entirely.
-                Records are also auto-deleted when your child turns 18.
+                Records are removed once your child turns 18 as part of our retention policy.
               </Text>
               <View style={styles.privacyRow}>
                 <Pressable

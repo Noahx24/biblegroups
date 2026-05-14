@@ -155,6 +155,8 @@ begin
 
   elsif tg_op = 'UPDATE' then
     changed := array[]::text[];
+    -- parent_user_id changes are a child-transfer event — always log.
+    if new.parent_user_id is distinct from old.parent_user_id then changed := changed || 'parent_user_id'; end if;
     if new.name is distinct from old.name then changed := changed || 'name'; end if;
     if new.birth_year is distinct from old.birth_year then changed := changed || 'birth_year'; end if;
     if new.allergies is distinct from old.allergies then changed := changed || 'allergies'; end if;
@@ -191,12 +193,21 @@ create trigger log_family_member_change
   after insert or update or delete on public.family_members
   for each row execute function public.log_family_member_change();
 
--- ─── 4. RLS: active-registration read for group leaders ─────────────────────
--- The parent's own read/write policy is presumed already in place from
--- migration 0001. This adds an ADDITIONAL select policy granting leaders
--- (anyone with role='leader' in any group) read access while the child has
--- at least one active program registration. Admins also bypass via their
--- existing admin policy.
+-- ─── 4. RLS: parent + active-registration leader reads ─────────────────────
+-- Migration 0001 is expected to grant parents full access to their own
+-- children. The parent policy here is idempotent — if 0001 already created
+-- it under a different name, this one is harmless additional permission.
+--
+-- The leaders policy grants role='leader' in *any* group read access while
+-- the child has at least one active program_registration. This is broader
+-- than ideal — the schema has no programme-leader link, so we can't scope
+-- by programme. Tighten this when programme-leader assignments land
+-- (insert a join from program_registrations -> programme-leader table here).
+-- Admins always bypass via the OR clause.
+
+drop policy if exists family_members_parent_read on public.family_members;
+create policy family_members_parent_read on public.family_members
+  for select using (parent_user_id = auth.uid());
 
 drop policy if exists family_members_leaders_read on public.family_members;
 create policy family_members_leaders_read on public.family_members
