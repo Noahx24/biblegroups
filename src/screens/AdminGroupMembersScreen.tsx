@@ -506,19 +506,48 @@ function AddMemberModal({
   const commitStaged = async () => {
     if (staged.length === 0) return;
     setAdding(true);
-    const rows = staged.map(u => ({ group_id: group.id, user_id: u.id, role: pickedRole }));
-    const { error } = await supabase
-      .from('group_members')
-      .upsert(rows, { onConflict: 'group_id,user_id' });
+
+    // Class groups enforce "one class group per user" via a trigger. A
+    // batched upsert would fail the whole call when any single user is
+    // already in a different class, hiding which user broke the rule.
+    // Iterate per-user so we can attribute failures by name. Volunteer
+    // groups have no such restriction, but the per-row loop is cheap
+    // for the handful of users picked from the UI.
+    const failures: { user: DirectoryRow; message: string }[] = [];
+    let added = 0;
+    for (const u of staged) {
+      const { error } = await supabase
+        .from('group_members')
+        .upsert(
+          { group_id: group.id, user_id: u.id, role: pickedRole },
+          { onConflict: 'group_id,user_id' },
+        );
+      if (error) {
+        const message = error.message.includes('one class group')
+          ? 'already in a different class group'
+          : error.message;
+        failures.push({ user: u, message });
+      } else {
+        added += 1;
+      }
+    }
+
+    if (!mountedRef.current) return;
     setAdding(false);
-    if (error) {
-      const msg = error.message.includes('one class group')
-        ? 'One of the selected users is already in a different class group.'
-        : error.message;
-      Alert.alert('Could not add members', msg);
+
+    if (failures.length === 0) {
+      onAdded();
       return;
     }
-    onAdded();
+
+    const names = failures
+      .map(f => `• ${f.user.display_name ?? f.user.email ?? 'user'} — ${f.message}`)
+      .join('\n');
+    Alert.alert(
+      added > 0 ? `Added ${added}, ${failures.length} failed` : 'Could not add members',
+      names,
+      [{ text: 'OK', onPress: added > 0 ? onAdded : undefined }],
+    );
   };
 
   return (
