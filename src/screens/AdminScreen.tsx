@@ -70,10 +70,12 @@ async function importRows(rows: CsvRow[]): Promise<ImportResult[]> {
       //    Since profiles don't store email directly, we use the admin route via supabase.auth.admin
       //    or match on a denormalised email column. As a workaround we use service-role from the
       //    client if available, otherwise surface a clear message.
+      // ilike makes the match case-insensitive — emails like "John@…" and
+      // "john@…" both point at the same auth account.
       const { data: profileData, error: profileErr } = await supabase
         .from('profiles')
         .select('id')
-        .eq('email', row.email)
+        .ilike('email', row.email)
         .maybeSingle();
 
       if (profileErr) throw new Error(profileErr.message);

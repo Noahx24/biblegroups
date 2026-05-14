@@ -125,9 +125,14 @@ export function FamilyScreen() {
               </View>
               <View style={styles.childInfo}>
                 <Text style={styles.childName}>{child.name}</Text>
-                {child.birth_year && (
-                  <Text style={styles.childSub}>Born {child.birth_year} · Age {new Date().getFullYear() - child.birth_year}</Text>
-                )}
+                {(() => {
+                  const currentYear = new Date().getFullYear();
+                  const by = child.birth_year;
+                  if (!by || by < 1900 || by > currentYear) return null;
+                  return (
+                    <Text style={styles.childSub}>Born {by} · Age {currentYear - by}</Text>
+                  );
+                })()}
                 <View style={styles.childRegs}>
                   {(regsByChild[child.id] ?? []).map(r => (
                     <Pressable key={r.id} onPress={() => deregister(r)}>

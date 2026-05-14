@@ -49,7 +49,7 @@ export function AnnouncementsScreen() {
   }, [load]);
 
   useFocusEffect(useCallback(() => { load(); }, [load]));
-  useRealtime('announcements', load);
+  useRealtime('announcements', load, `group_id=eq.${group.id}`);
 
   const onRefresh = async () => {
     setRefreshing(true);
