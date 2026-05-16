@@ -266,3 +266,28 @@ npm install -g eas-cli
 eas build --platform ios      # requires Apple Developer account ($99/yr)
 eas build --platform android  # requires Google Play Console ($25 one-time)
 ```
+
+---
+
+## Marketing site (GitHub Pages)
+
+The repo also ships a one-page marketing site at `docs/index.html`. It's
+deployed to `https://<owner>.github.io/<repo>/` via the `gh-pages` branch.
+
+**First-time setup (one click):**
+
+1. Push to `main` (the workflow at `.github/workflows/pages.yml` will fire on
+   any change under `docs/**`).
+2. Go to repo *Settings → Pages*.
+3. Under **Build and deployment**:
+   - **Source:** "Deploy from a branch"
+   - **Branch:** `gh-pages` · `/ (root)`
+4. Save. The site goes live in 1–2 minutes.
+
+**Editing the site:** open `docs/index.html`, change copy or styles, commit
+to `main`. The workflow re-publishes automatically. To preview locally,
+just open the file in a browser — there's no build step, no bundler.
+
+**Custom domain (optional):** add a `CNAME` file under `docs/` containing
+your domain (e.g. `churchflow.app`), point a DNS CNAME at
+`<owner>.github.io`, and tick "Enforce HTTPS" in *Settings → Pages*.
