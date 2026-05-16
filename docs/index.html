@@ -12,7 +12,8 @@
   <meta property="og:description" content="Stay connected to your church family. A mobile app designed for Methodist churches. Coming soon to iOS and Android.">
   <meta property="og:type" content="website">
 
-  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="icon" type="image/png" href="icon.png">
+  <link rel="apple-touch-icon" href="icon.png">
 
   <style>
     :root {
@@ -57,16 +58,16 @@
         var(--cream);
     }
     .logo {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      width: 88px; height: 88px;
-      border-radius: 22px;
-      background: var(--scarlet);
-      box-shadow: 0 12px 32px rgba(176, 32, 44, .25);
+      display: inline-block;
+      width: 112px; height: 112px;
+      border-radius: 26px;
+      box-shadow: 0 14px 36px rgba(176, 32, 44, .26);
       margin-bottom: 28px;
+      overflow: hidden;
+      /* let the icon's own background carry the brand colour */
+      background: var(--scarlet);
     }
-    .logo svg { width: 56px; height: 56px; }
+    .logo img { width: 100%; height: 100%; display: block; }
 
     h1 {
       font-family: var(--serif);
@@ -296,23 +297,8 @@
 
   <!-- ─── Hero ────────────────────────────────────────────── -->
   <header class="hero">
-    <div class="logo" aria-hidden="true">
-      <!-- Open book + gold ribbon, simplified -->
-      <svg viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
-        <g transform="translate(512 482)">
-          <path d="M -280 -180 L -20 -200 L -20 180 L -280 160 Z" fill="#FAF6EC"/>
-          <path d="M 20 -200 L 280 -180 L 280 160 L 20 180 Z" fill="#FAF6EC"/>
-          <rect x="-240" y="-130" width="180" height="16" rx="8" fill="#B0202C" opacity=".85"/>
-          <rect x="-240" y="-80"  width="200" height="14" rx="7" fill="#B0202C" opacity=".45"/>
-          <rect x="-240" y="-40"  width="200" height="14" rx="7" fill="#B0202C" opacity=".45"/>
-          <rect x="-240" y="0"    width="160" height="14" rx="7" fill="#B0202C" opacity=".45"/>
-          <rect x="60"   y="-130" width="180" height="14" rx="7" fill="#B0202C" opacity=".45"/>
-          <rect x="60"   y="-80"  width="200" height="14" rx="7" fill="#B0202C" opacity=".45"/>
-          <rect x="60"   y="-40"  width="200" height="14" rx="7" fill="#B0202C" opacity=".45"/>
-          <rect x="60"   y="0"    width="160" height="14" rx="7" fill="#B0202C" opacity=".45"/>
-          <path d="M -30 160 L -30 330 L 0 290 L 30 330 L 30 160 Z" fill="#C89441"/>
-        </g>
-      </svg>
+    <div class="logo">
+      <img src="icon.png" alt="ChurchFlow logo">
     </div>
     <h1>ChurchFlow</h1>
     <p class="tagline">Stay connected to your church family.</p>
