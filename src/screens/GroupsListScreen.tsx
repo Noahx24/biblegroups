@@ -20,7 +20,7 @@ import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
 import { useRealtime } from '@/hooks/useRealtime';
 import { colors, fonts, radius, shadow, spacing } from '@/theme';
-import type { Group, MemberRole, Profile } from '@/types';
+import type { Group, MeetingMode, MemberRole, Profile } from '@/types';
 import type { AppStackParamList } from '@/navigation/RootNavigator';
 
 type Nav = NativeStackNavigationProp<AppStackParamList, 'MainTabs'>;
@@ -31,6 +31,16 @@ type GroupSection = { title: string; data: GroupWithLeaders[]; isMember: boolean
 
 const TYPE_LABEL: Record<string, string> = { class: 'Class', volunteer: 'Volunteer' };
 const TYPE_COLOR: Record<string, string> = { class: colors.primary, volunteer: colors.accent };
+const MODE_LABEL: Record<MeetingMode, string> = {
+  in_person: 'In person',
+  online: 'Online',
+  hybrid: 'In person + Online',
+};
+const MODE_ICON: Record<MeetingMode, 'people-outline' | 'videocam-outline' | 'globe-outline'> = {
+  in_person: 'people-outline',
+  online: 'videocam-outline',
+  hybrid: 'globe-outline',
+};
 
 function Avatar({ uri, name, size = 28 }: { uri?: string | null; name?: string | null; size?: number }) {
   if (uri) {
@@ -177,12 +187,8 @@ export function GroupsListScreen() {
     // Volunteer groups don't surface leaders at all.
     const isClass = item.type === 'class';
     const primaryLeader = isClass ? item.leaders[0] ?? null : null;
-    return (
-      <TouchableOpacity
-        style={styles.card}
-        onPress={() => myVersion ? openGroup(myVersion) : undefined}
-        activeOpacity={myVersion ? 0.75 : 1}
-      >
+    const inner = (
+      <>
         <View style={[styles.cardAccent, { backgroundColor: TYPE_COLOR[item.type] }]} />
         <View style={styles.cardBody}>
           <View style={styles.cardTop}>
@@ -204,6 +210,26 @@ export function GroupsListScreen() {
           {!!item.description && (
             <Text style={styles.cardDesc} numberOfLines={1}>{item.description}</Text>
           )}
+          {(item.meeting_mode || item.location) && (
+            <View style={styles.metaRow}>
+              {item.meeting_mode && (
+                <View style={styles.metaChip}>
+                  <Ionicons
+                    name={MODE_ICON[item.meeting_mode]}
+                    size={12}
+                    color={colors.textMuted}
+                  />
+                  <Text style={styles.metaChipText}>{MODE_LABEL[item.meeting_mode]}</Text>
+                </View>
+              )}
+              {!!item.location && (
+                <View style={styles.metaChip}>
+                  <Ionicons name="location-outline" size={12} color={colors.textMuted} />
+                  <Text style={styles.metaChipText} numberOfLines={1}>{item.location}</Text>
+                </View>
+              )}
+            </View>
+          )}
           {isMember && myVersion && (
             <View style={styles.roleBadge}>
               <Text style={styles.roleBadgeText}>
@@ -215,8 +241,19 @@ export function GroupsListScreen() {
         {myVersion && (
           <Ionicons name="chevron-forward" size={18} color={colors.textMuted} style={styles.chevron} />
         )}
-      </TouchableOpacity>
+      </>
     );
+
+    // Members tap to enter the group; non-members see a static card with no
+    // press feedback or chevron — the All Groups list is a read-only directory.
+    if (myVersion) {
+      return (
+        <TouchableOpacity style={styles.card} onPress={() => openGroup(myVersion)} activeOpacity={0.75}>
+          {inner}
+        </TouchableOpacity>
+      );
+    }
+    return <View style={styles.card}>{inner}</View>;
   };
 
   if (loading) {
@@ -362,6 +399,9 @@ const styles = StyleSheet.create({
   typePill: { paddingHorizontal: spacing.sm, paddingVertical: 2, borderRadius: radius.pill },
   typePillText: { fontSize: 11, fontWeight: '600', letterSpacing: 0.2 },
   cardDesc: { fontSize: 13, color: colors.textMuted, marginTop: 3 },
+  metaRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginTop: spacing.xs + 2 },
+  metaChip: { flexDirection: 'row', alignItems: 'center', gap: 4, maxWidth: 220 },
+  metaChipText: { fontSize: 11.5, color: colors.textMuted, fontWeight: '500' },
   classLeader: { flexDirection: 'row', alignItems: 'center', gap: 6, maxWidth: 180 },
   classLeaderName: { fontSize: 13, color: colors.textSoft, fontWeight: '500' },
   miniAvatar: { backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center' },
