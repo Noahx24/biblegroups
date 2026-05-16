@@ -1,5 +1,5 @@
 -- Replace the full birthday date column with month + day only (no year stored).
--- Year is intentionally not collected — users add their birthday, not date of birth.
+-- Year is intentionally not collected - users add their birthday, not date of birth.
 
 alter table public.profiles
   add column if not exists birth_month smallint check (birth_month between 1 and 12),

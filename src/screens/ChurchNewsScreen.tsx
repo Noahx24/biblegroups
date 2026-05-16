@@ -232,7 +232,7 @@ function NewsletterReader({
       onShow={() => setReaderLoading(true)}
     >
       <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
-        {/* Toolbar — matches design: ← Back | title+domain | ↻ */}
+        {/* Toolbar - matches design: ← Back | title+domain | ↻ */}
         <View style={styles.toolbar}>
           <Pressable
             onPress={onClose}

@@ -2,19 +2,19 @@
  * Bible provider abstraction.
  *
  * Public API
- *   fetchVerse(reference, translation) — cache → YouVersion API → bible-api.com → offline
+ *   fetchVerse(reference, translation) - cache → YouVersion API → bible-api.com → offline
  *
  * Backends
- *   YouVersionBibleBackend — api.scripture.api.bible (requires EXPO_PUBLIC_BIBLE_API_KEY)
- *   OnlineBibleBackend    — bible-api.com (free, KJV public-domain, no key needed)
- *   OfflineBibleBackend   — hardcoded KJV seed for zero-network fallback
+ *   YouVersionBibleBackend - api.scripture.api.bible (requires EXPO_PUBLIC_BIBLE_API_KEY)
+ *   OnlineBibleBackend    - bible-api.com (free, KJV public-domain, no key needed)
+ *   OfflineBibleBackend   - hardcoded KJV seed for zero-network fallback
  *
  * Environment variables (add to .env):
- *   EXPO_PUBLIC_BIBLE_API_KEY      — API key from your YouVersion / api.bible developer portal
- *   EXPO_PUBLIC_BIBLE_ID_KJV       — api.bible Bible ID for KJV  (default: de4e12af7f28f599-01)
- *   EXPO_PUBLIC_BIBLE_ID_ESV       — api.bible Bible ID for ESV
- *   EXPO_PUBLIC_BIBLE_ID_NIV       — api.bible Bible ID for NIV
- *   EXPO_PUBLIC_BIBLE_ID_NLT       — api.bible Bible ID for NLT
+ *   EXPO_PUBLIC_BIBLE_API_KEY      - API key from your YouVersion / api.bible developer portal
+ *   EXPO_PUBLIC_BIBLE_ID_KJV       - api.bible Bible ID for KJV  (default: de4e12af7f28f599-01)
+ *   EXPO_PUBLIC_BIBLE_ID_ESV       - api.bible Bible ID for ESV
+ *   EXPO_PUBLIC_BIBLE_ID_NIV       - api.bible Bible ID for NIV
+ *   EXPO_PUBLIC_BIBLE_ID_NLT       - api.bible Bible ID for NLT
  *
  * Cache
  *   AsyncStorage key: @churchflow/bible_cache_v1
@@ -254,7 +254,7 @@ const YouVersionBibleBackend: BibleProvider = {
 
     const rawText = json.data?.content ?? '';
     if (!rawText) {
-      throw new Error(`Could not find passage "${reference}" — empty response from API.`);
+      throw new Error(`Could not find passage "${reference}" - empty response from API.`);
     }
     // Strip any residual markup and collapse whitespace
     const cleanText = rawText.replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim();

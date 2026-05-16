@@ -1,6 +1,6 @@
 import { CHILD_CONSENT_TEXT, CHILD_CONSENT_VERSION } from '@/types';
 
-// Sanity tests for the POPIA consent constants — these are written into
+// Sanity tests for the POPIA consent constants - these are written into
 // every family_members row that carries health data and stored long-term,
 // so changes to the version string should be deliberate.
 

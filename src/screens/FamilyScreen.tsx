@@ -270,7 +270,7 @@ export function FamilyScreen() {
 
 // ─── Child Editor Modal ───────────────────────────────────────────────────────
 // Handles both create and edit. Health and emergency-contact fields are gated
-// behind an explicit consent checkbox (the DB also enforces this — see
+// behind an explicit consent checkbox (the DB also enforces this - see
 // migration 0006).
 
 function ChildEditorModal({ visible, userId, existing, onClose, onSaved }: {
@@ -309,7 +309,7 @@ function ChildEditorModal({ visible, userId, existing, onClose, onSaved }: {
     // Already-consented children keep their consent only when the stored
     // consent_version matches the current CHILD_CONSENT_VERSION. If the
     // text has been updated since they last consented, untick so they
-    // re-confirm against the new wording — never silently upgrade.
+    // re-confirm against the new wording - never silently upgrade.
     const versionMatches =
       !!existing?.consent_given_at
       && existing?.consent_version === CHILD_CONSENT_VERSION;
@@ -397,10 +397,10 @@ function ChildEditorModal({ visible, userId, existing, onClose, onSaved }: {
     try {
       await Share.share({
         message: JSON.stringify(data, null, 2),
-        title: `${existing.name} — data export`,
+        title: `${existing.name} - data export`,
       });
     } catch {
-      // user dismissed share sheet — no-op
+      // user dismissed share sheet - no-op
     }
   };
 
@@ -468,19 +468,19 @@ function ChildEditorModal({ visible, userId, existing, onClose, onSaved }: {
             <Text style={styles.sectionDividerText}>Emergency contacts (optional)</Text>
           </View>
 
-          <Text style={styles.fieldLabel}>Contact 1 — name</Text>
+          <Text style={styles.fieldLabel}>Contact 1 - name</Text>
           <TextInput style={styles.textInput} value={ec1Name} onChangeText={setEc1Name}
-            placeholder="e.g. Mum — Sarah" placeholderTextColor={colors.textMuted} autoCapitalize="words" />
+            placeholder="e.g. Mum - Sarah" placeholderTextColor={colors.textMuted} autoCapitalize="words" />
 
-          <Text style={styles.fieldLabel}>Contact 1 — phone</Text>
+          <Text style={styles.fieldLabel}>Contact 1 - phone</Text>
           <TextInput style={styles.textInput} value={ec1Phone} onChangeText={setEc1Phone}
             placeholder="+27 …" placeholderTextColor={colors.textMuted} keyboardType="phone-pad" />
 
-          <Text style={styles.fieldLabel}>Contact 2 — name</Text>
+          <Text style={styles.fieldLabel}>Contact 2 - name</Text>
           <TextInput style={styles.textInput} value={ec2Name} onChangeText={setEc2Name}
             placeholder="optional" placeholderTextColor={colors.textMuted} autoCapitalize="words" />
 
-          <Text style={styles.fieldLabel}>Contact 2 — phone</Text>
+          <Text style={styles.fieldLabel}>Contact 2 - phone</Text>
           <TextInput style={styles.textInput} value={ec2Phone} onChangeText={setEc2Phone}
             placeholder="optional" placeholderTextColor={colors.textMuted} keyboardType="phone-pad" />
 
@@ -558,7 +558,7 @@ function ChildEditorModal({ visible, userId, existing, onClose, onSaved }: {
 // ─── Register Modal ───────────────────────────────────────────────────────────
 
 function ageEligible(child: FamilyMember, program: YouthProgram): boolean {
-  if (!child.birth_year) return true; // no age on file — allow
+  if (!child.birth_year) return true; // no age on file - allow
   const age = new Date().getFullYear() - child.birth_year;
   if (program.age_min != null && age < program.age_min) return false;
   if (program.age_max != null && age > program.age_max) return false;
@@ -707,7 +707,7 @@ function CreateProgramModal({ visible, userId, onClose, onSaved }: {
       Alert.alert('Invalid age range', 'Minimum age cannot exceed maximum age.'); return;
     }
     setSaving(true);
-    // "other" is UI-only — store as holiday_club (the open-age enum value)
+    // "other" is UI-only - store as holiday_club (the open-age enum value)
     const dbType = preset === 'other' ? 'holiday_club' : preset;
     const { error } = await supabase.from('youth_programs').insert({
       name: name.trim(), type: dbType,
@@ -867,7 +867,7 @@ const styles = StyleSheet.create({
   registerRowBtnDone: { backgroundColor: colors.success },
   registerRowBtnText: { fontSize: 13, color: '#fff', fontWeight: '700' },
 
-  // Child editor — health, consent, privacy
+  // Child editor - health, consent, privacy
   childNameRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   healthBadge: {
     flexDirection: 'row', alignItems: 'center', gap: 4,

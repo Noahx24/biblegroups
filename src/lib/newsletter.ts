@@ -1,6 +1,6 @@
 import { XMLParser } from 'fast-xml-parser';
 
-// BMC In Touch newsletter — Mailchimp public RSS feed.
+// BMC In Touch newsletter - Mailchimp public RSS feed.
 // The mailchi.mp/{slug} archive page exposes this feed at:
 // https://us17.campaign-archive.com/feed?u={USER_ID}&id={LIST_ID}
 const FEED_URL =

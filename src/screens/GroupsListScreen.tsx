@@ -162,7 +162,7 @@ export function GroupsListScreen() {
       return;
     }
 
-    // Volunteer groups have no leaders — creator is added as a plain member.
+    // Volunteer groups have no leaders - creator is added as a plain member.
     const creatorRole = newType === 'class' ? 'leader' : 'member';
     const { error: memberErr } = await supabase
       .from('group_members')
@@ -183,7 +183,7 @@ export function GroupsListScreen() {
 
   const GroupCard = ({ item, isMember }: { item: GroupWithLeaders; isMember?: boolean }) => {
     const myVersion = myGroups.find(g => g.id === item.id);
-    // Class groups have a single leader displayed inline ("Class 38 — Jane Doe").
+    // Class groups have a single leader displayed inline ("Class 38 - Jane Doe").
     // Volunteer groups don't surface leaders at all.
     const isClass = item.type === 'class';
     const primaryLeader = isClass ? item.leaders[0] ?? null : null;
@@ -245,7 +245,7 @@ export function GroupsListScreen() {
     );
 
     // Members tap to enter the group; non-members see a static card with no
-    // press feedback or chevron — the All Groups list is a read-only directory.
+    // press feedback or chevron - the All Groups list is a read-only directory.
     if (myVersion) {
       return (
         <TouchableOpacity style={styles.card} onPress={() => openGroup(myVersion)} activeOpacity={0.75}>
@@ -268,7 +268,7 @@ export function GroupsListScreen() {
 
   // Non-admins browsing the directory only see class groups. Volunteer groups
   // are admin-managed and not relevant to a normal member who isn't already
-  // part of one — anyone who IS in a volunteer group still sees it under
+  // part of one - anyone who IS in a volunteer group still sees it under
   // "My Groups" so they can access its schedule and announcements.
   const otherGroups = allGroups.filter(g => {
     if (myGroupIds.has(g.id)) return false;

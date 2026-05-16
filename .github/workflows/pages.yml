@@ -38,7 +38,7 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./docs
           publish_branch: gh-pages
-          # force_orphan keeps the gh-pages history shallow — each deploy
+          # force_orphan keeps the gh-pages history shallow - each deploy
           # is a single commit, so the branch never bloats over time.
           force_orphan: true
           user_name: 'github-actions[bot]'

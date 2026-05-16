@@ -1,5 +1,5 @@
 /**
- * AdminGroupMembersScreen — manage leaders and members of a single group.
+ * AdminGroupMembersScreen - manage leaders and members of a single group.
  *
  * Accessible from AdminScreen for any admin (regular admin or super admin).
  *
@@ -169,7 +169,7 @@ export function AdminGroupMembersScreen() {
       return;
     }
     if (!data || data.length === 0) {
-      // Already gone — either another admin removed them or RLS rejected
+      // Already gone - either another admin removed them or RLS rejected
       // silently. Just refresh so the UI matches DB state.
     }
     await load();
@@ -399,7 +399,7 @@ export function AdminGroupMembersScreen() {
             {selectMode
               ? 'Tap rows to add or remove from selection. Use the trash icon to remove everyone selected.'
               : isVolunteer
-                ? 'Volunteer groups have members only — no leader role. Tap the X to remove someone. Long-press a row or tap "Select" to remove several at once.'
+                ? 'Volunteer groups have members only - no leader role. Tap the X to remove someone. Long-press a row or tap "Select" to remove several at once.'
                 : 'Tap the role pill to swap leader / member. Tap the X to remove a person. Long-press a row or tap "Select" to remove several at once.'}
           </Text>
         </ScrollView>
@@ -424,7 +424,7 @@ export function AdminGroupMembersScreen() {
 }
 
 /**
- * AddMemberModal — search the directory of all registered users by display_name
+ * AddMemberModal - search the directory of all registered users by display_name
  * or email, pick one, choose a role, and upsert the group_member row.
  */
 function AddMemberModal({
@@ -560,7 +560,7 @@ function AddMemberModal({
     }
 
     const names = failures
-      .map(f => `• ${f.user.display_name ?? f.user.email ?? 'user'} — ${f.message}`)
+      .map(f => `• ${f.user.display_name ?? f.user.email ?? 'user'} - ${f.message}`)
       .join('\n');
     Alert.alert(
       added > 0 ? `Added ${added}, ${failures.length} failed` : 'Could not add members',
@@ -584,7 +584,7 @@ function AddMemberModal({
             <View style={styles.volunteerRoleNote}>
               <Ionicons name="information-circle-outline" size={15} color={colors.textMuted} />
               <Text style={styles.volunteerRoleNoteText}>
-                Volunteer groups have members only — no leader role.
+                Volunteer groups have members only - no leader role.
               </Text>
             </View>
           ) : (
@@ -655,10 +655,10 @@ function AddMemberModal({
                     accessibilityState={already ? { disabled: true } : { checked: isStaged }}
                     accessibilityLabel={
                       already
-                        ? `${displayName} — already in group`
+                        ? `${displayName} - already in group`
                         : isStaged
-                          ? `${displayName} — selected for adding`
-                          : `${displayName} — tap to add`
+                          ? `${displayName} - selected for adding`
+                          : `${displayName} - tap to add`
                     }
                   >
                     <Avatar uri={item.avatar_url} name={item.display_name ?? item.email} size={36} />
@@ -711,7 +711,7 @@ function AddMemberModal({
 }
 
 /**
- * EditGroupModal — admin-only group settings: description, location, meeting
+ * EditGroupModal - admin-only group settings: description, location, meeting
  * mode, and meeting time. Type cannot be changed (would invalidate the
  * one-class-group-per-user trigger and the volunteer-no-leaders trigger).
  */

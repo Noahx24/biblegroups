@@ -1,5 +1,5 @@
 /**
- * AdminScreen — accessible to admins from ProfileScreen.
+ * AdminScreen - accessible to admins from ProfileScreen.
  *
  * Manage group membership by browsing a group, then opening
  * AdminGroupMembersScreen to search the directory of registered users and

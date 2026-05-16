@@ -1,6 +1,6 @@
 // Lightweight shimmer placeholder used in place of a bare spinner while
 // list screens fetch. Animated.loop opacity gives a soft pulse without
-// pulling in reanimated or a gradient library — good enough for our needs.
+// pulling in reanimated or a gradient library - good enough for our needs.
 //
 // Usage:
 //   <SkeletonRow />                  // single 96px-tall card

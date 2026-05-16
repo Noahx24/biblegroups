@@ -3,7 +3,7 @@
 -- Three meeting modes:
 --   in_person : physical gathering only
 --   online    : video call only (location holds the URL)
---   hybrid    : both — location can be an address + a URL on a new line
+--   hybrid    : both - location can be an address + a URL on a new line
 --
 -- Pre-existing groups are back-filled to 'in_person' (the original
 -- assumption when the schema only had meeting_time). The mode is

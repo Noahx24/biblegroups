@@ -87,7 +87,7 @@ type WeekItem = {
 
 type Section = {
   title: string;
-  date: string;          // yyyy-MM-dd — needed for day-strip scroll
+  date: string;          // yyyy-MM-dd - needed for day-strip scroll
   data: WeekItem[];
 };
 
@@ -354,7 +354,7 @@ export function MyWeekScreen() {
         group?.type === 'class'
           ? `Leading ${group.name}`
           : prog?.name
-          ? `Volunteering — ${prog.name}`
+          ? `Volunteering - ${prog.name}`
           : `Volunteering for ${group?.name ?? 'group'}`;
       items.push({
         id: `slot-${raw.id}`,
@@ -493,7 +493,7 @@ export function MyWeekScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
-      {/* Page header — outside the list so it doesn't scroll away */}
+      {/* Page header - outside the list so it doesn't scroll away */}
       <View style={styles.pageHeader}>
         <View>
           <Text style={styles.pageTitle}>My Week</Text>
@@ -527,7 +527,7 @@ export function MyWeekScreen() {
               <>
                 <Text style={styles.emptyTitle}>All clear</Text>
                 <Text style={styles.emptyBody}>
-                  Nothing scheduled in the next two weeks — enjoy the break!
+                  Nothing scheduled in the next two weeks - enjoy the break!
                 </Text>
               </>
             )}

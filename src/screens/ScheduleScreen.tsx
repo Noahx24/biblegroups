@@ -209,7 +209,7 @@ function TimePickerField({
         >
           <Ionicons name="time-outline" size={15} color={colors.textMuted} />
           <Text style={[styles.pickerFieldText, !value && styles.pickerFieldPlaceholder]}>
-            {value ?? 'Optional — tap to set'}
+            {value ?? 'Optional - tap to set'}
           </Text>
           <Ionicons
             name={showing && Platform.OS === 'ios' ? 'chevron-up' : 'chevron-down'}
@@ -421,7 +421,7 @@ function EditSlotModal({
     // Conflict check: warn about double-booking whenever the assignee, date,
     // or time changed. Time matters because the DB unique on
     // (group_id, slot_date, slot_time) only prevents two slots at the *same*
-    // time — moving Bob's 10:00 to 14:30 on a day he's also at 14:00 is fine
+    // time - moving Bob's 10:00 to 14:30 on a day he's also at 14:00 is fine
     // for the index but still a double-booking.
     const assigneeChanged = assigneeId !== slot.assignee_id;
     const dateChanged = isoDate !== slot.slot_date;
@@ -1051,13 +1051,13 @@ export function ScheduleScreen() {
       if (isLeader || isAdmin) {
         buttons.push({ text: 'Edit slot', onPress: () => setEditingSlot(slot) });
       }
-      const leaderLabel = open ? 'Open — no leader yet' : `Leader: ${slot.assignee?.display_name ?? 'Unknown'}`;
+      const leaderLabel = open ? 'Open - no leader yet' : `Leader: ${slot.assignee?.display_name ?? 'Unknown'}`;
       Alert.alert(formatWeek(date), leaderLabel, buttons);
     } else {
       const buttons: Array<{ text: string; style?: 'cancel' | 'destructive'; onPress?: () => void }> = [
         { text: 'Close', style: 'cancel' },
       ];
-      // Once a volunteer accepts, the commitment is sealed — only admins
+      // Once a volunteer accepts, the commitment is sealed - only admins
       // can change the schedule from here on. Decline is offered only while
       // the slot is still pending. Accept can still be offered to a
       // volunteer who previously declined, before they commit.
