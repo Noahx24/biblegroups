@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  ChurchFlow splash screen — 2048×2048 square that Expo scales to fit
+  ChurchFlow splash screen - 2048×2048 square that Expo scales to fit
   any device. Cream background, centred scarlet mark.
 -->
 <svg xmlns="http://www.w3.org/2000/svg" width="2048" height="2048" viewBox="0 0 2048 2048">
