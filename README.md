@@ -41,10 +41,10 @@ The Groups screen shows two sections: **My Groups** (tap to enter) and **All Gro
 
 ### This Week *(class groups only)*
 
-- **Verse of the week** - the leader who claimed the slot enters a Bible reference; the app fetches the text from [bible-api.com](https://bible-api.com) in KJV, WEB, OEB, or BBE.
-- **Leading this week** - leaders can claim an open slot. The claim is atomic: a concurrent second claim returns "someone else just claimed this slot."
-- **Next week** (leaders only) - shows who's leading next week; leaders can pre-claim the slot.
-- **Reading plan** - Mon–Fri reading days for the week; Tuesday highlighted when a verse is set.
+- **Verse of the week** — the leader who claimed the slot enters a Bible reference;
+- **Leading this week** — leaders can claim an open slot. The claim is atomic: a concurrent second claim returns "someone else just claimed this slot."
+- **Next week** (leaders only) — shows who's leading next week; leaders can pre-claim the slot.
+- **Reading plan** — Mon–Fri reading days for the week; Tuesday highlighted when a verse is set.
 
 ### Schedule
 
