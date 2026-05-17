@@ -241,6 +241,15 @@
         radial-gradient(ellipse at top, rgba(176, 32, 44, .04), transparent 70%),
         var(--cream);
     }
+    /* When all mockup images fail to load (e.g. files not uploaded yet),
+       the onerror handlers remove their <figure> elements. With no figures
+       left, hide the entire section so the live site never shows an empty
+       "See it in action" heading. Supported in Safari 15.4+/Chrome 105+/
+       Firefox 121+; the JS load handler at the bottom of <body> is a
+       fallback for older browsers. */
+    .screens:not(:has(figure)) {
+      display: none;
+    }
     .mobile-mockups {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
@@ -517,33 +526,28 @@
         <figure>
           <img src="mockups/schedule.png"
                alt="Schedule screen showing the month calendar, birthdays, and one-tap accept for volunteer slots"
-               loading="lazy"
-             onerror="this.closest('figure')?.remove()">
+               onerror="this.closest('figure')?.remove()">
         </figure>
         <figure>
           <img src="mockups/groups.png"
                alt="Groups screen listing class and volunteer groups with leaders, meeting times, and locations"
-               loading="lazy"
-             onerror="this.closest('figure')?.remove()">
+               onerror="this.closest('figure')?.remove()">
         </figure>
         <figure>
           <img src="mockups/family.png"
                alt="Family screen showing children with health info, available programmes, and registration"
-               loading="lazy"
-             onerror="this.closest('figure')?.remove()">
+               onerror="this.closest('figure')?.remove()">
         </figure>
         <figure>
           <img src="mockups/hymns.png"
                alt="Hymn Book screen with a language picker, search, and the Xhosa hymn list"
-               loading="lazy"
-             onerror="this.closest('figure')?.remove()">
+               onerror="this.closest('figure')?.remove()">
         </figure>
       </div>
 
       <figure class="admin-mockup">
         <img src="mockups/admin.png"
              alt="Admin web portal dashboard showing members, open slots, class groups, and recent activity"
-             loading="lazy"
              onerror="this.closest('figure')?.remove()">
         <figcaption>The admin web portal — coming soon for church staff.</figcaption>
       </figure>
