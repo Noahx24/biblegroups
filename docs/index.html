@@ -241,60 +241,473 @@
         radial-gradient(ellipse at top, rgba(176, 32, 44, .04), transparent 70%),
         var(--cream);
     }
-    /* When all mockup images fail to load (e.g. files not uploaded yet),
-       the onerror handlers remove their <figure> elements. With no figures
-       left, hide the entire section so the live site never shows an empty
-       "See it in action" heading. Supported in Safari 15.4+/Chrome 105+/
-       Firefox 121+; the JS load handler at the bottom of <body> is a
-       fallback for older browsers. */
-    .screens:not(:has(figure)) {
-      display: none;
-    }
     .mobile-mockups {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
       gap: 24px;
       margin-top: 32px;
+      max-width: 920px;
+      margin-left: auto;
+      margin-right: auto;
     }
     .mobile-mockups figure {
       margin: 0;
-      border-radius: 18px;
-      overflow: hidden;
-      background: var(--cream-soft);
-      box-shadow: 0 16px 36px rgba(31, 26, 20, .10);
-      transition: transform .25s ease, box-shadow .25s ease;
+      transition: transform .25s ease;
     }
-    .mobile-mockups figure:hover {
-      transform: translateY(-4px);
-      box-shadow: 0 22px 48px rgba(31, 26, 20, .14);
+    .mobile-mockups figure:hover { transform: translateY(-4px); }
+    .mobile-mockups figcaption {
+      font-size: 12px;
+      color: var(--text-muted);
+      text-align: center;
+      margin-top: 10px;
+      font-weight: 600;
+      letter-spacing: 0.3px;
     }
-    .mobile-mockups img {
+
+    /* Phone mockup component */
+    .mp-phone {
+      background: #1F1A14;
+      padding: 6px;
+      border-radius: 26px;
       width: 100%;
-      height: auto;
-      display: block;
+      aspect-ratio: 9 / 19;
+      box-shadow: 0 18px 36px rgba(31, 26, 20, .18);
     }
+    .mp-screen {
+      position: relative;
+      background: var(--cream);
+      border-radius: 20px;
+      height: 100%;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+    .mp-island {
+      position: absolute;
+      top: 5px; left: 50%;
+      transform: translateX(-50%);
+      width: 48px; height: 13px;
+      background: #1F1A14;
+      border-radius: 8px;
+      z-index: 3;
+    }
+    .mp-statusbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 14px 2px;
+      font-size: 8.5px;
+      font-weight: 700;
+      color: var(--text);
+    }
+    .mp-statusbar__icons { display: flex; gap: 2.5px; }
+    .mp-statusbar__icons span {
+      width: 8px; height: 8px;
+      background: var(--text);
+      border-radius: 1.5px;
+      opacity: .85;
+    }
+    .mp-page {
+      flex: 1;
+      padding: 6px 9px 0;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+    .mp-title {
+      font-family: var(--serif);
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--text);
+      letter-spacing: -0.3px;
+      line-height: 1.05;
+      margin-top: 2px;
+    }
+    .mp-subtitle {
+      font-size: 8px;
+      color: var(--text-muted);
+      margin-top: 1px;
+    }
+    .mp-section-label {
+      font-size: 6.5px;
+      font-weight: 700;
+      color: var(--text-muted);
+      letter-spacing: 1.1px;
+      text-transform: uppercase;
+      margin-top: 3px;
+    }
+    .mp-card {
+      background: var(--surface);
+      border-radius: 5px;
+      border: 1px solid var(--border-soft);
+      padding: 5px 7px 5px 10px;
+      position: relative;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      overflow: hidden;
+    }
+    .mp-card__bar {
+      position: absolute;
+      left: 0; top: 0;
+      bottom: 0;
+      width: 3px;
+    }
+    .mp-bar--scarlet { background: var(--scarlet); }
+    .mp-bar--gold { background: var(--gold); }
+    .mp-bar--success { background: var(--success); }
+    .mp-card__body { flex: 1; min-width: 0; }
+    .mp-card__title {
+      font-family: var(--serif);
+      font-size: 9.5px;
+      font-weight: 700;
+      color: var(--text);
+      line-height: 1.15;
+    }
+    .mp-card__meta {
+      font-size: 7px;
+      color: var(--text-muted);
+      margin-top: 1px;
+    }
+    .mp-pill {
+      display: inline-block;
+      padding: 1.5px 6px;
+      border-radius: 999px;
+      font-size: 6.5px;
+      font-weight: 700;
+      letter-spacing: 0.4px;
+      text-transform: uppercase;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    .mp-pill--scarlet { background: var(--scarlet-light); color: var(--scarlet-dark); }
+    .mp-pill--gold { background: var(--gold-tint); color: var(--gold-dark); }
+    .mp-pill--success { background: var(--success-tint); color: var(--success); }
+    .mp-pill--solid-success { background: var(--success); color: #fff; }
+    .mp-pill--outline-scarlet { background: transparent; color: var(--scarlet); border: 1px solid var(--scarlet); }
+
+    .mp-avatar {
+      width: 18px; height: 18px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--serif);
+      font-size: 8px;
+      font-weight: 700;
+      color: #fff;
+      flex-shrink: 0;
+    }
+    .mp-avatar--scarlet { background: var(--scarlet); }
+    .mp-avatar--gold { background: var(--gold); }
+
+    /* Calendar mini */
+    .mp-cal {
+      background: var(--surface);
+      border: 1px solid var(--border-soft);
+      border-radius: 5px;
+      padding: 4px 5px;
+    }
+    .mp-cal__head { text-align: center; font-size: 8px; font-weight: 700; color: var(--text); margin-bottom: 2px; }
+    .mp-cal__row { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; text-align: center; font-size: 6.5px; }
+    .mp-cal__weekday { color: var(--text-muted); font-weight: 700; font-size: 5.5px; letter-spacing: 0.4px; }
+    .mp-cal__day { padding: 1px 0; color: var(--text); position: relative; }
+    .mp-cal__day--today {
+      background: var(--scarlet);
+      color: #fff;
+      border-radius: 50%;
+      font-weight: 700;
+    }
+    .mp-cal__day--dot-scarlet::after,
+    .mp-cal__day--dot-gold::after,
+    .mp-cal__day--dot-blue::after {
+      content: "";
+      position: absolute;
+      bottom: -1px; left: 50%;
+      transform: translateX(-50%);
+      width: 3px; height: 3px;
+      border-radius: 50%;
+    }
+    .mp-cal__day--dot-scarlet::after { background: var(--scarlet); }
+    .mp-cal__day--dot-gold::after { background: var(--gold); }
+    .mp-cal__day--dot-blue::after { background: var(--blue); }
+
+    /* Search input mini */
+    .mp-search {
+      background: var(--surface);
+      border: 1px solid var(--border-soft);
+      border-radius: 5px;
+      padding: 3px 6px;
+      font-size: 7px;
+      color: var(--text-muted);
+    }
+    .mp-lang-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 2px;
+      background: var(--cream-soft);
+      padding: 2px;
+      border-radius: 999px;
+    }
+    .mp-lang {
+      text-align: center;
+      padding: 3px 4px;
+      font-size: 7px;
+      font-weight: 700;
+      color: var(--text-muted);
+      border-radius: 999px;
+    }
+    .mp-lang--active { background: var(--scarlet); color: #fff; }
+
+    .mp-tabbar {
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      padding: 4px 0 8px;
+    }
+    .mp-tab {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1.5px;
+      font-size: 5.5px;
+      font-weight: 600;
+      color: var(--text-muted);
+      letter-spacing: 0.2px;
+    }
+    .mp-tab__icon {
+      width: 11px; height: 11px;
+      border: 1.4px solid currentColor;
+      border-radius: 2px;
+    }
+    .mp-tab--active { color: var(--scarlet); }
+    .mp-tab--active .mp-tab__icon { background: currentColor; }
+
+    /* Admin browser mockup */
     .admin-mockup {
-      margin: 56px auto 0;
+      margin: 64px auto 0;
       max-width: 920px;
-      border-radius: 18px;
+      border-radius: 14px;
       overflow: hidden;
       background: var(--surface);
       border: 1px solid var(--border-soft);
       box-shadow: 0 24px 60px rgba(31, 26, 20, .12);
     }
-    .admin-mockup img { width: 100%; height: auto; display: block; }
-    .admin-mockup figcaption {
+    .ad-bar {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 14px;
+      background: var(--surface-alt);
+      border-bottom: 1px solid var(--border-soft);
+    }
+    .ad-bar__dots { display: flex; gap: 5px; }
+    .ad-bar__dots span { width: 10px; height: 10px; border-radius: 50%; }
+    .ad-bar__url {
+      flex: 1;
+      max-width: 360px;
+      margin: 0 auto;
+      background: var(--surface);
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 11px;
+      color: var(--text-muted);
+      text-align: center;
+      font-family: monospace;
+    }
+    .ad-body {
+      display: grid;
+      grid-template-columns: 180px 1fr;
+      min-height: 320px;
+    }
+    .ad-side {
+      background: var(--surface);
+      border-right: 1px solid var(--border-soft);
+      padding: 14px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .ad-brand {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 4px 0 12px;
+    }
+    .ad-brand__mark {
+      width: 28px; height: 28px;
+      background: var(--scarlet);
+      border-radius: 6px;
+      display: flex; align-items: center; justify-content: center;
+      color: #fff;
+      font-family: var(--serif);
+      font-size: 11px;
+      font-weight: 700;
+    }
+    .ad-brand__text {
+      font-family: var(--serif);
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text);
+    }
+    .ad-brand__text small { display: block; font-size: 9px; color: var(--text-muted); font-family: var(--sans); font-weight: 500; letter-spacing: 0.4px; }
+    .ad-nav { display: flex; flex-direction: column; gap: 2px; }
+    .ad-nav__item {
+      font-size: 11px;
+      padding: 6px 8px;
+      border-radius: 6px;
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+    .ad-nav__item--active {
+      background: var(--scarlet-light);
+      color: var(--scarlet);
+      font-weight: 700;
+    }
+    .ad-main {
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      background: var(--cream-soft);
+    }
+    .ad-main__title {
+      font-family: var(--serif);
+      font-size: 20px;
+      font-weight: 600;
+      color: var(--text);
+    }
+    .ad-main__subtitle {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-top: -10px;
+    }
+    .ad-kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+      gap: 10px;
+    }
+    .ad-kpi {
+      background: var(--surface);
+      border: 1px solid var(--border-soft);
+      border-radius: 8px;
+      padding: 10px 12px;
+    }
+    .ad-kpi__label {
+      font-size: 9px;
+      font-weight: 700;
+      color: var(--text-muted);
+      letter-spacing: 1.1px;
+      text-transform: uppercase;
+    }
+    .ad-kpi__value {
+      font-family: var(--serif);
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--text);
+      margin-top: 2px;
+    }
+    .ad-kpi__delta {
+      font-size: 10px;
+      color: var(--success);
+      font-weight: 600;
+      margin-top: 4px;
+    }
+    .ad-activity {
+      background: var(--surface);
+      border: 1px solid var(--border-soft);
+      border-radius: 8px;
+      padding: 12px 14px;
+    }
+    .ad-activity__label {
+      font-size: 9px;
+      font-weight: 700;
+      color: var(--text-muted);
+      letter-spacing: 1.1px;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+    .ad-activity__row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 4px 0;
+      font-size: 11px;
+      color: var(--text-soft);
+    }
+    .ad-activity__dot {
+      width: 5px; height: 5px;
+      border-radius: 50%;
+      background: var(--scarlet);
+      flex-shrink: 0;
+    }
+    .ad-activity__time {
+      margin-left: auto;
+      font-size: 10px;
+      color: var(--text-muted);
+    }
+    .admin-mockup__caption {
       padding: 14px 20px;
       text-align: center;
       font-size: 13px;
       color: var(--text-muted);
       font-style: italic;
       border-top: 1px solid var(--border-soft);
-      background: var(--surface-alt, var(--cream-soft));
+      background: var(--surface-alt);
     }
+
     @media (prefers-reduced-motion: reduce) {
       .mobile-mockups figure { transition: none; }
       .mobile-mockups figure:hover { transform: none; }
+    }
+
+    /* ─── Donate section ─────────────────────────────────── */
+    .donate {
+      background: var(--cream-soft);
+      text-align: center;
+    }
+    .donate-cta {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      margin: 32px auto 14px;
+      text-align: center;
+      background: var(--scarlet);
+      color: #FFFFFF;
+      text-decoration: none;
+      padding: 18px 36px;
+      border-radius: 999px;
+      font-weight: 700;
+      font-size: 17px;
+      letter-spacing: 0.2px;
+      box-shadow: 0 10px 28px rgba(176, 32, 44, .28);
+      transition: transform .15s ease, box-shadow .15s ease;
+    }
+    .donate-cta:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 14px 34px rgba(176, 32, 44, .34);
+    }
+    .donate-cta svg {
+      width: 20px; height: 20px;
+      fill: currentColor;
+    }
+    .donate-methods {
+      text-align: center;
+      max-width: 520px;
+      margin: 0 auto;
+      font-size: 12.5px;
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
+    .donate-methods strong {
+      color: var(--text-soft);
+      font-weight: 700;
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .donate-cta { transition: none; }
+      .donate-cta:hover { transform: none; }
     }
 
     /* ─── Status / availability ──────────────────────────── */
@@ -523,33 +936,296 @@
       <p class="section-lead">A glimpse of the app, and the desktop portal coming soon for staff.</p>
 
       <div class="mobile-mockups">
+
+        <!-- Schedule -->
         <figure>
-          <img src="mockups/schedule.png"
-               alt="Schedule screen showing the month calendar, birthdays, and one-tap accept for volunteer slots"
-               onerror="this.closest('figure')?.remove()">
+          <div class="mp-phone" role="img" aria-label="Schedule screen mockup">
+            <div class="mp-screen">
+              <div class="mp-island"></div>
+              <div class="mp-statusbar">
+                <span>9:41</span>
+                <span class="mp-statusbar__icons"><span></span><span></span><span></span></span>
+              </div>
+              <div class="mp-page">
+                <div class="mp-title">Schedule</div>
+                <div class="mp-subtitle">Sunday 09:00 service</div>
+                <div class="mp-cal">
+                  <div class="mp-cal__head">May 2026</div>
+                  <div class="mp-cal__row">
+                    <span class="mp-cal__weekday">S</span>
+                    <span class="mp-cal__weekday">M</span>
+                    <span class="mp-cal__weekday">T</span>
+                    <span class="mp-cal__weekday">W</span>
+                    <span class="mp-cal__weekday">T</span>
+                    <span class="mp-cal__weekday">F</span>
+                    <span class="mp-cal__weekday">S</span>
+                  </div>
+                  <div class="mp-cal__row">
+                    <span class="mp-cal__day mp-cal__day--dot-gold">10</span>
+                    <span class="mp-cal__day">11</span>
+                    <span class="mp-cal__day">12</span>
+                    <span class="mp-cal__day">13</span>
+                    <span class="mp-cal__day mp-cal__day--today">14</span>
+                    <span class="mp-cal__day">15</span>
+                    <span class="mp-cal__day">16</span>
+                  </div>
+                  <div class="mp-cal__row">
+                    <span class="mp-cal__day mp-cal__day--dot-gold">17</span>
+                    <span class="mp-cal__day">18</span>
+                    <span class="mp-cal__day">19</span>
+                    <span class="mp-cal__day">20</span>
+                    <span class="mp-cal__day mp-cal__day--dot-blue">21</span>
+                    <span class="mp-cal__day">22</span>
+                    <span class="mp-cal__day">23</span>
+                  </div>
+                </div>
+                <div class="mp-section-label">Upcoming</div>
+                <div class="mp-card">
+                  <div class="mp-card__bar mp-bar--scarlet"></div>
+                  <div class="mp-card__body">
+                    <div class="mp-card__meta">17 May · 09:00</div>
+                    <div class="mp-card__title">Children's Church</div>
+                  </div>
+                  <span class="mp-pill mp-pill--solid-success">Accept</span>
+                </div>
+              </div>
+              <div class="mp-tabbar">
+                <span class="mp-tab"><span class="mp-tab__icon"></span>Week</span>
+                <span class="mp-tab mp-tab--active"><span class="mp-tab__icon"></span>Schedule</span>
+                <span class="mp-tab"><span class="mp-tab__icon"></span>Groups</span>
+                <span class="mp-tab"><span class="mp-tab__icon"></span>Family</span>
+                <span class="mp-tab"><span class="mp-tab__icon"></span>News</span>
+                <span class="mp-tab"><span class="mp-tab__icon"></span>Profile</span>
+              </div>
+            </div>
+          </div>
+          <figcaption>Schedule</figcaption>
         </figure>
+
+        <!-- Groups -->
         <figure>
-          <img src="mockups/groups.png"
-               alt="Groups screen listing class and volunteer groups with leaders, meeting times, and locations"
-               onerror="this.closest('figure')?.remove()">
+          <div class="mp-phone" role="img" aria-label="Groups screen mockup">
+            <div class="mp-screen">
+              <div class="mp-island"></div>
+              <div class="mp-statusbar">
+                <span>9:41</span>
+                <span class="mp-statusbar__icons"><span></span><span></span><span></span></span>
+              </div>
+              <div class="mp-page">
+                <div class="mp-title">Groups</div>
+                <div class="mp-section-label">My groups</div>
+                <div class="mp-card">
+                  <div class="mp-card__bar mp-bar--scarlet"></div>
+                  <div class="mp-card__body">
+                    <div class="mp-card__title">Class 38</div>
+                    <div class="mp-card__meta">Jane Doe · Tue 19:00</div>
+                  </div>
+                  <span class="mp-pill mp-pill--scarlet">Class</span>
+                </div>
+                <div class="mp-card">
+                  <div class="mp-card__bar mp-bar--gold"></div>
+                  <div class="mp-card__body">
+                    <div class="mp-card__title">Sunday Volunteers</div>
+                    <div class="mp-card__meta">Sun 09:00 · Sanctuary</div>
+                  </div>
+                  <span class="mp-pill mp-pill--gold">Volunteer</span>
+                </div>
+                <div class="mp-section-label">All classes</div>
+                <div class="mp-card">
+                  <div class="mp-card__body">
+                    <div class="mp-card__title">Class 12</div>
+                    <div class="mp-card__meta">Mike Smith · 12 members</div>
+                  </div>
+                </div>
+                <div class="mp-card">
+                  <div class="mp-card__body">
+                    <div class="mp-card__title">Class 41</div>
+                    <div class="mp-card__meta">Peter Ndlovu · 10 members</div>
+                  </div>
+                </div>
+              </div>
+              <div class="mp-tabbar">
+                <span class="mp-tab"><span class="mp-tab__icon"></span>Week</span>
+                <span class="mp-tab"><span class="mp-tab__icon"></span>Schedule</span>
+                <span class="mp-tab mp-tab--active"><span class="mp-tab__icon"></span>Groups</span>
+                <span class="mp-tab"><span class="mp-tab__icon"></span>Family</span>
+                <span class="mp-tab"><span class="mp-tab__icon"></span>News</span>
+                <span class="mp-tab"><span class="mp-tab__icon"></span>Profile</span>
+              </div>
+            </div>
+          </div>
+          <figcaption>Groups</figcaption>
         </figure>
+
+        <!-- Family -->
         <figure>
-          <img src="mockups/family.png"
-               alt="Family screen showing children with health info, available programmes, and registration"
-               onerror="this.closest('figure')?.remove()">
+          <div class="mp-phone" role="img" aria-label="Family screen mockup">
+            <div class="mp-screen">
+              <div class="mp-island"></div>
+              <div class="mp-statusbar">
+                <span>9:41</span>
+                <span class="mp-statusbar__icons"><span></span><span></span><span></span></span>
+              </div>
+              <div class="mp-page">
+                <div class="mp-title">Family</div>
+                <div class="mp-subtitle">Children's programmes</div>
+                <div class="mp-section-label">My children</div>
+                <div class="mp-card">
+                  <div class="mp-avatar mp-avatar--gold">E</div>
+                  <div class="mp-card__body">
+                    <div class="mp-card__title">Emma</div>
+                    <div class="mp-card__meta">Age 8 · Children's Church</div>
+                  </div>
+                  <span class="mp-pill mp-pill--success">Health</span>
+                </div>
+                <div class="mp-section-label">Available programmes</div>
+                <div class="mp-card">
+                  <div class="mp-card__bar mp-bar--success"></div>
+                  <div class="mp-card__body">
+                    <div class="mp-card__title">Holiday Club</div>
+                    <div class="mp-card__meta">Ages 5–12 · 24–28 June</div>
+                  </div>
+                </div>
+                <div class="mp-card">
+                  <div class="mp-card__bar mp-bar--scarlet"></div>
+                  <div class="mp-card__body">
+                    <div class="mp-card__title">Youth Confirmation</div>
+                    <div class="mp-card__meta">Ages 13–18 · Sat 09:00</div>
+                  </div>
+                </div>
+              </div>
+              <div class="mp-tabbar">
+                <span class="mp-tab"><span class="mp-tab__icon"></span>Week</span>
+                <span class="mp-tab"><span class="mp-tab__icon"></span>Schedule</span>
+                <span class="mp-tab"><span class="mp-tab__icon"></span>Groups</span>
+                <span class="mp-tab mp-tab--active"><span class="mp-tab__icon"></span>Family</span>
+                <span class="mp-tab"><span class="mp-tab__icon"></span>News</span>
+                <span class="mp-tab"><span class="mp-tab__icon"></span>Profile</span>
+              </div>
+            </div>
+          </div>
+          <figcaption>Family</figcaption>
         </figure>
+
+        <!-- Hymn Book -->
         <figure>
-          <img src="mockups/hymns.png"
-               alt="Hymn Book screen with a language picker, search, and the Xhosa hymn list"
-               onerror="this.closest('figure')?.remove()">
+          <div class="mp-phone" role="img" aria-label="Hymn Book screen mockup">
+            <div class="mp-screen">
+              <div class="mp-island"></div>
+              <div class="mp-statusbar">
+                <span>9:41</span>
+                <span class="mp-statusbar__icons"><span></span><span></span><span></span></span>
+              </div>
+              <div class="mp-page">
+                <div class="mp-title">Hymn Book</div>
+                <div class="mp-lang-row">
+                  <span class="mp-lang mp-lang--active">Xhosa</span>
+                  <span class="mp-lang">Sotho</span>
+                  <span class="mp-lang">English</span>
+                </div>
+                <div class="mp-search">Search by number or title…</div>
+                <div class="mp-section-label">Featured · Easter</div>
+                <div class="mp-card">
+                  <div class="mp-card__bar mp-bar--scarlet"></div>
+                  <div class="mp-card__body">
+                    <div class="mp-card__title">8 · Masibulele kuYesu</div>
+                    <div class="mp-card__meta">Masibulele kuYesu ngokufa…</div>
+                  </div>
+                  <span class="mp-pill mp-pill--gold">Easter</span>
+                </div>
+                <div class="mp-section-label">All hymns · 412</div>
+                <div class="mp-card">
+                  <div class="mp-card__body">
+                    <div class="mp-card__title">23 · Lizalis' idinga lakho</div>
+                    <div class="mp-card__meta">Lizalis' idinga lakho, Thixo…</div>
+                  </div>
+                </div>
+                <div class="mp-card">
+                  <div class="mp-card__body">
+                    <div class="mp-card__title">47 · Nkosi sikelel' iAfrika</div>
+                    <div class="mp-card__meta">Nkosi sikelel' iAfrika…</div>
+                  </div>
+                </div>
+              </div>
+              <div class="mp-tabbar">
+                <span class="mp-tab"><span class="mp-tab__icon"></span>Week</span>
+                <span class="mp-tab"><span class="mp-tab__icon"></span>Schedule</span>
+                <span class="mp-tab"><span class="mp-tab__icon"></span>Groups</span>
+                <span class="mp-tab"><span class="mp-tab__icon"></span>Family</span>
+                <span class="mp-tab"><span class="mp-tab__icon"></span>News</span>
+                <span class="mp-tab mp-tab--active"><span class="mp-tab__icon"></span>Profile</span>
+              </div>
+            </div>
+          </div>
+          <figcaption>Hymn Book</figcaption>
         </figure>
+
       </div>
 
+      <!-- Admin web portal -->
       <figure class="admin-mockup">
-        <img src="mockups/admin.png"
-             alt="Admin web portal dashboard showing members, open slots, class groups, and recent activity"
-             onerror="this.closest('figure')?.remove()">
-        <figcaption>The admin web portal — coming soon for church staff.</figcaption>
+        <div role="img" aria-label="Admin web portal dashboard mockup">
+          <div class="ad-bar">
+            <div class="ad-bar__dots">
+              <span style="background:#FF5F57"></span>
+              <span style="background:#FEBC2E"></span>
+              <span style="background:#28C840"></span>
+            </div>
+            <div class="ad-bar__url">churchflow.app/admin</div>
+          </div>
+          <div class="ad-body">
+            <aside class="ad-side">
+              <div class="ad-brand">
+                <div class="ad-brand__mark">CF</div>
+                <div class="ad-brand__text">ChurchFlow<small>Admin Portal</small></div>
+              </div>
+              <nav class="ad-nav">
+                <span class="ad-nav__item ad-nav__item--active">Dashboard</span>
+                <span class="ad-nav__item">Groups</span>
+                <span class="ad-nav__item">Members</span>
+                <span class="ad-nav__item">Programmes</span>
+                <span class="ad-nav__item">Announcements</span>
+                <span class="ad-nav__item">Reports</span>
+                <span class="ad-nav__item">Settings</span>
+              </nav>
+            </aside>
+            <main class="ad-main">
+              <div>
+                <div class="ad-main__title">Good morning, Joseph</div>
+                <div class="ad-main__subtitle">Wednesday, 14 May 2026</div>
+              </div>
+              <div class="ad-kpi-grid">
+                <div class="ad-kpi">
+                  <div class="ad-kpi__label">Members</div>
+                  <div class="ad-kpi__value">487</div>
+                  <div class="ad-kpi__delta">+12 this week</div>
+                </div>
+                <div class="ad-kpi">
+                  <div class="ad-kpi__label">Open slots</div>
+                  <div class="ad-kpi__value">9</div>
+                  <div class="ad-kpi__delta">Next 4 weeks</div>
+                </div>
+                <div class="ad-kpi">
+                  <div class="ad-kpi__label">Class groups</div>
+                  <div class="ad-kpi__value">14</div>
+                  <div class="ad-kpi__delta">+2 since April</div>
+                </div>
+                <div class="ad-kpi">
+                  <div class="ad-kpi__label">Children</div>
+                  <div class="ad-kpi__value">62</div>
+                  <div class="ad-kpi__delta">+5 this week</div>
+                </div>
+              </div>
+              <div class="ad-activity">
+                <div class="ad-activity__label">Recent activity</div>
+                <div class="ad-activity__row"><span class="ad-activity__dot"></span>Jane Doe accepted Sunday 09:00<span class="ad-activity__time">12m ago</span></div>
+                <div class="ad-activity__row"><span class="ad-activity__dot"></span>Class 38 — Peter promoted to leader<span class="ad-activity__time">1h ago</span></div>
+                <div class="ad-activity__row"><span class="ad-activity__dot"></span>Holiday Club — 4 new registrations<span class="ad-activity__time">3h ago</span></div>
+              </div>
+            </main>
+          </div>
+        </div>
+        <div class="admin-mockup__caption">The admin web portal, coming soon for church staff.</div>
       </figure>
     </div>
   </section>
@@ -645,6 +1321,34 @@
     </div>
   </section>
 
+  <!-- ─── Donate ──────────────────────────────────────────── -->
+  <section class="donate">
+    <div class="wrap">
+      <h2>Support the work.</h2>
+      <p class="section-lead" style="max-width: 580px; margin-left: auto; margin-right: auto;">
+        ChurchFlow is built in our own time and on our own dime so it can stay
+        <strong>free for every Methodist church</strong>. Your support keeps it
+        that way and helps us build the next batch of free tech for churches
+        across South Africa.
+      </p>
+      <a class="donate-cta"
+         href="https://pay.yoco.com/r/REPLACE_WITH_YOCO_CODE"
+         target="_blank"
+         rel="noopener"
+         aria-label="Donate to ChurchFlow via Yoco">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+        </svg>
+        <span>Donate</span>
+      </a>
+      <p class="donate-methods">
+        Secure card payment via <strong>Yoco</strong>, paid into a South African
+        bank account. Every rand goes to keeping ChurchFlow free and funding
+        the next thing on the workbench.
+      </p>
+    </div>
+  </section>
+
   <!-- ─── CTA ─────────────────────────────────────────────── -->
   <section class="cta">
     <h2>Want to know when it launches?</h2>
@@ -663,18 +1367,6 @@
     // a build step. Pure progressive enhancement - if JS is off, the static
     // "2026" still reads sensibly.
     document.getElementById('year').textContent = new Date().getFullYear();
-
-    // If none of the mockup images load (e.g. they haven't been uploaded
-    // yet), hide the whole "See it in action" section so the live site
-    // never shows an empty heading with nothing under it. The onerror
-    // handlers on each <img> remove their <figure>; this runs after the
-    // load event to see what's left.
-    window.addEventListener('load', () => {
-      const screens = document.querySelector('.screens');
-      if (!screens) return;
-      const remaining = screens.querySelectorAll('figure');
-      if (remaining.length === 0) screens.style.display = 'none';
-    });
   </script>
 
 </body>
