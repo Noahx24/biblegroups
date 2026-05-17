@@ -276,6 +276,12 @@ export function ProfileScreen() {
             </TouchableOpacity>
           )}
 
+          <TouchableOpacity style={styles.donateLink} onPress={() => navigation.navigate('Donate')}>
+            <Ionicons name="heart-outline" size={16} color={colors.accent} />
+            <Text style={styles.donateLinkText}>Support ChurchFlow</Text>
+            <Ionicons name="chevron-forward" size={14} color={colors.textMuted} />
+          </TouchableOpacity>
+
           <Pressable onPress={signOut} style={({ pressed }) => [styles.signOutBtn, pressed && styles.pressed]}>
             <Text style={styles.signOutText}>Sign out</Text>
           </Pressable>
@@ -354,6 +360,8 @@ const styles = StyleSheet.create({
   badgeText: { color: '#fff', fontSize: 11.5, fontWeight: '700', letterSpacing: 0.5, textTransform: 'uppercase' },
   adminLink: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginHorizontal: spacing.lg, marginBottom: spacing.md, padding: spacing.md, backgroundColor: colors.surface, borderRadius: radius.md, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border },
   adminLinkText: { flex: 1, fontSize: 15, color: colors.primary, fontWeight: '600' },
+  donateLink: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginHorizontal: spacing.lg, marginBottom: spacing.md, padding: spacing.md, backgroundColor: colors.accentTint, borderRadius: radius.md, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.accentLight },
+  donateLinkText: { flex: 1, fontSize: 15, color: colors.accentDark, fontWeight: '600' },
   signOutBtn: { marginTop: spacing.xl, padding: spacing.md, alignItems: 'center' },
   signOutText: { color: colors.primary, fontWeight: '600', fontSize: 15, letterSpacing: 0.1 },
   versionText: { textAlign: 'center', fontSize: 11, color: colors.textMutedSoft, paddingBottom: 4 },

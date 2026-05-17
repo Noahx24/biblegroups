@@ -12,6 +12,7 @@ import { AdminScreen } from '@/screens/AdminScreen';
 import { AdminGroupMembersScreen } from '@/screens/AdminGroupMembersScreen';
 import { FamilyScreen } from '@/screens/FamilyScreen';
 import { MyWeekScreen } from '@/screens/MyWeekScreen';
+import { DonateScreen } from '@/screens/DonateScreen';
 import { colors } from '@/theme';
 import { TabBarIcon } from '@/components/TabBarIcon';
 import type { Group, MemberRole } from '@/types';
@@ -21,6 +22,7 @@ export type AppStackParamList = {
   GroupDetail: { group: Group; myRole: MemberRole };
   Admin: undefined;
   AdminGroupMembers: { group: Group };
+  Donate: undefined;
 };
 
 export type MainTabsParamList = {
@@ -95,6 +97,11 @@ export function RootNavigator() {
       <Stack.Screen
         name="AdminGroupMembers"
         component={AdminGroupMembersScreen}
+        options={{ animation: 'slide_from_right' }}
+      />
+      <Stack.Screen
+        name="Donate"
+        component={DonateScreen}
         options={{ animation: 'slide_from_right' }}
       />
     </Stack.Navigator>
