@@ -49,7 +49,7 @@
 
     .wrap { max-width: 980px; margin: 0 auto; padding: 0 24px; }
 
-    /* ─── Hero ───────────────────────────────────────────── */
+    /* ─── Hero ────────────────────────────────────────── */
     .hero {
       padding: 72px 24px 56px;
       text-align: center;
@@ -156,7 +156,7 @@
       .store-badge:hover { transform: none; }
     }
 
-    /* ─── Sections ───────────────────────────────────────── */
+    /* ─── Sections ─────────────────────────────────────── */
     section { padding: 56px 0; }
     section + section { border-top: 1px solid var(--border-soft); }
 
@@ -175,7 +175,7 @@
       margin: 0 0 32px;
     }
 
-    /* ─── About ──────────────────────────────────────────── */
+    /* ─── About ────────────────────────────────────────── */
     .about p {
       font-size: 17px;
       color: var(--text-soft);
@@ -192,7 +192,7 @@
       font-weight: 600;
     }
 
-    /* ─── Feature grid ───────────────────────────────────── */
+    /* ─── Feature grid ─────────────────────────────────────── */
     .grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
@@ -235,7 +235,7 @@
     .card.gold .card__icon { background: var(--gold-tint); color: var(--gold-dark); }
     .card.success .card__icon { background: #E1ECE3; color: var(--success); }
 
-    /* ─── Screens showcase ───────────────────────────────── */
+    /* ─── Screens showcase ────────────────────────────────────── */
     .screens {
       background:
         radial-gradient(ellipse at top, rgba(176, 32, 44, .04), transparent 70%),
@@ -673,7 +673,7 @@
       .mobile-mockups figure:hover { transform: none; }
     }
 
-    /* ─── Donate section ─────────────────────────────────── */
+    /* ─── Donate section ────────────────────────────────────── */
     .donate {
       background: var(--cream-soft);
       text-align: center;
@@ -720,13 +720,30 @@
       display: block;
       text-align: center;
     }
-    .donate-form__submit input[type="image"] {
-      width: 200px;
+    .donate-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      background: var(--scarlet);
+      color: #FFFFFF;
+      border: none;
       cursor: pointer;
+      padding: 18px 36px;
+      border-radius: 999px;
+      font-weight: 700;
+      font-size: 17px;
+      letter-spacing: 0.2px;
+      box-shadow: 0 10px 28px rgba(176, 32, 44, .28);
       transition: transform .15s ease, box-shadow .15s ease;
+      font-family: var(--sans);
     }
-    .donate-form__submit input[type="image"]:hover {
+    .donate-btn:hover {
       transform: translateY(-1px);
+      box-shadow: 0 14px 34px rgba(176, 32, 44, .34);
+    }
+    .donate-btn svg {
+      width: 20px; height: 20px;
+      fill: currentColor;
     }
     .donate-methods {
       text-align: center;
@@ -741,11 +758,11 @@
       font-weight: 700;
     }
     @media (prefers-reduced-motion: reduce) {
-      .donate-form__submit input[type="image"] { transition: none; }
-      .donate-form__submit input[type="image"]:hover { transform: none; }
+      .donate-btn { transition: none; }
+      .donate-btn:hover { transform: none; }
     }
 
-    /* ─── Status / availability ──────────────────────────── */
+    /* ─── Status / availability ────────────────────────────────── */
     .status-list {
       list-style: none;
       padding: 0;
@@ -810,7 +827,7 @@
       line-height: 1.5;
     }
 
-    /* ─── CTA ────────────────────────────────────────────── */
+    /* ─── CTA ────────────────────────────────────────────────── */
     .cta {
       background: var(--scarlet);
       color: #fff;
@@ -839,7 +856,7 @@
     }
     .cta a:hover { transform: translateY(-1px); }
 
-    /* ─── Footer ─────────────────────────────────────────── */
+    /* ─── Footer ────────────────────────────────────────────────── */
     footer {
       text-align: center;
       padding: 32px 24px;
@@ -851,7 +868,7 @@
     footer a { color: var(--scarlet); text-decoration: none; }
     footer a:hover { text-decoration: underline; }
 
-    /* ─── Small screens ──────────────────────────────────── */
+    /* ─── Small screens ──────────────────────────────────────────── */
     @media (max-width: 640px) {
       .hero { padding: 56px 20px 40px; }
       section { padding: 40px 0; }
@@ -862,7 +879,7 @@
 </head>
 <body>
 
-  <!-- ─── Hero ────────────────────────────────────────────── -->
+  <!-- ─── Hero ──────────────────────────────────────────── -->
   <header class="hero">
     <div class="logo">
       <img src="icon.png" alt="ChurchFlow logo">
@@ -916,7 +933,7 @@
     </div>
   </section>
 
-  <!-- ─── Features ────────────────────────────────────────── -->
+  <!-- ─── Features ──────────────────────────────────────────── -->
   <section>
     <div class="wrap">
       <h2>What you'll be able to do.</h2>
@@ -964,7 +981,7 @@
     </div>
   </section>
 
-  <!-- ─── Screens showcase ───────────────────────────────── -->
+  <!-- ─── Screens showcase ───────────────────────────────────── -->
   <section class="screens">
     <div class="wrap">
       <h2>See it in action.</h2>
@@ -1281,7 +1298,7 @@
     </div>
   </section>
 
-  <!-- ─── Status ──────────────────────────────────────────── -->
+  <!-- ─── Status ────────────────────────────────────────────── -->
   <section>
     <div class="wrap">
       <h2>Where we are.</h2>
@@ -1372,15 +1389,15 @@
     </div>
   </section>
 
-  <!-- ─── Donate ──────────────────────────────────────────── -->
+  <!-- ─── Donate ────────────────────────────────────────────── -->
   <section class="donate">
     <div class="wrap">
       <h2>Support the work.</h2>
       <p class="section-lead" style="max-width: 580px; margin-left: auto; margin-right: auto;">
         ChurchFlow is built by a small team, on personal time and at personal
-        cost, so it can stay <strong>free for every Methodist church</strong>.
-        Your gift helps cover hosting and app-store fees today, and funds the
-        next free tool for South African churches tomorrow.
+        cost, so it can stay <strong>free for every church</strong>.
+        Your gift helps us cover build and hosting costs, keeping ChurchFlow
+        free for every church.
       </p>
       <form name="PayFastPayNowForm" class="donate-form" action="https://payment.payfast.io/eng/process" method="post">
         <input required type="hidden" name="cmd" value="_paynow">
@@ -1391,23 +1408,26 @@
         <label for="PayFastAmount">Amount (ZAR)</label>
         <input required id="PayFastAmount" type="number" step=".01" name="amount" min="5.00" placeholder="5.00" value="100">
         <div class="donate-form__submit">
-          <input type="image" src="https://my.payfast.io/images/buttons/BuyNow/Primary-Large-BuyNow.png" alt="Donate with PayFast" title="Donate with PayFast">
+          <button type="submit" class="donate-btn">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+            Donate
+          </button>
         </div>
       </form>
       <p class="donate-methods">
-        Secure payment via <strong>PayFast</strong> &mdash; card, Instant EFT, SnapScan, or Zapper.
+        Secure payment via <strong>PayFast</strong>.
       </p>
     </div>
   </section>
 
-  <!-- ─── CTA ─────────────────────────────────────────────── -->
+  <!-- ─── CTA ─────────────────────────────────────────────────── -->
   <section class="cta">
     <h2>Want to know when it launches?</h2>
     <p>Drop us a line and we'll let you know the moment ChurchFlow hits the App Store and Google Play.</p>
     <a href="mailto:contact@sibahledigital.co.za?subject=ChurchFlow%20enquiry">Get notified</a>
   </section>
 
-  <!-- ─── Footer ──────────────────────────────────────────── -->
+  <!-- ─── Footer ────────────────────────────────────────────────── -->
   <footer>
     <p>ChurchFlow &middot; Designed for Methodist churches</p>
     <p>POPIA-compliant &middot; Built with care &middot; &copy; <span id="year">2026</span></p>
