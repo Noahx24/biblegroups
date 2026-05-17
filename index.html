@@ -9,10 +9,10 @@
   <meta name="theme-color" content="#B0202C">
 
   <meta property="og:title" content="ChurchFlow - Coming soon">
-  <meta property="og:description" content="Stay connected to your church family. A free mobile app built for Methodist churches. Coming soon to iOS and Android.">
+  <meta property="og:description" content="Stay connected to your church family. A mobile app designed for Methodist churches. Coming soon to iOS and Android.">
   <meta property="og:type" content="website">
 
-<link rel="icon" type="image/png" href="icon.png">
+  <link rel="icon" type="image/png" href="icon.png">
   <link rel="apple-touch-icon" href="icon.png">
 
   <style>
@@ -32,7 +32,6 @@
       --border: #E5DDD0;
       --border-soft: #EFE7D8;
       --success: #4A7C59;
-      --rose: #C26A7C;
       --serif: Georgia, 'Times New Roman', serif;
       --sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       --shadow-card: 0 4px 16px rgba(31, 26, 20, .07);
@@ -50,7 +49,7 @@
 
     .wrap { max-width: 980px; margin: 0 auto; padding: 0 24px; }
 
-    /* ─── Hero ──────────────────────────────────────────────── */
+    /* ─── Hero ───────────────────────────────────────────── */
     .hero {
       padding: 72px 24px 56px;
       text-align: center;
@@ -157,7 +156,7 @@
       .store-badge:hover { transform: none; }
     }
 
-    /* ─── Sections ──────────────────────────────────────────── */
+    /* ─── Sections ───────────────────────────────────────── */
     section { padding: 56px 0; }
     section + section { border-top: 1px solid var(--border-soft); }
 
@@ -176,11 +175,7 @@
       margin: 0 0 32px;
     }
 
-    /* ─── About ────────────────────────────────────────────── */
-    .about .wrap {
-      max-width: 680px;
-    }
-    
+    /* ─── About ──────────────────────────────────────────── */
     .about p {
       font-size: 17px;
       color: var(--text-soft);
@@ -197,7 +192,7 @@
       font-weight: 600;
     }
 
-    /* ─── Feature grid ───────────────────────────────────────── */
+    /* ─── Feature grid ───────────────────────────────────── */
     .grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
@@ -240,21 +235,27 @@
     .card.gold .card__icon { background: var(--gold-tint); color: var(--gold-dark); }
     .card.success .card__icon { background: #E1ECE3; color: var(--success); }
 
-    /* ─── Screens showcase ───────────────────────────────────── */
-     .screens {
+    /* ─── Screens showcase ───────────────────────────────── */
+    .screens {
       background:
         radial-gradient(ellipse at top, rgba(176, 32, 44, .04), transparent 70%),
         var(--cream);
     }
     .mobile-mockups {
       display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      width: 100%;
-      max-width: 640px;
-      margin: 0 auto;
+      grid-template-columns: 1fr;
+      gap: 36px;
+      margin-top: 32px;
+      max-width: 920px;
+      margin-left: auto;
+      margin-right: auto;
     }
-
-    
+    @media (min-width: 720px) {
+      .mobile-mockups {
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 28px;
+      }
+    }
     .mobile-mockups figure {
       margin: 0;
       transition: transform .25s ease;
@@ -264,20 +265,21 @@
       font-size: 12px;
       color: var(--text-muted);
       text-align: center;
-      margin-top: 10px;
+      margin-top: 12px;
       font-weight: 600;
-      letter-spacing: 0.3px;
+      letter-spacing: 0.4px;
+      text-transform: uppercase;
     }
 
     /* Phone mockup component */
     .mp-phone {
       background: #1F1A14;
       padding: 6px;
-      border-radius: 26px;
+      border-radius: 30px;
       width: 100%;
       max-width: 280px;
       margin: 0 auto;
-      aspect-ratio: 1290 / 2796;
+      aspect-ratio: 9 / 17.5;
       box-shadow: 0 18px 36px rgba(31, 26, 20, .18);
     }
     .mp-screen {
@@ -311,15 +313,15 @@
     .mp-statusbar__icons svg { display: block; }
     .mp-page {
       flex: 1;
-      padding:  18px 14px 0;
+      padding: 6px 9px 0;
       overflow: hidden;
       display: flex;
       flex-direction: column;
-      gap: 10px;
+      gap: 5px;
     }
     .mp-title {
       font-family: var(--serif);
-      font-size: 24px;
+      font-size: 16px;
       font-weight: 600;
       color: var(--text);
       letter-spacing: -0.3px;
@@ -332,7 +334,7 @@
       margin-top: 1px;
     }
     .mp-section-label {
-      font-size: 9px;
+      font-size: 6.5px;
       font-weight: 700;
       color: var(--text-muted);
       letter-spacing: 1.1px;
@@ -359,17 +361,16 @@
     .mp-bar--scarlet { background: var(--scarlet); }
     .mp-bar--gold { background: var(--gold); }
     .mp-bar--success { background: var(--success); }
-    .mp-bar--rose { background: var(--rose); }
     .mp-card__body { flex: 1; min-width: 0; }
     .mp-card__title {
       font-family: var(--serif);
-      font-size: 13px;
+      font-size: 9.5px;
       font-weight: 700;
       color: var(--text);
       line-height: 1.15;
     }
     .mp-card__meta {
-      font-size: 10px;
+      font-size: 7px;
       color: var(--text-muted);
       margin-top: 1px;
     }
@@ -409,29 +410,26 @@
     .mp-cal {
       background: var(--surface);
       border: 1px solid var(--border-soft);
-      border-radius: 10px;
-      padding: 10px;
+      border-radius: 5px;
+      padding: 4px 5px;
     }
-    .mp-cal__head { text-align: center; font-size: 11px; font-weight: 700; color: var(--text); letter-spacing: 0.3px; }
+    .mp-cal__head { text-align: center; font-size: 8px; font-weight: 700; color: var(--text); margin-bottom: 2px; }
     .mp-cal__row { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; text-align: center; font-size: 6.5px; }
     .mp-cal__weekday {
       color: var(--text-muted);
       font-weight: 700;
-      font-size: 7px;
+      font-size: 5.5px;
       letter-spacing: 0.4px;
       padding: 1px 0;
-      border-bottom: 1px solid var(--border-soft);
     }
     .mp-cal__day {
       color: var(--text);
       position: relative;
       aspect-ratio: 1;
-      display: flex;
+      display: inline-flex;
       align-items: center;
       justify-content: center;
-      border-radius: 10px;
-      font-size: 10px;
-        transition: all .15s ease;
+      border-radius: 50%;
     }
     .mp-cal__day--today {
       background: var(--scarlet);
@@ -443,9 +441,9 @@
     .mp-cal__day--dot-blue::after {
       content: "";
       position: absolute;
-      bottom: 4px; left: 50%;
+      bottom: -1px; left: 50%;
       transform: translateX(-50%);
-      width: 4px; height: 4px;
+      width: 3px; height: 3px;
       border-radius: 50%;
     }
     .mp-cal__day--dot-scarlet::after { background: var(--scarlet); }
@@ -472,7 +470,7 @@
     .mp-lang {
       text-align: center;
       padding: 3px 4px;
-      font-size: 10px;
+      font-size: 7px;
       font-weight: 700;
       color: var(--text-muted);
       border-radius: 999px;
@@ -481,25 +479,28 @@
 
     .mp-tabbar {
       background: var(--surface);
-      border-top: 1px solid var(--border));
+      border-top: 1px solid var(--border);
       display: grid;
       grid-template-columns: repeat(6, 1fr);
-      padding: 4px 0 8px;
+      padding: 5px 4px 9px;
+      flex-shrink: 0;
     }
     .mp-tab {
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 1.5px;
+      gap: 2px;
       font-size: 7px;
       font-weight: 600;
       color: var(--text-muted);
-      letter-spacing: 0.2px;
+      letter-spacing: 0.1px;
+      white-space: nowrap;
+      overflow: hidden;
     }
     .mp-tab__icon {
-      width: 11px; height: 11px;
+      width: 13px; height: 13px;
       border: 1.4px solid currentColor;
-      border-radius: 2px;
+      border-radius: 3px;
     }
     .mp-tab--active { color: var(--scarlet); }
     .mp-tab--active .mp-tab__icon { background: currentColor; }
@@ -682,107 +683,20 @@
       .mobile-mockups figure:hover { transform: none; }
     }
 
-    /* Week strip */
-    .mp-weekstrip { display: flex; gap: 3px; }
-    .mp-day {
-      flex: 1; height: 36px; border-radius: 5px;
-      background: var(--surface); border: 1px solid var(--border-soft);
-      display: flex; flex-direction: column; align-items: center;
-      justify-content: center; gap: 1.5px; position: relative;
-    }
-    .mp-day__l { font-size: 5.5px; font-weight: 700; color: var(--text-muted); }
-    .mp-day__n { font-size: 7px; font-weight: 600; color: var(--text); }
-    .mp-day--today { background: var(--scarlet); border-color: var(--scarlet); }
-    .mp-day--today .mp-day__l,
-    .mp-day--today .mp-day__n { color: #fff; }
-    .mp-day__dot {
-      position: absolute; bottom: 3px;
-      width: 3.5px; height: 3.5px; border-radius: 50%; background: var(--gold);
-    }
-
-    /* Reading plan row */
-    .mp-read-row { display: flex; gap: 3px; }
-    .mp-read-box {
-      flex: 1; height: 54px; border-radius: 8px;
-      background: var(--surface); border: 1px solid var(--border-soft);
-      display: flex; flex-direction: column; align-items: center;
-      justify-content: center; gap: 2px;
-    }
-    .mp-read-box__l { font-size: 10px; font-weight: 700; color: var(--text-muted); }
-    .mp-read-box__n { font-size: 12px; color: var(--text); }
-    .mp-read-box__ps { font-size: 9px; color: var(--text-muted); }
-    .mp-read-box--on { background: var(--scarlet-light); border-color: var(--scarlet-light); }
-    .mp-read-box--on .mp-read-box__l,
-    .mp-read-box--on .mp-read-box__n,
-    .mp-read-box--on .mp-read-box__ps { color: var(--scarlet); }
-
-    /* Class directory list */
-    .mp-list {
-      background: var(--surface); border: 1px solid var(--border-soft);
-      border-radius: 5px; overflow: hidden;
-    }
-    .mp-list-item {
-      display: flex; align-items: center; gap: 5px;
-      padding: 4px 7px; border-top: 1px solid var(--border-soft);
-    }
-    .mp-list-item:first-child { border-top: none; }
-    .mp-list-item--active { background: var(--scarlet-light); }
-
     /* ─── Donate section ─────────────────────────────────── */
     .donate {
       background: var(--cream-soft);
       text-align: center;
     }
-    .donate-form {
-      display: inline-block;
-      margin: 32px auto 14px;
-      text-align: left;
-      background: var(--surface);
-      border: 1px solid var(--border-soft);
-      border-radius: 16px;
-      padding: 28px 32px;
-      box-shadow: var(--shadow-card);
-      min-width: 280px;
-    }
-    .donate-form label {
-      display: block;
-      font-size: 11px;
-      font-weight: 700;
-      letter-spacing: 1px;
-      text-transform: uppercase;
-      color: var(--text-muted);
-      margin-bottom: 8px;
-    }
-    .donate-form input[type="number"] {
-      width: 100%;
-      padding: 12px 16px;
-      font-size: 22px;
-      font-weight: 600;
-      border: 1.5px solid var(--border);
-      border-radius: 10px;
-      background: var(--cream);
-      color: var(--text);
-      margin-bottom: 20px;
-      font-family: var(--sans);
-      -webkit-appearance: none;
-      appearance: none;
-    }
-    .donate-form input[type="number"]:focus {
-      outline: none;
-      border-color: var(--scarlet);
-    }
-    .donate-form__submit {
-      display: block;
-      text-align: center;
-    }
-    .donate-btn {
+    .donate-cta {
       display: inline-flex;
       align-items: center;
       gap: 10px;
+      margin: 32px auto 14px;
+      text-align: center;
       background: var(--scarlet);
       color: #FFFFFF;
-      border: none;
-      cursor: pointer;
+      text-decoration: none;
       padding: 18px 36px;
       border-radius: 999px;
       font-weight: 700;
@@ -790,13 +704,12 @@
       letter-spacing: 0.2px;
       box-shadow: 0 10px 28px rgba(176, 32, 44, .28);
       transition: transform .15s ease, box-shadow .15s ease;
-      font-family: var(--sans);
     }
-    .donate-btn:hover {
+    .donate-cta:hover {
       transform: translateY(-1px);
       box-shadow: 0 14px 34px rgba(176, 32, 44, .34);
     }
-    .donate-btn svg {
+    .donate-cta svg {
       width: 20px; height: 20px;
       fill: currentColor;
     }
@@ -813,11 +726,11 @@
       font-weight: 700;
     }
     @media (prefers-reduced-motion: reduce) {
-      .donate-btn { transition: none; }
-      .donate-btn:hover { transform: none; }
+      .donate-cta { transition: none; }
+      .donate-cta:hover { transform: none; }
     }
 
-    /* ─── Status / availability ──────────────────────────────── */
+    /* ─── Status / availability ──────────────────────────── */
     .status-list {
       list-style: none;
       padding: 0;
@@ -882,7 +795,7 @@
       line-height: 1.5;
     }
 
-    /* ─── CTA ──────────────────────────────────────────────────── */
+    /* ─── CTA ────────────────────────────────────────────── */
     .cta {
       background: var(--scarlet);
       color: #fff;
@@ -911,7 +824,7 @@
     }
     .cta a:hover { transform: translateY(-1px); }
 
-    /* ─── Footer ─────────────────────────────────────────────────── */
+    /* ─── Footer ─────────────────────────────────────────── */
     footer {
       text-align: center;
       padding: 32px 24px;
@@ -923,7 +836,7 @@
     footer a { color: var(--scarlet); text-decoration: none; }
     footer a:hover { text-decoration: underline; }
 
-    /* ─── Small screens ───────────────────────────────────────── */
+    /* ─── Small screens ──────────────────────────────────── */
     @media (max-width: 640px) {
       .hero { padding: 56px 20px 40px; }
       section { padding: 40px 0; }
@@ -934,7 +847,7 @@
 </head>
 <body>
 
-  <!-- ─── Hero ─────────────────────────────────────────────────────────── -->
+  <!-- ─── Hero ────────────────────────────────────────────── -->
   <header class="hero">
     <div class="logo">
       <img src="icon.png" alt="ChurchFlow logo">
@@ -970,7 +883,7 @@
     </div>
   </header>
 
-  <!-- ─── About ─────────────────────────────────────────────────────────── -->
+  <!-- ─── About ───────────────────────────────────────────── -->
   <section class="about">
     <div class="wrap">
       <h2>Built for Methodist churches.</h2>
@@ -988,7 +901,7 @@
     </div>
   </section>
 
-  <!-- ─── Features ─────────────────────────────────────────────────────── -->
+  <!-- ─── Features ────────────────────────────────────────── -->
   <section>
     <div class="wrap">
       <h2>What you'll be able to do.</h2>
@@ -1036,89 +949,13 @@
     </div>
   </section>
 
-  <!-- ─── Screens showcase ───────────────────────────────────────────── -->
+  <!-- ─── Screens showcase ───────────────────────────────── -->
   <section class="screens">
     <div class="wrap">
       <h2>See it in action.</h2>
       <p class="section-lead">A glimpse of the app, and the desktop portal coming soon for staff.</p>
 
       <div class="mobile-mockups">
-
-        <!-- My Week -->
-        <figure>
-          <div class="mp-phone" role="img" aria-label="My Week screen mockup">
-            <div class="mp-screen">
-              <div class="mp-island"></div>
-              <div class="mp-statusbar">
-                <span>9:41</span>
-                <span class="mp-statusbar__icons">
-                  <svg width="11" height="8" viewBox="0 0 14 10" fill="currentColor"><rect x="0" y="7" width="2" height="3" rx=".5"/><rect x="3" y="5" width="2" height="5" rx=".5"/><rect x="6" y="3" width="2" height="7" rx=".5"/><rect x="9" y="1" width="2" height="9" rx=".5"/></svg>
-                  <svg width="10" height="8" viewBox="0 0 14 10" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"><path d="M2 4.5c1.5-1.4 3.2-2 5-2s3.5.6 5 2"/><path d="M4 6.5c.9-.8 1.9-1.2 3-1.2s2.1.4 3 1.2"/><circle cx="7" cy="8.5" r=".7" fill="currentColor"/></svg>
-                  <svg width="14" height="8" viewBox="0 0 18 10" fill="none" stroke="currentColor" stroke-width="1"><rect x=".5" y="1.5" width="14" height="7" rx="1.4"/><rect x="2" y="3" width="9" height="4" fill="currentColor"/><rect x="15.2" y="3.6" width="1.6" height="2.8" rx=".3" fill="currentColor"/></svg>
-                </span>
-              </div>
-              <div class="mp-page">
-                <div style="display:flex;align-items:center;justify-content:space-between;">
-                  <div>
-                    <div style="font-size:6.5px;color:var(--text-muted);">Tue, 13 May</div>
-                    <div class="mp-title">Hi, Sarah</div>
-                  </div>
-                  <div class="mp-avatar mp-avatar--scarlet" style="width:22px;height:22px;font-size:9px;">SM</div>
-                </div>
-                <div class="mp-weekstrip">
-                  <div class="mp-day"><span class="mp-day__l">S</span><span class="mp-day__n">11</span><span class="mp-day__dot"></span></div>
-                  <div class="mp-day"><span class="mp-day__l">M</span><span class="mp-day__n">12</span></div>
-                  <div class="mp-day mp-day--today"><span class="mp-day__l">T</span><span class="mp-day__n">13</span></div>
-                  <div class="mp-day"><span class="mp-day__l">W</span><span class="mp-day__n">14</span></div>
-                  <div class="mp-day"><span class="mp-day__l">T</span><span class="mp-day__n">15</span></div>
-                  <div class="mp-day"><span class="mp-day__l">F</span><span class="mp-day__n">16</span></div>
-                  <div class="mp-day"><span class="mp-day__l">S</span><span class="mp-day__n">17</span><span class="mp-day__dot"></span></div>
-                </div>
-                <div class="mp-section-label">Verse of the day</div>
-                <div class="mp-card">
-                  <div class="mp-card__bar mp-bar--scarlet"></div>
-                  <div class="mp-card__body">
-                    <div style="font-family:var(--serif);font-style:italic;font-size:13px;color:var(--text);line-height:1.35;">Trust in the Lord with all your heart, and lean not on your own understanding.</div>
-                    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px;">
-                      <span style="font-size:11px;color:var(--scarlet);font-weight:700;">Proverbs 3:5</span>
-                      <span class="mp-pill mp-pill--gold" style="font-size:7px;padding:1px 5px;">NIV</span>
-                    </div>
-                  </div>
-                </div>
-                <div class="mp-section-label">Reading plan &middot; Psalms</div>
-                <div class="mp-read-row">
-                  <div class="mp-read-box"><span class="mp-read-box__l">M</span><span class="mp-read-box__n">12</span><span class="mp-read-box__ps">Ps 1</span></div>
-                  <div class="mp-read-box mp-read-box--on"><span class="mp-read-box__l">T</span><span class="mp-read-box__n">13</span><span class="mp-read-box__ps">Ps 23</span></div>
-                  <div class="mp-read-box"><span class="mp-read-box__l">W</span><span class="mp-read-box__n">14</span><span class="mp-read-box__ps">Ps 91</span></div>
-                  <div class="mp-read-box"><span class="mp-read-box__l">T</span><span class="mp-read-box__n">15</span><span class="mp-read-box__ps">Ps 121</span></div>
-                  <div class="mp-read-box"><span class="mp-read-box__l">F</span><span class="mp-read-box__n">16</span><span class="mp-read-box__ps">Ps 139</span></div>
-                </div>
-                <div class="mp-section-label">Leading this week</div>
-                <div class="mp-card">
-                  <div class="mp-card__body" style="padding:5px 7px;">
-                    <div style="display:flex;align-items:center;gap:5px;">
-                      <div class="mp-avatar mp-avatar--gold">JD</div>
-                      <div style="flex:1;">
-                        <div class="mp-card__title">Jane Doe</div>
-                        <div class="mp-card__meta">Class 38 &middot; Tonight 19:00</div>
-                      </div>
-                      <span class="mp-pill mp-pill--scarlet" style="font-size:5.5px;">Leader</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <div class="mp-tabbar">
-                <span class="mp-tab mp-tab--active"><span class="mp-tab__icon"></span>My Week</span>
-                <span class="mp-tab"><span class="mp-tab__icon"></span>Schedule</span>
-                <span class="mp-tab"><span class="mp-tab__icon"></span>Groups</span>
-                <span class="mp-tab"><span class="mp-tab__icon"></span>Family</span>
-                <span class="mp-tab"><span class="mp-tab__icon"></span>News</span>
-                <span class="mp-tab"><span class="mp-tab__icon"></span>Profile</span>
-              </div>
-            </div>
-          </div>
-          <figcaption>My Week</figcaption>
-        </figure>
 
         <!-- Schedule -->
         <figure>
@@ -1135,45 +972,50 @@
               </div>
               <div class="mp-page">
                 <div class="mp-title">Schedule</div>
+                <div class="mp-subtitle">Sunday 09:00 service</div>
                 <div class="mp-cal">
                   <div class="mp-cal__head">May 2026</div>
                   <div class="mp-cal__row">
-                    <span class="mp-cal__weekday">S</span><span class="mp-cal__weekday">M</span><span class="mp-cal__weekday">T</span><span class="mp-cal__weekday">W</span><span class="mp-cal__weekday">T</span><span class="mp-cal__weekday">F</span><span class="mp-cal__weekday">S</span>
+                    <span class="mp-cal__weekday">S</span>
+                    <span class="mp-cal__weekday">M</span>
+                    <span class="mp-cal__weekday">T</span>
+                    <span class="mp-cal__weekday">W</span>
+                    <span class="mp-cal__weekday">T</span>
+                    <span class="mp-cal__weekday">F</span>
+                    <span class="mp-cal__weekday">S</span>
                   </div>
                   <div class="mp-cal__row">
-                    <span class="mp-cal__day">10<span style="display:block;width:3px;height:3px;border-radius:50%;background:var(--gold);margin:0 auto;"></span></span>
-                    <span class="mp-cal__day">11</span><span class="mp-cal__day">12</span><span class="mp-cal__day">13</span>
-                    <span class="mp-cal__day mp-cal__day--today">14<span style="display:block;width:3px;height:3px;border-radius:50%;background:var(--scarlet-light);margin:0 auto;"></span></span>
-                    <span class="mp-cal__day">15</span><span class="mp-cal__day">16</span>
+                    <span class="mp-cal__day mp-cal__day--dot-gold">10</span>
+                    <span class="mp-cal__day">11</span>
+                    <span class="mp-cal__day">12</span>
+                    <span class="mp-cal__day">13</span>
+                    <span class="mp-cal__day mp-cal__day--today">14</span>
+                    <span class="mp-cal__day">15</span>
+                    <span class="mp-cal__day">16</span>
                   </div>
                   <div class="mp-cal__row">
-                    <span class="mp-cal__day">17<span style="display:block;width:3px;height:3px;border-radius:50%;background:var(--gold);margin:0 auto;"></span></span>
-                    <span class="mp-cal__day">18</span><span class="mp-cal__day">19</span><span class="mp-cal__day">20</span>
-                    <span class="mp-cal__day">21<span style="display:block;width:3px;height:3px;border-radius:50%;background:var(--blue,#3A7FD8);margin:0 auto;"></span></span>
-                    <span class="mp-cal__day">22</span><span class="mp-cal__day">23</span>
+                    <span class="mp-cal__day mp-cal__day--dot-gold">17</span>
+                    <span class="mp-cal__day">18</span>
+                    <span class="mp-cal__day">19</span>
+                    <span class="mp-cal__day">20</span>
+                    <span class="mp-cal__day mp-cal__day--dot-blue">21</span>
+                    <span class="mp-cal__day">22</span>
+                    <span class="mp-cal__day">23</span>
                   </div>
                 </div>
-                <div class="mp-section-label">Birthdays &middot; 2 this month</div>
+                <div class="mp-section-label">Birthdays this month</div>
                 <div class="mp-card">
-                  <div class="mp-card__bar mp-bar--rose"></div>
+                  <div class="mp-avatar mp-avatar--gold">TM</div>
                   <div class="mp-card__body">
-                    <div style="display:flex;align-items:center;gap:4px;padding:1px 0;">
-                      <div style="width:14px;height:14px;border-radius:50%;background:var(--scarlet-light);color:var(--rose);display:flex;align-items:center;justify-content:center;font-size:5.5px;font-weight:700;flex-shrink:0;">TM</div>
-                      <span class="mp-card__title" style="flex:1;">Thandi Mokoena</span>
-                      <span style="font-size:8px;color:var(--text-muted);">Sun 18 May</span>
-                    </div>
-                    <div style="display:flex;align-items:center;gap:4px;padding:1px 0;">
-                      <div style="width:14px;height:14px;border-radius:50%;background:var(--scarlet-light);color:var(--rose);display:flex;align-items:center;justify-content:center;font-size:5.5px;font-weight:700;flex-shrink:0;">JN</div>
-                      <span class="mp-card__title" style="flex:1;">Joseph Ndlovu</span>
-                      <span style="font-size:8px;color:var(--text-muted);">Tue 26 May</span>
-                    </div>
+                    <div class="mp-card__title">Thandi Mokoena</div>
+                    <div class="mp-card__meta">Sun 18 May</div>
                   </div>
                 </div>
-                <div class="mp-section-label">Upcoming &middot; 2 slots</div>
+                <div class="mp-section-label">Upcoming</div>
                 <div class="mp-card">
                   <div class="mp-card__bar mp-bar--scarlet"></div>
                   <div class="mp-card__body">
-                    <div class="mp-card__meta">Sun 17 May &middot; 09:00</div>
+                    <div class="mp-card__meta">17 May · 09:00</div>
                     <div class="mp-card__title">Children's Church</div>
                   </div>
                   <span class="mp-pill mp-pill--solid-success">Accept</span>
@@ -1181,14 +1023,14 @@
                 <div class="mp-card">
                   <div class="mp-card__bar mp-bar--gold"></div>
                   <div class="mp-card__body">
-                    <div class="mp-card__meta">Sun 24 May &middot; 09:00</div>
+                    <div class="mp-card__meta">24 May · 09:00</div>
                     <div class="mp-card__title">Welcome Team</div>
                   </div>
                   <span class="mp-pill mp-pill--solid-success">Accept</span>
                 </div>
               </div>
               <div class="mp-tabbar">
-                <span class="mp-tab"><span class="mp-tab__icon"></span>My Week</span>
+                <span class="mp-tab"><span class="mp-tab__icon"></span>Week</span>
                 <span class="mp-tab mp-tab--active"><span class="mp-tab__icon"></span>Schedule</span>
                 <span class="mp-tab"><span class="mp-tab__icon"></span>Groups</span>
                 <span class="mp-tab"><span class="mp-tab__icon"></span>Family</span>
@@ -1219,55 +1061,35 @@
                 <div class="mp-card">
                   <div class="mp-card__bar mp-bar--scarlet"></div>
                   <div class="mp-card__body">
-                    <div style="display:flex;align-items:center;justify-content:space-between;">
-                      <div class="mp-card__title">Class 38</div>
-                      <span class="mp-pill mp-pill--scarlet">Class</span>
-                    </div>
-                    <div style="display:flex;align-items:center;gap:4px;margin-top:2px;">
-                      <div class="mp-avatar mp-avatar--scarlet" style="width:14px;height:14px;font-size:5.5px;">JD</div>
-                      <span class="mp-card__meta">Leader: Jane Doe &middot; 8 members</span>
-                    </div>
-                    <div class="mp-card__meta">Tuesdays &middot; 19:00 &middot; Main hall</div>
+                    <div class="mp-card__title">Class 38</div>
+                    <div class="mp-card__meta">Jane Doe · Tue 19:00</div>
                   </div>
+                  <span class="mp-pill mp-pill--scarlet">Class</span>
                 </div>
                 <div class="mp-card">
                   <div class="mp-card__bar mp-bar--gold"></div>
                   <div class="mp-card__body">
-                    <div style="display:flex;align-items:center;justify-content:space-between;">
-                      <div class="mp-card__title">Sunday Volunteers</div>
-                      <span class="mp-pill mp-pill--gold">Volunteer</span>
-                    </div>
-                    <div class="mp-card__meta">Sundays &middot; 09:00 &middot; Sanctuary</div>
+                    <div class="mp-card__title">Sunday Volunteers</div>
+                    <div class="mp-card__meta">Sun 09:00 · Sanctuary</div>
+                  </div>
+                  <span class="mp-pill mp-pill--gold">Volunteer</span>
+                </div>
+                <div class="mp-section-label">All classes</div>
+                <div class="mp-card">
+                  <div class="mp-card__body">
+                    <div class="mp-card__title">Class 12</div>
+                    <div class="mp-card__meta">Mike Smith · 12 members</div>
                   </div>
                 </div>
-                <div class="mp-section-label">All classes &middot; 12</div>
-                <div class="mp-list">
-                  <div class="mp-list-item">
-                    <div style="width:16px;height:16px;border-radius:50%;background:var(--cream-soft);color:var(--scarlet);display:flex;align-items:center;justify-content:center;font-size:6px;font-weight:700;flex-shrink:0;">12</div>
-                    <div style="flex:1;">
-                      <div class="mp-card__title">Class 12</div>
-                      <div class="mp-card__meta">Mike Smith &middot; Mon 18:30</div>
-                    </div>
-                  </div>
-                  <div class="mp-list-item mp-list-item--active">
-                    <div style="width:16px;height:16px;border-radius:50%;background:var(--scarlet);color:#fff;display:flex;align-items:center;justify-content:center;font-size:6px;font-weight:700;flex-shrink:0;">38</div>
-                    <div style="flex:1;">
-                      <div class="mp-card__title">Class 38</div>
-                      <div class="mp-card__meta">Jane Doe &middot; Tue 19:00</div>
-                    </div>
-                    <span class="mp-pill mp-pill--scarlet" style="font-size:5px;padding:1px 4px;">You</span>
-                  </div>
-                  <div class="mp-list-item">
-                    <div style="width:16px;height:16px;border-radius:50%;background:var(--cream-soft);color:var(--scarlet);display:flex;align-items:center;justify-content:center;font-size:6px;font-weight:700;flex-shrink:0;">41</div>
-                    <div style="flex:1;">
-                      <div class="mp-card__title">Class 41</div>
-                      <div class="mp-card__meta">Peter Ndlovu &middot; Thu 18:30</div>
-                    </div>
+                <div class="mp-card">
+                  <div class="mp-card__body">
+                    <div class="mp-card__title">Class 41</div>
+                    <div class="mp-card__meta">Peter Ndlovu · 10 members</div>
                   </div>
                 </div>
               </div>
               <div class="mp-tabbar">
-                <span class="mp-tab"><span class="mp-tab__icon"></span>My Week</span>
+                <span class="mp-tab"><span class="mp-tab__icon"></span>Week</span>
                 <span class="mp-tab"><span class="mp-tab__icon"></span>Schedule</span>
                 <span class="mp-tab mp-tab--active"><span class="mp-tab__icon"></span>Groups</span>
                 <span class="mp-tab"><span class="mp-tab__icon"></span>Family</span>
@@ -1297,59 +1119,39 @@
                 <div class="mp-subtitle">Children's programmes</div>
                 <div class="mp-section-label">My children</div>
                 <div class="mp-card">
-                  <div class="mp-card__body" style="padding:5px 7px;">
-                    <div style="display:flex;align-items:center;gap:5px;">
-                      <div class="mp-avatar mp-avatar--gold">E</div>
-                      <div style="flex:1;">
-                        <div class="mp-card__title">Emma</div>
-                        <div class="mp-card__meta">Age 8 &middot; Children's Church</div>
-                      </div>
-                      <span class="mp-pill mp-pill--scarlet" style="font-size:5.5px;">Children</span>
-                    </div>
-                    <div style="margin-top:3px;">
-                      <span class="mp-pill mp-pill--solid-success" style="font-size:5.5px;">Health on file</span>
-                    </div>
+                  <div class="mp-avatar mp-avatar--gold">E</div>
+                  <div class="mp-card__body">
+                    <div class="mp-card__title">Emma</div>
+                    <div class="mp-card__meta">Age 8 · Children's Church</div>
                   </div>
+                  <span class="mp-pill mp-pill--success">Health</span>
                 </div>
                 <div class="mp-card">
-                  <div class="mp-card__body" style="padding:5px 7px;">
-                    <div style="display:flex;align-items:center;gap:5px;">
-                      <div class="mp-avatar mp-avatar--scarlet">L</div>
-                      <div style="flex:1;">
-                        <div class="mp-card__title">Liam</div>
-                        <div class="mp-card__meta">Age 16 &middot; Youth</div>
-                      </div>
-                      <span class="mp-pill mp-pill--scarlet" style="font-size:5.5px;">Youth</span>
-                    </div>
-                    <div style="margin-top:3px;">
-                      <span class="mp-pill mp-pill--solid-success" style="font-size:5.5px;">Health on file</span>
-                    </div>
+                  <div class="mp-avatar mp-avatar--scarlet">L</div>
+                  <div class="mp-card__body">
+                    <div class="mp-card__title">Liam</div>
+                    <div class="mp-card__meta">Age 16 · Youth</div>
                   </div>
+                  <span class="mp-pill mp-pill--success">Health</span>
                 </div>
                 <div class="mp-section-label">Available programmes</div>
                 <div class="mp-card">
                   <div class="mp-card__bar mp-bar--success"></div>
                   <div class="mp-card__body">
-                    <div style="display:flex;align-items:center;justify-content:space-between;">
-                      <div class="mp-card__title">Holiday Club</div>
-                      <span class="mp-pill mp-pill--solid-success" style="font-size:5.5px;">Open</span>
-                    </div>
-                    <div class="mp-card__meta">Ages 5&ndash;12 &middot; 24&ndash;28 June</div>
+                    <div class="mp-card__title">Holiday Club</div>
+                    <div class="mp-card__meta">Ages 5–12 · 24–28 June</div>
                   </div>
                 </div>
                 <div class="mp-card">
                   <div class="mp-card__bar mp-bar--scarlet"></div>
                   <div class="mp-card__body">
-                    <div style="display:flex;align-items:center;justify-content:space-between;">
-                      <div class="mp-card__title">Youth Confirmation</div>
-                      <span class="mp-pill mp-pill--scarlet" style="font-size:5.5px;">Enrolling</span>
-                    </div>
-                    <div class="mp-card__meta">Ages 13&ndash;18 &middot; Sat 09:00</div>
+                    <div class="mp-card__title">Youth Confirmation</div>
+                    <div class="mp-card__meta">Ages 13–18 · Sat 09:00</div>
                   </div>
                 </div>
               </div>
               <div class="mp-tabbar">
-                <span class="mp-tab"><span class="mp-tab__icon"></span>My Week</span>
+                <span class="mp-tab"><span class="mp-tab__icon"></span>Week</span>
                 <span class="mp-tab"><span class="mp-tab__icon"></span>Schedule</span>
                 <span class="mp-tab"><span class="mp-tab__icon"></span>Groups</span>
                 <span class="mp-tab mp-tab--active"><span class="mp-tab__icon"></span>Family</span>
@@ -1359,6 +1161,63 @@
             </div>
           </div>
           <figcaption>Family</figcaption>
+        </figure>
+
+        <!-- Hymn Book -->
+        <figure>
+          <div class="mp-phone" role="img" aria-label="Hymn Book screen mockup">
+            <div class="mp-screen">
+              <div class="mp-island"></div>
+              <div class="mp-statusbar">
+                <span>9:41</span>
+                <span class="mp-statusbar__icons">
+                  <svg width="11" height="8" viewBox="0 0 14 10" fill="currentColor"><rect x="0" y="7" width="2" height="3" rx=".5"/><rect x="3" y="5" width="2" height="5" rx=".5"/><rect x="6" y="3" width="2" height="7" rx=".5"/><rect x="9" y="1" width="2" height="9" rx=".5"/></svg>
+                  <svg width="10" height="8" viewBox="0 0 14 10" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"><path d="M2 4.5c1.5-1.4 3.2-2 5-2s3.5.6 5 2"/><path d="M4 6.5c.9-.8 1.9-1.2 3-1.2s2.1.4 3 1.2"/><circle cx="7" cy="8.5" r=".7" fill="currentColor"/></svg>
+                  <svg width="14" height="8" viewBox="0 0 18 10" fill="none" stroke="currentColor" stroke-width="1"><rect x=".5" y="1.5" width="14" height="7" rx="1.4"/><rect x="2" y="3" width="9" height="4" fill="currentColor"/><rect x="15.2" y="3.6" width="1.6" height="2.8" rx=".3" fill="currentColor"/></svg>
+                </span>
+              </div>
+              <div class="mp-page">
+                <div class="mp-title">Hymn Book</div>
+                <div class="mp-lang-row">
+                  <span class="mp-lang mp-lang--active">Xhosa</span>
+                  <span class="mp-lang">Sotho</span>
+                  <span class="mp-lang">English</span>
+                </div>
+                <div class="mp-search">Search by number or title…</div>
+                <div class="mp-section-label">Featured · Easter</div>
+                <div class="mp-card">
+                  <div class="mp-card__bar mp-bar--scarlet"></div>
+                  <div class="mp-card__body">
+                    <div class="mp-card__title">8 · Masibulele kuYesu</div>
+                    <div class="mp-card__meta">Masibulele kuYesu ngokufa…</div>
+                  </div>
+                  <span class="mp-pill mp-pill--gold">Easter</span>
+                </div>
+                <div class="mp-section-label">All hymns · 412</div>
+                <div class="mp-card">
+                  <div class="mp-card__body">
+                    <div class="mp-card__title">23 · Lizalis' idinga lakho</div>
+                    <div class="mp-card__meta">Lizalis' idinga lakho, Thixo…</div>
+                  </div>
+                </div>
+                <div class="mp-card">
+                  <div class="mp-card__body">
+                    <div class="mp-card__title">47 · Nkosi sikelel' iAfrika</div>
+                    <div class="mp-card__meta">Nkosi sikelel' iAfrika…</div>
+                  </div>
+                </div>
+              </div>
+              <div class="mp-tabbar">
+                <span class="mp-tab"><span class="mp-tab__icon"></span>Week</span>
+                <span class="mp-tab"><span class="mp-tab__icon"></span>Schedule</span>
+                <span class="mp-tab"><span class="mp-tab__icon"></span>Groups</span>
+                <span class="mp-tab"><span class="mp-tab__icon"></span>Family</span>
+                <span class="mp-tab"><span class="mp-tab__icon"></span>News</span>
+                <span class="mp-tab mp-tab--active"><span class="mp-tab__icon"></span>Profile</span>
+              </div>
+            </div>
+          </div>
+          <figcaption>Hymn Book</figcaption>
         </figure>
 
       </div>
@@ -1431,7 +1290,7 @@
     </div>
   </section>
 
-  <!-- ─── Status ───────────────────────────────────────────────────────── -->
+  <!-- ─── Status ──────────────────────────────────────────── -->
   <section>
     <div class="wrap">
       <h2>Where we are.</h2>
@@ -1445,7 +1304,7 @@
               <rect x="24" y="6" width="32" height="68" rx="7" fill="#FFFFFF" stroke="#B0202C" stroke-width="2"/>
               <rect x="28" y="13" width="24" height="54" rx="3" fill="#B0202C"/>
               <rect x="34" y="22" width="12" height="12" rx="2.5" fill="#FAF6EC"/>
-              <path d="M40 24v8M36 28h8" stroke="#FAF6EC" stroke-width="1.6" stroke-linecap="round"/>
+              <path d="M40 24v8M36 28h8" stroke="#B0202C" stroke-width="1.6" stroke-linecap="round"/>
               <rect x="30" y="38" width="20" height="1.6" rx="0.8" fill="#FAF6EC" opacity="0.55"/>
               <rect x="30" y="42" width="16" height="1.6" rx="0.8" fill="#FAF6EC" opacity="0.55"/>
               <rect x="30" y="46" width="18" height="1.6" rx="0.8" fill="#FAF6EC" opacity="0.55"/>
@@ -1522,48 +1381,43 @@
     </div>
   </section>
 
-  <!-- ─── Donate ───────────────────────────────────────────────────────── -->
+  <!-- ─── Donate ──────────────────────────────────────────── -->
   <section class="donate">
     <div class="wrap">
       <h2>Support the work.</h2>
       <p class="section-lead" style="max-width: 580px; margin-left: auto; margin-right: auto;">
         ChurchFlow is built by a small team, on personal time and at personal
-        cost, so it can stay <strong>free for every church</strong>.
-        Your gift helps us cover build and hosting costs, keeping ChurchFlow
-        free for every church.
+        cost, so it can stay <strong>free for every Methodist church</strong>.
+        Your gift helps cover hosting and app-store fees today, and funds the
+        next free tool for South African churches tomorrow.
       </p>
-      <form name="PayFastPayNowForm" class="donate-form" action="https://payment.payfast.io/eng/process" method="post">
-        <input required type="hidden" name="cmd" value="_paynow">
-        <input required type="hidden" name="receiver" value="18164611">
-        <input type="hidden" name="return_url" value="https://www.churchflowonline.co.za">
-        <input required type="hidden" name="item_name" maxlength="255" value="Churchflow Donations">
-        <input type="hidden" name="item_description" maxlength="255" value="Supporting free tech for South African churches">
-        <label for="PayFastAmount">Amount (ZAR)</label>
-        <input required id="PayFastAmount" type="number" step=".01" name="amount" min="5.00" placeholder="5.00" value="100">
-        <div class="donate-form__submit">
-          <button type="submit" class="donate-btn">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
-            Donate
-          </button>
-        </div>
-      </form>
+      <a class="donate-cta"
+         href="https://www.payfast.co.za/donate/go/REPLACE_WITH_PAYFAST_CODE"
+         target="_blank"
+         rel="noopener"
+         aria-label="Donate to ChurchFlow via PayFast">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+        </svg>
+        <span>Donate</span>
+      </a>
       <p class="donate-methods">
-        Secure payment via <strong>PayFast</strong>.
+        Secure payment via <strong>PayFast</strong> - card, Instant EFT, SnapScan, or Zapper.
       </p>
     </div>
   </section>
 
-  <!-- ─── CTA ──────────────────────────────────────────────────────────── -->
+  <!-- ─── CTA ─────────────────────────────────────────────── -->
   <section class="cta">
     <h2>Want to know when it launches?</h2>
     <p>Drop us a line and we'll let you know the moment ChurchFlow hits the App Store and Google Play.</p>
     <a href="mailto:contact@sibahledigital.co.za?subject=ChurchFlow%20enquiry">Get notified</a>
   </section>
 
-  <!-- ─── Footer ─────────────────────────────────────────────────────────── -->
+  <!-- ─── Footer ──────────────────────────────────────────── -->
   <footer>
-    <p>ChurchFlow &middot; Designed for Methodist churches</p>
-    <p>POPIA-compliant &middot; Built with care &middot; &copy; <span id="year">2026</span></p>
+    <p>ChurchFlow · Designed for Methodist churches</p>
+    <p>POPIA-compliant · Built with care · &copy; <span id="year">2026</span></p>
   </footer>
 
   <script>
