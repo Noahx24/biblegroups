@@ -270,7 +270,9 @@
       padding: 6px;
       border-radius: 26px;
       width: 100%;
-      aspect-ratio: 9 / 19;
+      max-width: 260px;
+      margin: 0 auto;
+      aspect-ratio: 9 / 16.5;
       box-shadow: 0 18px 36px rgba(31, 26, 20, .18);
     }
     .mp-screen {
@@ -300,13 +302,8 @@
       font-weight: 700;
       color: var(--text);
     }
-    .mp-statusbar__icons { display: flex; gap: 2.5px; }
-    .mp-statusbar__icons span {
-      width: 8px; height: 8px;
-      background: var(--text);
-      border-radius: 1.5px;
-      opacity: .85;
-    }
+    .mp-statusbar__icons { display: inline-flex; align-items: center; gap: 3px; opacity: .85; }
+    .mp-statusbar__icons svg { display: block; }
     .mp-page {
       flex: 1;
       padding: 6px 9px 0;
@@ -411,12 +408,25 @@
     }
     .mp-cal__head { text-align: center; font-size: 8px; font-weight: 700; color: var(--text); margin-bottom: 2px; }
     .mp-cal__row { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; text-align: center; font-size: 6.5px; }
-    .mp-cal__weekday { color: var(--text-muted); font-weight: 700; font-size: 5.5px; letter-spacing: 0.4px; }
-    .mp-cal__day { padding: 1px 0; color: var(--text); position: relative; }
+    .mp-cal__weekday {
+      color: var(--text-muted);
+      font-weight: 700;
+      font-size: 5.5px;
+      letter-spacing: 0.4px;
+      padding: 1px 0;
+    }
+    .mp-cal__day {
+      color: var(--text);
+      position: relative;
+      aspect-ratio: 1;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+    }
     .mp-cal__day--today {
       background: var(--scarlet);
       color: #fff;
-      border-radius: 50%;
       font-weight: 700;
     }
     .mp-cal__day--dot-scarlet::after,
@@ -944,7 +954,11 @@
               <div class="mp-island"></div>
               <div class="mp-statusbar">
                 <span>9:41</span>
-                <span class="mp-statusbar__icons"><span></span><span></span><span></span></span>
+                <span class="mp-statusbar__icons">
+                  <svg width="11" height="8" viewBox="0 0 14 10" fill="currentColor"><rect x="0" y="7" width="2" height="3" rx=".5"/><rect x="3" y="5" width="2" height="5" rx=".5"/><rect x="6" y="3" width="2" height="7" rx=".5"/><rect x="9" y="1" width="2" height="9" rx=".5"/></svg>
+                  <svg width="10" height="8" viewBox="0 0 14 10" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"><path d="M2 4.5c1.5-1.4 3.2-2 5-2s3.5.6 5 2"/><path d="M4 6.5c.9-.8 1.9-1.2 3-1.2s2.1.4 3 1.2"/><circle cx="7" cy="8.5" r=".7" fill="currentColor"/></svg>
+                  <svg width="14" height="8" viewBox="0 0 18 10" fill="none" stroke="currentColor" stroke-width="1"><rect x=".5" y="1.5" width="14" height="7" rx="1.4"/><rect x="2" y="3" width="9" height="4" fill="currentColor"/><rect x="15.2" y="3.6" width="1.6" height="2.8" rx=".3" fill="currentColor"/></svg>
+                </span>
               </div>
               <div class="mp-page">
                 <div class="mp-title">Schedule</div>
@@ -1009,7 +1023,11 @@
               <div class="mp-island"></div>
               <div class="mp-statusbar">
                 <span>9:41</span>
-                <span class="mp-statusbar__icons"><span></span><span></span><span></span></span>
+                <span class="mp-statusbar__icons">
+                  <svg width="11" height="8" viewBox="0 0 14 10" fill="currentColor"><rect x="0" y="7" width="2" height="3" rx=".5"/><rect x="3" y="5" width="2" height="5" rx=".5"/><rect x="6" y="3" width="2" height="7" rx=".5"/><rect x="9" y="1" width="2" height="9" rx=".5"/></svg>
+                  <svg width="10" height="8" viewBox="0 0 14 10" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"><path d="M2 4.5c1.5-1.4 3.2-2 5-2s3.5.6 5 2"/><path d="M4 6.5c.9-.8 1.9-1.2 3-1.2s2.1.4 3 1.2"/><circle cx="7" cy="8.5" r=".7" fill="currentColor"/></svg>
+                  <svg width="14" height="8" viewBox="0 0 18 10" fill="none" stroke="currentColor" stroke-width="1"><rect x=".5" y="1.5" width="14" height="7" rx="1.4"/><rect x="2" y="3" width="9" height="4" fill="currentColor"/><rect x="15.2" y="3.6" width="1.6" height="2.8" rx=".3" fill="currentColor"/></svg>
+                </span>
               </div>
               <div class="mp-page">
                 <div class="mp-title">Groups</div>
@@ -1064,7 +1082,11 @@
               <div class="mp-island"></div>
               <div class="mp-statusbar">
                 <span>9:41</span>
-                <span class="mp-statusbar__icons"><span></span><span></span><span></span></span>
+                <span class="mp-statusbar__icons">
+                  <svg width="11" height="8" viewBox="0 0 14 10" fill="currentColor"><rect x="0" y="7" width="2" height="3" rx=".5"/><rect x="3" y="5" width="2" height="5" rx=".5"/><rect x="6" y="3" width="2" height="7" rx=".5"/><rect x="9" y="1" width="2" height="9" rx=".5"/></svg>
+                  <svg width="10" height="8" viewBox="0 0 14 10" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"><path d="M2 4.5c1.5-1.4 3.2-2 5-2s3.5.6 5 2"/><path d="M4 6.5c.9-.8 1.9-1.2 3-1.2s2.1.4 3 1.2"/><circle cx="7" cy="8.5" r=".7" fill="currentColor"/></svg>
+                  <svg width="14" height="8" viewBox="0 0 18 10" fill="none" stroke="currentColor" stroke-width="1"><rect x=".5" y="1.5" width="14" height="7" rx="1.4"/><rect x="2" y="3" width="9" height="4" fill="currentColor"/><rect x="15.2" y="3.6" width="1.6" height="2.8" rx=".3" fill="currentColor"/></svg>
+                </span>
               </div>
               <div class="mp-page">
                 <div class="mp-title">Family</div>
@@ -1114,7 +1136,11 @@
               <div class="mp-island"></div>
               <div class="mp-statusbar">
                 <span>9:41</span>
-                <span class="mp-statusbar__icons"><span></span><span></span><span></span></span>
+                <span class="mp-statusbar__icons">
+                  <svg width="11" height="8" viewBox="0 0 14 10" fill="currentColor"><rect x="0" y="7" width="2" height="3" rx=".5"/><rect x="3" y="5" width="2" height="5" rx=".5"/><rect x="6" y="3" width="2" height="7" rx=".5"/><rect x="9" y="1" width="2" height="9" rx=".5"/></svg>
+                  <svg width="10" height="8" viewBox="0 0 14 10" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"><path d="M2 4.5c1.5-1.4 3.2-2 5-2s3.5.6 5 2"/><path d="M4 6.5c.9-.8 1.9-1.2 3-1.2s2.1.4 3 1.2"/><circle cx="7" cy="8.5" r=".7" fill="currentColor"/></svg>
+                  <svg width="14" height="8" viewBox="0 0 18 10" fill="none" stroke="currentColor" stroke-width="1"><rect x=".5" y="1.5" width="14" height="7" rx="1.4"/><rect x="2" y="3" width="9" height="4" fill="currentColor"/><rect x="15.2" y="3.6" width="1.6" height="2.8" rx=".3" fill="currentColor"/></svg>
+                </span>
               </div>
               <div class="mp-page">
                 <div class="mp-title">Hymn Book</div>
