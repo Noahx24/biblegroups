@@ -176,6 +176,10 @@
     }
 
     /* ─── About ──────────────────────────────────────────── */
+    .about .wrap {
+      max-width: 680px;
+    }
+    
     .about p {
       font-size: 17px;
       color: var(--text-soft);
@@ -1382,27 +1386,32 @@
   </section>
 
   <!-- ─── Donate ──────────────────────────────────────────── -->
-  <section class="donate">
+ <section class="donate">
     <div class="wrap">
       <h2>Support the work.</h2>
       <p class="section-lead" style="max-width: 580px; margin-left: auto; margin-right: auto;">
         ChurchFlow is built by a small team, on personal time and at personal
-        cost, so it can stay <strong>free for every Methodist church</strong>.
-        Your gift helps cover hosting and app-store fees today, and funds the
-        next free tool for South African churches tomorrow.
+        cost, so it can stay <strong>free for every church</strong>.
+        Your gift helps us cover build and hosting costs, keeping ChurchFlow
+        free for every church.
       </p>
-      <a class="donate-cta"
-         href="https://www.payfast.co.za/donate/go/REPLACE_WITH_PAYFAST_CODE"
-         target="_blank"
-         rel="noopener"
-         aria-label="Donate to ChurchFlow via PayFast">
-        <svg viewBox="0 0 24 24" aria-hidden="true">
-          <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
-        </svg>
-        <span>Donate</span>
-      </a>
+      <form name="PayFastPayNowForm" class="donate-form" action="https://payment.payfast.io/eng/process" method="post">
+        <input required type="hidden" name="cmd" value="_paynow">
+        <input required type="hidden" name="receiver" value="18164611">
+        <input type="hidden" name="return_url" value="https://www.churchflowonline.co.za">
+        <input required type="hidden" name="item_name" maxlength="255" value="Churchflow Donations">
+        <input type="hidden" name="item_description" maxlength="255" value="Supporting free tech for South African churches">
+        <label for="PayFastAmount">Amount (ZAR)</label>
+        <input required id="PayFastAmount" type="number" step=".01" name="amount" min="5.00" placeholder="5.00" value="100">
+        <div class="donate-form__submit">
+          <button type="submit" class="donate-btn">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+            Donate
+          </button>
+        </div>
+      </form>
       <p class="donate-methods">
-        Secure payment via <strong>PayFast</strong> - card, Instant EFT, SnapScan, or Zapper.
+        Secure payment via <strong>PayFast</strong>.
       </p>
     </div>
   </section>
