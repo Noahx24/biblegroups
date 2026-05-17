@@ -177,6 +177,10 @@
     }
 
     /* ─── About ────────────────────────────────────────────── */
+    .about .wrap {
+      max-width: 680px;
+    }
+    
     .about p {
       font-size: 17px;
       color: var(--text-soft);
@@ -244,9 +248,10 @@
     }
     .mobile-mockups {
       display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 28px;
-      margin-top: 32px;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 320px));
+      gap: 40px;
+      justify-content: center;
+      margin-top: 48px;
       max-width: 960px;
       margin-left: auto;
       margin-right: auto;
@@ -271,15 +276,37 @@
       padding: 6px;
       border-radius: 26px;
       width: 100%;
-      max-width: 440px;
+      max-width: 320px;
       margin: 0 auto;
-      aspect-ratio: 9 / 16.5;
+      aspect-ratio: 1290 / 2796;
       box-shadow: 0 18px 36px rgba(31, 26, 20, .18);
     }
+
+    .mp-phone::before {
+      content: "";
+    
+      position: absolute;
+      inset: 0;
+    
+      border-radius: inherit;
+    
+      background:
+        linear-gradient(
+          135deg,
+          rgba(255,255,255,.12),
+          transparent 20%,
+          transparent 80%,
+          rgba(255,255,255,.04)
+        );
+
+      pointer-events: none;
+    }
+    
     .mp-screen {
       position: relative;
       background: var(--cream);
-      border-radius: 20px;
+      border-radius: 34px;
+      border: 1px solid rgba(255,255,255,.04);
       height: 100%;
       overflow: hidden;
       display: flex;
@@ -287,12 +314,12 @@
     }
     .mp-island {
       position: absolute;
-      top: 5px; left: 50%;
+      top: 12px; left: 50%;
       transform: translateX(-50%);
-      width: 48px; height: 13px;
-      background: #1F1A14;
-      border-radius: 8px;
-      z-index: 3;
+      width: 92px; height: 26px;
+      background: #000;
+      border-radius: 999px;
+      z-index: 20;
     }
     .mp-statusbar {
       display: flex;
@@ -315,7 +342,7 @@
     }
     .mp-title {
       font-family: var(--serif);
-      font-size: 16px;
+      font-size: 24px;
       font-weight: 600;
       color: var(--text);
       letter-spacing: -0.3px;
@@ -328,7 +355,7 @@
       margin-top: 1px;
     }
     .mp-section-label {
-      font-size: 6.5px;
+      font-size: 9px;
       font-weight: 700;
       color: var(--text-muted);
       letter-spacing: 1.1px;
@@ -359,13 +386,13 @@
     .mp-card__body { flex: 1; min-width: 0; }
     .mp-card__title {
       font-family: var(--serif);
-      font-size: 9.5px;
+      font-size: 13px;
       font-weight: 700;
       color: var(--text);
       line-height: 1.15;
     }
     .mp-card__meta {
-      font-size: 7px;
+      font-size: 10px;
       color: var(--text-muted);
       margin-top: 1px;
     }
