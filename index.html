@@ -176,10 +176,6 @@
     }
 
     /* ─── About ──────────────────────────────────────────── */
-    .about .wrap {
-      max-width: 680px;
-    }
-    
     .about p {
       font-size: 17px;
       color: var(--text-soft);
@@ -275,22 +271,25 @@
       text-transform: uppercase;
     }
 
-    /* Phone mockup component */
+    /* Phone mockup component.
+     * Height is NOT locked to an aspect ratio - the phone is exactly as
+     * tall as its content + chrome. That eliminates the empty-bottom gap
+     * that appeared at any fixed aspect ratio (the mockups don't have
+     * 800px of realistic content to fill an iPhone-shaped frame).
+     * max-width keeps the phone shape recognisable on mobile. */
     .mp-phone {
       background: #1F1A14;
       padding: 6px;
-      border-radius: 30px;
+      border-radius: 28px;
       width: 100%;
       max-width: 280px;
       margin: 0 auto;
-      aspect-ratio: 9 / 17.5;
       box-shadow: 0 18px 36px rgba(31, 26, 20, .18);
     }
     .mp-screen {
       position: relative;
       background: var(--cream);
       border-radius: 20px;
-      height: 100%;
       overflow: hidden;
       display: flex;
       flex-direction: column;
@@ -316,9 +315,7 @@
     .mp-statusbar__icons { display: inline-flex; align-items: center; gap: 3px; opacity: .85; }
     .mp-statusbar__icons svg { display: block; }
     .mp-page {
-      flex: 1;
-      padding: 6px 9px 0;
-      overflow: hidden;
+      padding: 6px 9px 8px;
       display: flex;
       flex-direction: column;
       gap: 5px;
@@ -429,16 +426,22 @@
     .mp-cal__day {
       color: var(--text);
       position: relative;
-      aspect-ratio: 1;
+      padding: 3px 0;
+    }
+    /* Today is a fixed-size scarlet circle around the number, never the
+     * full grid cell - that way it doesn't balloon when the calendar is
+     * rendered at a wider mobile width. */
+    .mp-cal__day--today {
       display: inline-flex;
+      width: 16px;
+      height: 16px;
       align-items: center;
       justify-content: center;
       border-radius: 50%;
-    }
-    .mp-cal__day--today {
       background: var(--scarlet);
       color: #fff;
       font-weight: 700;
+      padding: 0;
     }
     .mp-cal__day--dot-scarlet::after,
     .mp-cal__day--dot-gold::after,
@@ -688,60 +691,19 @@
     }
 
     /* ─── Donate section ─────────────────────────────────── */
-     .donate {
+    .donate {
       background: var(--cream-soft);
       text-align: center;
     }
-    .donate-form {
-      display: inline-block;
-      margin: 32px auto 14px;
-      text-align: left;
-      background: var(--surface);
-      border: 1px solid var(--border-soft);
-      border-radius: 16px;
-      padding: 28px 32px;
-      box-shadow: var(--shadow-card);
-      min-width: 280px;
-    }
-    .donate-form label {
-      display: block;
-      font-size: 11px;
-      font-weight: 700;
-      letter-spacing: 1px;
-      text-transform: uppercase;
-      color: var(--text-muted);
-      margin-bottom: 8px;
-    }
-    .donate-form input[type="number"] {
-      width: 100%;
-      padding: 12px 16px;
-      font-size: 22px;
-      font-weight: 600;
-      border: 1.5px solid var(--border);
-      border-radius: 10px;
-      background: var(--cream);
-      color: var(--text);
-      margin-bottom: 20px;
-      font-family: var(--sans);
-      -webkit-appearance: none;
-      appearance: none;
-    }
-    .donate-form input[type="number"]:focus {
-      outline: none;
-      border-color: var(--scarlet);
-    }
-    .donate-form__submit {
-      display: block;
-      text-align: center;
-    }
-    .donate-btn {
+    .donate-cta {
       display: inline-flex;
       align-items: center;
       gap: 10px;
+      margin: 32px auto 14px;
+      text-align: center;
       background: var(--scarlet);
       color: #FFFFFF;
-      border: none;
-      cursor: pointer;
+      text-decoration: none;
       padding: 18px 36px;
       border-radius: 999px;
       font-weight: 700;
@@ -749,13 +711,12 @@
       letter-spacing: 0.2px;
       box-shadow: 0 10px 28px rgba(176, 32, 44, .28);
       transition: transform .15s ease, box-shadow .15s ease;
-      font-family: var(--sans);
     }
-    .donate-btn:hover {
+    .donate-cta:hover {
       transform: translateY(-1px);
       box-shadow: 0 14px 34px rgba(176, 32, 44, .34);
     }
-    .donate-btn svg {
+    .donate-cta svg {
       width: 20px; height: 20px;
       fill: currentColor;
     }
@@ -772,8 +733,8 @@
       font-weight: 700;
     }
     @media (prefers-reduced-motion: reduce) {
-      .donate-btn { transition: none; }
-      .donate-btn:hover { transform: none; }
+      .donate-cta { transition: none; }
+      .donate-cta:hover { transform: none; }
     }
 
     /* ─── Status / availability ──────────────────────────── */
@@ -1428,32 +1389,27 @@
   </section>
 
   <!-- ─── Donate ──────────────────────────────────────────── -->
- <section class="donate">
+  <section class="donate">
     <div class="wrap">
       <h2>Support the work.</h2>
       <p class="section-lead" style="max-width: 580px; margin-left: auto; margin-right: auto;">
         ChurchFlow is built by a small team, on personal time and at personal
-        cost, so it can stay <strong>free for every church</strong>.
-        Your gift helps us cover build and hosting costs, keeping ChurchFlow
-        free for every church.
+        cost, so it can stay <strong>free for every Methodist church</strong>.
+        Your gift helps cover hosting and app-store fees today, and funds the
+        next free tool for South African churches tomorrow.
       </p>
-      <form name="PayFastPayNowForm" class="donate-form" action="https://payment.payfast.io/eng/process" method="post">
-        <input required type="hidden" name="cmd" value="_paynow">
-        <input required type="hidden" name="receiver" value="18164611">
-        <input type="hidden" name="return_url" value="https://www.churchflowonline.co.za">
-        <input required type="hidden" name="item_name" maxlength="255" value="Churchflow Donations">
-        <input type="hidden" name="item_description" maxlength="255" value="Supporting free tech for South African churches">
-        <label for="PayFastAmount">Amount (ZAR)</label>
-        <input required id="PayFastAmount" type="number" step=".01" name="amount" min="5.00" placeholder="Enter amount (e.g. 10.00)">
-        <div class="donate-form__submit">
-          <button type="submit" class="donate-btn">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
-            Donate
-          </button>
-        </div>
-      </form>
+      <a class="donate-cta"
+         href="https://www.payfast.co.za/donate/go/REPLACE_WITH_PAYFAST_CODE"
+         target="_blank"
+         rel="noopener"
+         aria-label="Donate to ChurchFlow via PayFast">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+        </svg>
+        <span>Donate</span>
+      </a>
       <p class="donate-methods">
-        Secure payment via <strong>PayFast</strong>.
+        Secure payment via <strong>PayFast</strong> - card, Instant EFT, SnapScan, or Zapper.
       </p>
     </div>
   </section>
