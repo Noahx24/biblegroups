@@ -271,22 +271,25 @@
       text-transform: uppercase;
     }
 
-    /* Phone mockup component */
+    /* Phone mockup component.
+     * Height is NOT locked to an aspect ratio - the phone is exactly as
+     * tall as its content + chrome. That eliminates the empty-bottom gap
+     * that appeared at any fixed aspect ratio (the mockups don't have
+     * 800px of realistic content to fill an iPhone-shaped frame).
+     * max-width keeps the phone shape recognisable on mobile. */
     .mp-phone {
       background: #1F1A14;
       padding: 6px;
-      border-radius: 30px;
+      border-radius: 28px;
       width: 100%;
       max-width: 280px;
       margin: 0 auto;
-      aspect-ratio: 9 / 17.5;
       box-shadow: 0 18px 36px rgba(31, 26, 20, .18);
     }
     .mp-screen {
       position: relative;
       background: var(--cream);
       border-radius: 20px;
-      height: 100%;
       overflow: hidden;
       display: flex;
       flex-direction: column;
@@ -312,9 +315,7 @@
     .mp-statusbar__icons { display: inline-flex; align-items: center; gap: 3px; opacity: .85; }
     .mp-statusbar__icons svg { display: block; }
     .mp-page {
-      flex: 1;
-      padding: 6px 9px 0;
-      overflow: hidden;
+      padding: 6px 9px 8px;
       display: flex;
       flex-direction: column;
       gap: 5px;
@@ -425,16 +426,22 @@
     .mp-cal__day {
       color: var(--text);
       position: relative;
-      aspect-ratio: 1;
+      padding: 3px 0;
+    }
+    /* Today is a fixed-size scarlet circle around the number, never the
+     * full grid cell - that way it doesn't balloon when the calendar is
+     * rendered at a wider mobile width. */
+    .mp-cal__day--today {
       display: inline-flex;
+      width: 16px;
+      height: 16px;
       align-items: center;
       justify-content: center;
       border-radius: 50%;
-    }
-    .mp-cal__day--today {
       background: var(--scarlet);
       color: #fff;
       font-weight: 700;
+      padding: 0;
     }
     .mp-cal__day--dot-scarlet::after,
     .mp-cal__day--dot-gold::after,
