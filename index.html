@@ -275,11 +275,11 @@
     }
 
     /* Phone mockup component.
-     * Height is NOT locked to an aspect ratio - the phone is exactly as
-     * tall as its content + chrome. That eliminates the empty-bottom gap
-     * that appeared at any fixed aspect ratio (the mockups don't have
-     * 800px of realistic content to fill an iPhone-shaped frame).
-     * max-width keeps the phone shape recognisable on mobile. */
+     * aspect-ratio enforces iPhone proportions; mp-screen flex:1 fills
+     * the phone so the tab bar always anchors at the bottom. Content
+     * inside .mp-page packs at the top via flex column; any unused
+     * vertical space sits between the content and the tab bar which is
+     * how real iPhone apps look when a page is short. */
     .mp-phone {
       background: #1F1A14;
       padding: 6px;
@@ -287,9 +287,12 @@
       width: 100%;
       max-width: 280px;
       margin: 0 auto;
+      aspect-ratio: 9 / 17;
+      display: flex;
       box-shadow: 0 18px 36px rgba(31, 26, 20, .18);
     }
     .mp-screen {
+      flex: 1;
       position: relative;
       background: var(--cream);
       border-radius: 20px;
@@ -318,10 +321,12 @@
     .mp-statusbar__icons { display: inline-flex; align-items: center; gap: 3px; opacity: .85; }
     .mp-statusbar__icons svg { display: block; }
     .mp-page {
+      flex: 1;
       padding: 6px 9px 8px;
       display: flex;
       flex-direction: column;
       gap: 5px;
+      overflow: hidden;
     }
     .mp-title {
       font-family: var(--serif);
@@ -1091,6 +1096,14 @@
                   </div>
                   <span class="mp-pill mp-pill--solid-success">Accept</span>
                 </div>
+                <div class="mp-card">
+                  <div class="mp-card__bar mp-bar--scarlet"></div>
+                  <div class="mp-card__body">
+                    <div class="mp-card__meta">31 May · 09:00</div>
+                    <div class="mp-card__title">Sunday School</div>
+                  </div>
+                  <span class="mp-pill mp-pill--solid-success">Accept</span>
+                </div>
               </div>
               <div class="mp-tabbar">
                 <span class="mp-tab"><span class="mp-tab__icon"></span>Week</span>
@@ -1149,6 +1162,18 @@
                   <div class="mp-card__body">
                     <div class="mp-card__title">Class 41</div>
                     <div class="mp-card__meta">Peter Ndlovu · 10 members</div>
+                  </div>
+                </div>
+                <div class="mp-card">
+                  <div class="mp-card__body">
+                    <div class="mp-card__title">Class 56</div>
+                    <div class="mp-card__meta">Lerato Mokoena · 9 members</div>
+                  </div>
+                </div>
+                <div class="mp-card">
+                  <div class="mp-card__body">
+                    <div class="mp-card__title">Class 7</div>
+                    <div class="mp-card__meta">Sipho Khoza · 14 members</div>
                   </div>
                 </div>
               </div>
@@ -1270,6 +1295,18 @@
                   <div class="mp-card__body">
                     <div class="mp-card__title">47 · Nkosi sikelel' iAfrika</div>
                     <div class="mp-card__meta">Nkosi sikelel' iAfrika…</div>
+                  </div>
+                </div>
+                <div class="mp-card">
+                  <div class="mp-card__body">
+                    <div class="mp-card__title">112 · Bawo wethu osezulwini</div>
+                    <div class="mp-card__meta">Bawo wethu osezulwini…</div>
+                  </div>
+                </div>
+                <div class="mp-card">
+                  <div class="mp-card__body">
+                    <div class="mp-card__title">204 · Yiba nathi Thixo</div>
+                    <div class="mp-card__meta">Yiba nathi Thixo wethu…</div>
                   </div>
                 </div>
               </div>
