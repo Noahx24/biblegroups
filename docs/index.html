@@ -511,6 +511,17 @@
     }
     .mp-tab--active { color: var(--scarlet); }
     .mp-tab--active .mp-tab__icon { background: currentColor; }
+    /* iOS home indicator pill - small dark bar sitting below the tab bar.
+     * Makes each phone read instantly as a modern iPhone rather than a
+     * generic mobile frame. */
+    .mp-home-indicator {
+      width: 92px;
+      height: 4px;
+      border-radius: 2px;
+      background: #1F1A14;
+      margin: 4px auto 6px;
+      opacity: 0.92;
+    }
 
     /* Admin browser mockup */
     .admin-mockup {
@@ -695,15 +706,56 @@
       background: var(--cream-soft);
       text-align: center;
     }
-    .donate-cta {
+    .donate-form {
+      display: inline-block;
+      margin: 32px auto 14px;
+      text-align: left;
+      background: var(--surface);
+      border: 1px solid var(--border-soft);
+      border-radius: 16px;
+      padding: 28px 32px;
+      box-shadow: var(--shadow-card);
+      min-width: 280px;
+    }
+    .donate-form label {
+      display: block;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+    }
+    .donate-form input[type="number"] {
+      width: 100%;
+      padding: 12px 16px;
+      font-size: 22px;
+      font-weight: 600;
+      border: 1.5px solid var(--border);
+      border-radius: 10px;
+      background: var(--cream);
+      color: var(--text);
+      margin-bottom: 20px;
+      font-family: var(--sans);
+      -webkit-appearance: none;
+      appearance: none;
+    }
+    .donate-form input[type="number"]:focus {
+      outline: none;
+      border-color: var(--scarlet);
+    }
+    .donate-form__submit {
+      display: block;
+      text-align: center;
+    }
+    .donate-btn {
       display: inline-flex;
       align-items: center;
       gap: 10px;
-      margin: 32px auto 14px;
-      text-align: center;
       background: var(--scarlet);
       color: #FFFFFF;
-      text-decoration: none;
+      border: none;
+      cursor: pointer;
       padding: 18px 36px;
       border-radius: 999px;
       font-weight: 700;
@@ -711,12 +763,13 @@
       letter-spacing: 0.2px;
       box-shadow: 0 10px 28px rgba(176, 32, 44, .28);
       transition: transform .15s ease, box-shadow .15s ease;
+      font-family: var(--sans);
     }
-    .donate-cta:hover {
+    .donate-btn:hover {
       transform: translateY(-1px);
       box-shadow: 0 14px 34px rgba(176, 32, 44, .34);
     }
-    .donate-cta svg {
+    .donate-btn svg {
       width: 20px; height: 20px;
       fill: currentColor;
     }
@@ -733,8 +786,8 @@
       font-weight: 700;
     }
     @media (prefers-reduced-motion: reduce) {
-      .donate-cta { transition: none; }
-      .donate-cta:hover { transform: none; }
+      .donate-btn { transition: none; }
+      .donate-btn:hover { transform: none; }
     }
 
     /* ─── Status / availability ──────────────────────────── */
@@ -1044,6 +1097,7 @@
                 <span class="mp-tab"><span class="mp-tab__icon"></span>News</span>
                 <span class="mp-tab"><span class="mp-tab__icon"></span>Profile</span>
               </div>
+              <div class="mp-home-indicator"></div>
             </div>
           </div>
           <figcaption>Schedule</figcaption>
@@ -1103,6 +1157,7 @@
                 <span class="mp-tab"><span class="mp-tab__icon"></span>News</span>
                 <span class="mp-tab"><span class="mp-tab__icon"></span>Profile</span>
               </div>
+              <div class="mp-home-indicator"></div>
             </div>
           </div>
           <figcaption>Groups</figcaption>
@@ -1165,6 +1220,7 @@
                 <span class="mp-tab"><span class="mp-tab__icon"></span>News</span>
                 <span class="mp-tab"><span class="mp-tab__icon"></span>Profile</span>
               </div>
+              <div class="mp-home-indicator"></div>
             </div>
           </div>
           <figcaption>Family</figcaption>
@@ -1222,6 +1278,7 @@
                 <span class="mp-tab"><span class="mp-tab__icon"></span>News</span>
                 <span class="mp-tab mp-tab--active"><span class="mp-tab__icon"></span>Profile</span>
               </div>
+              <div class="mp-home-indicator"></div>
             </div>
           </div>
           <figcaption>Hymn Book</figcaption>
@@ -1394,22 +1451,27 @@
       <h2>Support the work.</h2>
       <p class="section-lead" style="max-width: 580px; margin-left: auto; margin-right: auto;">
         ChurchFlow is built by a small team, on personal time and at personal
-        cost, so it can stay <strong>free for every Methodist church</strong>.
-        Your gift helps cover hosting and app-store fees today, and funds the
-        next free tool for South African churches tomorrow.
+        cost, so it can stay <strong>free for every church</strong>.
+        Your gift helps us cover build and hosting costs, keeping ChurchFlow
+        free for every church.
       </p>
-      <a class="donate-cta"
-         href="https://www.payfast.co.za/donate/go/REPLACE_WITH_PAYFAST_CODE"
-         target="_blank"
-         rel="noopener"
-         aria-label="Donate to ChurchFlow via PayFast">
-        <svg viewBox="0 0 24 24" aria-hidden="true">
-          <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
-        </svg>
-        <span>Donate</span>
-      </a>
+      <form name="PayFastPayNowForm" class="donate-form" action="https://payment.payfast.io/eng/process" method="post">
+        <input required type="hidden" name="cmd" value="_paynow">
+        <input required type="hidden" name="receiver" value="18164611">
+        <input type="hidden" name="return_url" value="https://www.churchflowonline.co.za">
+        <input required type="hidden" name="item_name" maxlength="255" value="Churchflow Donations">
+        <input type="hidden" name="item_description" maxlength="255" value="Supporting free tech for South African churches">
+        <label for="PayFastAmount">Amount (ZAR)</label>
+        <input required id="PayFastAmount" type="number" step=".01" name="amount" min="5.00" placeholder="Enter amount (e.g. 10.00)">
+        <div class="donate-form__submit">
+          <button type="submit" class="donate-btn">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+            Donate
+          </button>
+        </div>
+      </form>
       <p class="donate-methods">
-        Secure payment via <strong>PayFast</strong> - card, Instant EFT, SnapScan, or Zapper.
+        Secure payment via <strong>PayFast</strong>.
       </p>
     </div>
   </section>
