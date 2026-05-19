@@ -1,7 +1,7 @@
 -- Enforce members-only for volunteer groups.
 --
 -- Volunteer groups are managed by admins and have no concept of a "leader"
--- role — every participant is a member. This migration:
+-- role - every participant is a member. This migration:
 --   1. Backfills any existing role='leader' rows on volunteer groups to 'member'
 --   2. Creates a BEFORE INSERT OR UPDATE trigger that raises an exception if
 --      anyone tries to assign role='leader' on a volunteer group, so the rule
@@ -23,7 +23,7 @@ begin
     perform 1 from public.groups where id = new.group_id and type = 'volunteer';
     if found then
       raise exception
-        'Volunteer groups cannot have leaders — use role ''member'' instead';
+        'Volunteer groups cannot have leaders - use role ''member'' instead';
     end if;
   end if;
   return new;

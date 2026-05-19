@@ -1,5 +1,5 @@
 /**
- * AdminGroupMembersScreen — manage leaders and members of a single group.
+ * AdminGroupMembersScreen - manage leaders and members of a single group.
  *
  * Accessible from AdminScreen for any admin (regular admin or super admin).
  *
@@ -33,7 +33,7 @@ import { useNavigation, useRoute, type RouteProp } from '@react-navigation/nativ
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '@/lib/supabase';
 import { colors, fonts, radius, shadow, spacing } from '@/theme';
-import type { Group, MemberRole, Profile } from '@/types';
+import type { Group, MeetingMode, MemberRole, Profile } from '@/types';
 import type { AppStackParamList } from '@/navigation/RootNavigator';
 
 type RouteParams = RouteProp<AppStackParamList, 'AdminGroupMembers'>;
@@ -77,6 +77,7 @@ export function AdminGroupMembersScreen() {
   const [selectMode, setSelectMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkBusy, setBulkBusy] = useState(false);
+  const [showEditGroup, setShowEditGroup] = useState(false);
   const mountedRef = useRef(true);
 
   useEffect(() => {
@@ -168,7 +169,7 @@ export function AdminGroupMembersScreen() {
       return;
     }
     if (!data || data.length === 0) {
-      // Already gone — either another admin removed them or RLS rejected
+      // Already gone - either another admin removed them or RLS rejected
       // silently. Just refresh so the UI matches DB state.
     }
     await load();
@@ -339,6 +340,15 @@ export function AdminGroupMembersScreen() {
             <Text style={styles.headerTitle} numberOfLines={1}>{group.name}</Text>
             <Text style={styles.headerSub}>{group.type === 'class' ? 'Class group' : 'Volunteer group'}</Text>
           </View>
+          <Pressable
+            onPress={() => setShowEditGroup(true)}
+            hitSlop={6}
+            style={styles.editGroupBtn}
+            accessibilityRole="button"
+            accessibilityLabel="Edit group details"
+          >
+            <Ionicons name="settings-outline" size={18} color={colors.primary} />
+          </Pressable>
           {members.length > 0 && (
             <Pressable
               onPress={() => enterSelect()}
@@ -352,6 +362,8 @@ export function AdminGroupMembersScreen() {
             style={styles.addBtn}
             onPress={() => setShowAdd(true)}
             hitSlop={6}
+            accessibilityRole="button"
+            accessibilityLabel="Add members to group"
           >
             <Ionicons name="person-add" size={18} color={colors.surface} />
           </Pressable>
@@ -387,7 +399,7 @@ export function AdminGroupMembersScreen() {
             {selectMode
               ? 'Tap rows to add or remove from selection. Use the trash icon to remove everyone selected.'
               : isVolunteer
-                ? 'Volunteer groups have members only — no leader role. Tap the X to remove someone. Long-press a row or tap "Select" to remove several at once.'
+                ? 'Volunteer groups have members only - no leader role. Tap the X to remove someone. Long-press a row or tap "Select" to remove several at once.'
                 : 'Tap the role pill to swap leader / member. Tap the X to remove a person. Long-press a row or tap "Select" to remove several at once.'}
           </Text>
         </ScrollView>
@@ -400,12 +412,19 @@ export function AdminGroupMembersScreen() {
         onClose={() => setShowAdd(false)}
         onAdded={handleAdded}
       />
+
+      <EditGroupModal
+        visible={showEditGroup}
+        group={group}
+        onClose={() => setShowEditGroup(false)}
+        onSaved={() => setShowEditGroup(false)}
+      />
     </SafeAreaView>
   );
 }
 
 /**
- * AddMemberModal — search the directory of all registered users by display_name
+ * AddMemberModal - search the directory of all registered users by display_name
  * or email, pick one, choose a role, and upsert the group_member row.
  */
 function AddMemberModal({
@@ -541,7 +560,7 @@ function AddMemberModal({
     }
 
     const names = failures
-      .map(f => `• ${f.user.display_name ?? f.user.email ?? 'user'} — ${f.message}`)
+      .map(f => `• ${f.user.display_name ?? f.user.email ?? 'user'} - ${f.message}`)
       .join('\n');
     Alert.alert(
       added > 0 ? `Added ${added}, ${failures.length} failed` : 'Could not add members',
@@ -565,7 +584,7 @@ function AddMemberModal({
             <View style={styles.volunteerRoleNote}>
               <Ionicons name="information-circle-outline" size={15} color={colors.textMuted} />
               <Text style={styles.volunteerRoleNoteText}>
-                Volunteer groups have members only — no leader role.
+                Volunteer groups have members only - no leader role.
               </Text>
             </View>
           ) : (
@@ -636,10 +655,10 @@ function AddMemberModal({
                     accessibilityState={already ? { disabled: true } : { checked: isStaged }}
                     accessibilityLabel={
                       already
-                        ? `${displayName} — already in group`
+                        ? `${displayName} - already in group`
                         : isStaged
-                          ? `${displayName} — selected for adding`
-                          : `${displayName} — tap to add`
+                          ? `${displayName} - selected for adding`
+                          : `${displayName} - tap to add`
                     }
                   >
                     <Avatar uri={item.avatar_url} name={item.display_name ?? item.email} size={36} />
@@ -691,6 +710,121 @@ function AddMemberModal({
   );
 }
 
+/**
+ * EditGroupModal - admin-only group settings: description, location, meeting
+ * mode, and meeting time. Type cannot be changed (would invalidate the
+ * one-class-group-per-user trigger and the volunteer-no-leaders trigger).
+ */
+function EditGroupModal({ visible, group, onClose, onSaved }: {
+  visible: boolean;
+  group: Group;
+  onClose: () => void;
+  onSaved: () => void;
+}) {
+  const [description, setDescription] = useState('');
+  const [meetingTime, setMeetingTime] = useState('');
+  const [location, setLocation] = useState('');
+  const [meetingMode, setMeetingMode] = useState<MeetingMode>('in_person');
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (!visible) return;
+    setDescription(group.description ?? '');
+    setMeetingTime(group.meeting_time ?? '');
+    setLocation(group.location ?? '');
+    setMeetingMode((group.meeting_mode as MeetingMode | null) ?? 'in_person');
+  }, [visible, group]);
+
+  const save = async () => {
+    setSaving(true);
+    const { error } = await supabase
+      .from('groups')
+      .update({
+        description: description.trim() || null,
+        meeting_time: meetingTime.trim() || null,
+        location: location.trim() || null,
+        meeting_mode: meetingMode,
+      })
+      .eq('id', group.id);
+    setSaving(false);
+    if (error) { Alert.alert('Could not save', error.message); return; }
+    onSaved();
+  };
+
+  const locationPlaceholder =
+    meetingMode === 'online' ? 'https://zoom.us/…' :
+    meetingMode === 'hybrid' ? 'Hall name + Zoom URL' :
+    'e.g. Main hall, 12 Church St';
+
+  return (
+    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
+      <SafeAreaView style={styles.modalSafe}>
+        <View style={styles.modalHeader}>
+          <Pressable onPress={onClose} hitSlop={10}><Text style={styles.modalCancel}>Cancel</Text></Pressable>
+          <Text style={styles.modalTitle}>Edit group</Text>
+          <Pressable onPress={save} disabled={saving} hitSlop={10}>
+            <Text style={[styles.modalAction, saving && { opacity: 0.5 }]}>{saving ? '…' : 'Save'}</Text>
+          </Pressable>
+        </View>
+
+        <ScrollView contentContainerStyle={styles.modalBody} keyboardShouldPersistTaps="handled">
+          <Text style={styles.fieldLabel}>Description</Text>
+          <TextInput
+            value={description}
+            onChangeText={setDescription}
+            placeholder="What's this group about?"
+            placeholderTextColor={colors.textMuted}
+            multiline
+            style={[styles.editInput, styles.editTextArea]}
+          />
+
+          <Text style={styles.fieldLabel}>Meeting mode</Text>
+          <View style={styles.modeRow}>
+            {(['in_person', 'online', 'hybrid'] as const).map(m => (
+              <Pressable
+                key={m}
+                style={[styles.modeOption, meetingMode === m && styles.modeOptionActive]}
+                onPress={() => setMeetingMode(m)}
+                accessibilityRole="radio"
+                accessibilityState={{ selected: meetingMode === m }}
+              >
+                <Ionicons
+                  name={m === 'in_person' ? 'people-outline' : m === 'online' ? 'videocam-outline' : 'globe-outline'}
+                  size={14}
+                  color={meetingMode === m ? colors.primary : colors.textMuted}
+                />
+                <Text style={[styles.modeOptionText, meetingMode === m && styles.modeOptionTextActive]}>
+                  {m === 'in_person' ? 'In person' : m === 'online' ? 'Online' : 'Hybrid'}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+
+          <Text style={styles.fieldLabel}>Location</Text>
+          <TextInput
+            value={location}
+            onChangeText={setLocation}
+            placeholder={locationPlaceholder}
+            placeholderTextColor={colors.textMuted}
+            autoCapitalize="none"
+            autoCorrect={false}
+            style={styles.editInput}
+          />
+
+          <Text style={styles.fieldLabel}>Meeting time</Text>
+          <TextInput
+            value={meetingTime}
+            onChangeText={setMeetingTime}
+            placeholder="e.g. Sundays 09:00"
+            placeholderTextColor={colors.textMuted}
+            style={styles.editInput}
+          />
+        </ScrollView>
+      </SafeAreaView>
+    </Modal>
+  );
+}
+
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.background },
   header: {
@@ -723,6 +857,12 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primaryLight,
   },
   selectBtnText: { fontSize: 12, fontWeight: '700', color: colors.primary, letterSpacing: 0.4 },
+  editGroupBtn: {
+    width: 36, height: 36, borderRadius: 18,
+    borderWidth: 1, borderColor: colors.primary,
+    alignItems: 'center', justifyContent: 'center',
+    backgroundColor: colors.surface,
+  },
   headerSelect: { backgroundColor: colors.primaryLight, gap: spacing.sm },
   headerSelectAction: { fontSize: 12, color: colors.primary, fontWeight: '600', marginTop: 2 },
   bulkActionBtn: {
@@ -802,8 +942,25 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: colors.border,
   },
-  modalTitle: { fontFamily: fonts.serif, fontSize: 18, fontWeight: '700', color: colors.text, flex: 1 },
+  modalTitle: { fontFamily: fonts.serif, fontSize: 18, fontWeight: '700', color: colors.text, flex: 1, textAlign: 'center' },
+  modalCancel: { fontSize: 15, color: colors.textMuted, minWidth: 60 },
+  modalAction: { fontSize: 15, color: colors.primary, fontWeight: '700', minWidth: 60, textAlign: 'right' },
   modalBody: { flex: 1, padding: spacing.lg, gap: spacing.sm },
+  editInput: {
+    backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border,
+    borderRadius: radius.md, paddingHorizontal: spacing.md, paddingVertical: Platform.OS === 'ios' ? spacing.md : spacing.sm,
+    fontSize: 15, color: colors.text,
+  },
+  editTextArea: { minHeight: 80, textAlignVertical: 'top' },
+  modeRow: { flexDirection: 'row', gap: spacing.sm },
+  modeOption: {
+    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5,
+    paddingVertical: spacing.sm, borderRadius: radius.md,
+    borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface,
+  },
+  modeOptionActive: { borderColor: colors.primary, backgroundColor: colors.primaryLight },
+  modeOptionText: { fontSize: 13, fontWeight: '600', color: colors.textMuted },
+  modeOptionTextActive: { color: colors.primary },
   fieldLabel: {
     fontSize: 11.5,
     fontWeight: '700',

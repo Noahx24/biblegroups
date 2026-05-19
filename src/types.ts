@@ -1,4 +1,5 @@
 export type GroupType = 'class' | 'volunteer';
+export type MeetingMode = 'in_person' | 'online' | 'hybrid';
 export type MemberRole = 'member' | 'leader';
 export type SlotStatus = 'open' | 'pending' | 'accepted' | 'declined';
 export type RsvpStatus = 'going' | 'not_going' | 'maybe';
@@ -77,6 +78,8 @@ export type Group = {
   type: GroupType;
   description: string | null;
   meeting_time: string | null;
+  location: string | null;
+  meeting_mode: MeetingMode | null;
   created_by: string | null;
   created_at: string;
 };

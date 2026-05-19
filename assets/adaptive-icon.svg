@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
   ChurchFlow Android adaptive-icon foreground.
-  Transparent background — the scarlet comes from
+  Transparent background - the scarlet comes from
   app.json > expo.android.adaptiveIcon.backgroundColor.
   Foreground content fits inside the inner 66% (672×672) so
   Android's mask circle never crops the book.

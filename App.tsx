@@ -17,7 +17,7 @@ import { initLogger } from '@/lib/logger';
 // EXPO_PUBLIC_SENTRY_DSN is not set.
 initLogger();
 
-// Install the foreground notification handler before any render — push
+// Install the foreground notification handler before any render - push
 // notifications arriving while the app is open show as banners.
 setNotificationHandler();
 

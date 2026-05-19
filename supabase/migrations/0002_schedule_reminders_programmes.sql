@@ -68,7 +68,7 @@ create index if not exists schedule_programme_id_idx on public.schedule(programm
 -- so a class group couldn't have two entries on the same date. Volunteer
 -- groups want multiple slots per day (11:00 service + 18:00 service), so
 -- relax it to (group_id, slot_date, coalesce(slot_time, '00:00:00')). The
--- old constraint's name isn't known here — drop anything matching the old
+-- old constraint's name isn't known here - drop anything matching the old
 -- column set defensively.
 do $$
 declare
@@ -94,7 +94,7 @@ create unique index if not exists schedule_group_date_time_unique
   on public.schedule(group_id, slot_date, coalesce(slot_time, time '00:00:00'));
 
 -- ─── device_push_tokens ─────────────────────────────────────────────────────
--- One row per (user, push_token). A user can have several tokens — multiple
+-- One row per (user, push_token). A user can have several tokens - multiple
 -- devices, plus token rotation by Expo. The reminder edge function fans out
 -- to all of them.
 create table if not exists public.device_push_tokens (
@@ -115,4 +115,4 @@ create policy device_push_tokens_owner on public.device_push_tokens
   for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 
 -- Service role (used by the reminder edge function) bypasses RLS via the
--- service key — no extra policy needed for the function's SELECT.
+-- service key - no extra policy needed for the function's SELECT.

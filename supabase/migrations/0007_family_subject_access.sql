@@ -2,7 +2,7 @@
 --
 -- POPIA gives the data subject (or their parent / guardian) the right to:
 --   * Access the data held about them.
---   * Have inaccurate data corrected — covered by the parent's normal write
+--   * Have inaccurate data corrected - covered by the parent's normal write
 --     access on family_members.
 --   * Have data deleted ("right to erasure" / right to be forgotten).
 --
@@ -89,7 +89,7 @@ comment on function public.parent_export_child_data(uuid) is
 -- ─── 2. Parent: delete a child completely ───────────────────────────────────
 -- Hard-deletes the family_members row plus cascades on program_registrations
 -- (FK ON DELETE CASCADE presumed from 0001). The audit log row is preserved
--- because family_member_id is set null on delete — the actor / metadata
+-- because family_member_id is set null on delete - the actor / metadata
 -- survive so we can prove the deletion happened.
 
 create or replace function public.parent_delete_child(p_child_id uuid)
@@ -127,7 +127,7 @@ comment on function public.parent_delete_child(uuid) is
 -- ─── 3. Admin retention sweep: delete children aged 18+ ─────────────────────
 -- Driven by birth_year, since the schema only carries the year (the parent's
 -- birthday convention). A child born in year Y is considered to have aged
--- out when current_year - Y >= 19 — we keep them through their 18th
+-- out when current_year - Y >= 19 - we keep them through their 18th
 -- calendar year for end-of-year programme handoff.
 --
 -- Returns the count deleted. Designed to be invoked manually by an admin or

@@ -16,7 +16,7 @@ export type RealtimeTable =
 // Subscribe to all writes on a Postgres table and call onChange.
 //
 // The callback is stored in a ref so a new function reference (e.g. from a
-// parent re-render) never tears down and rebuilds the channel — only changes
+// parent re-render) never tears down and rebuilds the channel - only changes
 // to `table` or `filter` do that.
 //
 // Rapid bursts of DB events (e.g. a bulk import writing 50 rows) are collapsed
@@ -58,5 +58,5 @@ export function useRealtime(
       if (debounceTimer) clearTimeout(debounceTimer);
       supabase.removeChannel(channel);
     };
-  }, [table, filter, debounceMs]); // onChange intentionally excluded — handled via ref
+  }, [table, filter, debounceMs]); // onChange intentionally excluded - handled via ref
 }

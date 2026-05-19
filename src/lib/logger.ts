@@ -3,7 +3,7 @@
 // When EXPO_PUBLIC_SENTRY_DSN is set, captureException and captureMessage
 // forward to Sentry; otherwise they fall through to console so the dev
 // loop still surfaces problems. Call initLogger() once at app startup
-// (App.tsx) — calling it without a DSN is a no-op.
+// (App.tsx) - calling it without a DSN is a no-op.
 
 import * as Sentry from '@sentry/react-native';
 

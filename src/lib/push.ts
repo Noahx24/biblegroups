@@ -67,7 +67,7 @@ export async function registerForPushNotificationsAsync(userId: string): Promise
   }
 
   // eas.projectId comes from app.json -> extra.eas.projectId. If it's the
-  // placeholder, bail out cleanly — the user hasn't run `eas init` yet.
+  // placeholder, bail out cleanly - the user hasn't run `eas init` yet.
   const projectId =
     Constants.expoConfig?.extra?.eas?.projectId ??
     (Constants as { easConfig?: { projectId?: string } }).easConfig?.projectId;

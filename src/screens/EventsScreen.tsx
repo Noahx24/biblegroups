@@ -186,7 +186,7 @@ export function EventsScreen() {
             <Text style={styles.emptyTitle}>No upcoming events</Text>
             <Text style={styles.emptySubtitle}>
               {isLeader
-                ? 'Plan your next gathering — your group will see it here.'
+                ? 'Plan your next gathering - your group will see it here.'
                 : "Your group hasn't announced any events yet. Check back soon."}
             </Text>
             {isLeader && (
@@ -340,7 +340,7 @@ function EventModal({
       Alert.alert('Bad date', 'Use format YYYY-MM-DD HH:MM (e.g. 2026-06-01 19:00)');
       return;
     }
-    // Catch overflow dates like Feb 30 or month 13 — date-fns rolls them forward silently
+    // Catch overflow dates like Feb 30 or month 13 - date-fns rolls them forward silently
     const [datePart, timePart] = trimmed.split(' ');
     const [y, mo, d] = (datePart ?? '').split('-').map(Number);
     const [h, mi] = (timePart ?? '').split(':').map(Number);
@@ -351,7 +351,7 @@ function EventModal({
       parsed.getHours() !== h ||
       parsed.getMinutes() !== mi
     ) {
-      Alert.alert('Bad date', 'Invalid date — check day, month and time values.');
+      Alert.alert('Bad date', 'Invalid date - check day, month and time values.');
       return;
     }
     if (parsed <= new Date()) {

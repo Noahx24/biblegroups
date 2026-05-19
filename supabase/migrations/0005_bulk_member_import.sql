@@ -4,7 +4,7 @@
 -- AdminScreen with a single server-side RPC. The function:
 --
 --   * Runs as security definer, so admin staff can invoke it without needing
---     RLS bypass tokens — the guard inside checks profiles.is_admin /
+--     RLS bypass tokens - the guard inside checks profiles.is_admin /
 --     is_super_admin against auth.uid().
 --   * Accepts a jsonb array `[{ email, group_name, role }]`.
 --   * Resolves each email -> profile, looks up or creates the named group,
@@ -14,7 +14,7 @@
 --
 -- The RPC is intended to be invoked from the Supabase SQL editor, the
 -- supabase-js admin script (scripts/bulk_import_members.ts), or any other
--- trusted backend tool — never from the public client UI.
+-- trusted backend tool - never from the public client UI.
 
 create or replace function public.admin_bulk_assign_members(payload jsonb)
 returns table (
@@ -78,7 +78,7 @@ begin
     end if;
 
     -- 1. Resolve the user by email (case-insensitive). Profiles must already
-    --    exist — this RPC does not create auth users.
+    --    exist - this RPC does not create auth users.
     select p.id
       into v_user_id
       from public.profiles p

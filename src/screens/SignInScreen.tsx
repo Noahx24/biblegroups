@@ -67,7 +67,7 @@ export function SignInScreen() {
         setInfo('Check your inbox for a password reset link.');
       }
     } catch (e) {
-      // Server errors are unpredictable — keep the modal alert here.
+      // Server errors are unpredictable - keep the modal alert here.
       Alert.alert('Sign-in error', e instanceof Error ? e.message : String(e));
     } finally {
       setBusy(false);

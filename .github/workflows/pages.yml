@@ -1,0 +1,46 @@
+# Deploys the marketing site under /docs to the gh-pages branch.
+#
+# Trigger:
+#   - push to main that touches docs/**
+#   - manual run via the "Run workflow" button (workflow_dispatch)
+#
+# The site is published at https://<owner>.github.io/<repo>/ once Pages
+# is enabled in the repo settings → Pages → Source = "Deploy from a branch"
+# → Branch = `gh-pages` / `/ (root)`.
+
+name: Deploy marketing site to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'docs/**'
+      - '.github/workflows/pages.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: pages-deploy
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Publish docs/ to gh-pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./docs
+          publish_branch: gh-pages
+          # force_orphan keeps the gh-pages history shallow - each deploy
+          # is a single commit, so the branch never bloats over time.
+          force_orphan: true
+          user_name: 'github-actions[bot]'
+          user_email: 'github-actions[bot]@users.noreply.github.com'
+          commit_message: 'Deploy docs from ${{ github.sha }}'

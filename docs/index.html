@@ -1,0 +1,1441 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ChurchFlow - Stay connected to your church family</title>
+
+  <meta name="description" content="ChurchFlow is a mobile app for Methodist churches - groups, schedules, family programmes, weekly scripture, and newsletters in one place. Coming soon to iOS and Android.">
+  <meta name="theme-color" content="#B0202C">
+
+  <meta property="og:title" content="ChurchFlow - Coming soon">
+  <meta property="og:description" content="Stay connected to your church family. A mobile app designed for Methodist churches. Coming soon to iOS and Android.">
+  <meta property="og:type" content="website">
+
+  <link rel="icon" type="image/png" href="icon.png">
+  <link rel="apple-touch-icon" href="icon.png">
+
+  <style>
+    :root {
+      --scarlet: #B0202C;
+      --scarlet-dark: #8E1924;
+      --scarlet-light: #F2D9DC;
+      --gold: #C89441;
+      --gold-dark: #9C7E3D;
+      --gold-tint: #F7E9C8;
+      --cream: #FAF6EC;
+      --cream-soft: #F7F1E5;
+      --surface: #FFFFFF;
+      --text: #1F1A14;
+      --text-soft: #3D352B;
+      --text-muted: #7A7164;
+      --border: #E5DDD0;
+      --border-soft: #EFE7D8;
+      --success: #4A7C59;
+      --serif: Georgia, 'Times New Roman', serif;
+      --sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      --shadow-card: 0 4px 16px rgba(31, 26, 20, .07);
+    }
+
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+    body {
+      font-family: var(--sans);
+      color: var(--text);
+      background: var(--cream);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .wrap { max-width: 980px; margin: 0 auto; padding: 0 24px; }
+
+    /* ─── Hero ───────────────────────────────────────────── */
+    .hero {
+      padding: 72px 24px 56px;
+      text-align: center;
+      background:
+        radial-gradient(ellipse at top, rgba(176, 32, 44, .06), transparent 60%),
+        var(--cream);
+    }
+    .logo {
+      display: inline-block;
+      width: 112px; height: 112px;
+      border-radius: 26px;
+      box-shadow: 0 14px 36px rgba(176, 32, 44, .26);
+      margin-bottom: 28px;
+      overflow: hidden;
+      /* let the icon's own background carry the brand colour */
+      background: var(--scarlet);
+    }
+    .logo img { width: 100%; height: 100%; display: block; }
+
+    h1 {
+      font-family: var(--serif);
+      font-size: clamp(40px, 7vw, 60px);
+      font-weight: 700;
+      color: var(--scarlet);
+      margin: 0 0 12px;
+      letter-spacing: -0.5px;
+      line-height: 1.05;
+    }
+    .tagline {
+      font-size: clamp(16px, 2.4vw, 19px);
+      color: var(--text-soft);
+      max-width: 540px;
+      margin: 0 auto 24px;
+    }
+    /* App Store + Google Play "Coming soon" badges in the hero. */
+    .store-badges {
+      display: inline-flex;
+      flex-wrap: wrap;
+      gap: 14px;
+      justify-content: center;
+    }
+    .store-badge {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 22px 10px 18px;
+      min-width: 200px;
+      background: #1F1A14;
+      color: #FFFFFF;
+      border-radius: 12px;
+      text-decoration: none;
+      cursor: not-allowed;
+      overflow: hidden;
+      box-shadow: 0 6px 16px rgba(31, 26, 20, .25);
+      transition: transform .15s ease, box-shadow .15s ease;
+    }
+    .store-badge:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 8px 22px rgba(31, 26, 20, .30);
+    }
+    .store-badge__logo {
+      width: 30px;
+      height: 30px;
+      flex-shrink: 0;
+    }
+    .store-badge__text {
+      display: flex;
+      flex-direction: column;
+      line-height: 1.1;
+      text-align: left;
+    }
+    .store-badge__small {
+      font-size: 10px;
+      font-weight: 500;
+      letter-spacing: 0.4px;
+      opacity: 0.88;
+    }
+    .store-badge__large {
+      font-size: 17px;
+      font-weight: 700;
+      letter-spacing: 0.1px;
+      margin-top: 2px;
+    }
+    .store-badge__ribbon {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 140%;
+      transform: translate(-50%, -50%) rotate(-16deg);
+      background: var(--scarlet);
+      color: #FFFFFF;
+      font-size: 10.5px;
+      font-weight: 800;
+      letter-spacing: 1.4px;
+      text-transform: uppercase;
+      text-align: center;
+      padding: 4px 0;
+      pointer-events: none;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, .35);
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .store-badge { transition: none; }
+      .store-badge:hover { transform: none; }
+    }
+
+    /* ─── Sections ───────────────────────────────────────── */
+    section { padding: 56px 0; }
+    section + section { border-top: 1px solid var(--border-soft); }
+
+    h2 {
+      font-family: var(--serif);
+      font-size: clamp(26px, 4vw, 34px);
+      font-weight: 700;
+      color: var(--text);
+      margin: 0 0 8px;
+      letter-spacing: -0.3px;
+    }
+    .section-lead {
+      font-size: 16px;
+      color: var(--text-muted);
+      max-width: 640px;
+      margin: 0 0 32px;
+    }
+
+    /* ─── About ──────────────────────────────────────────── */
+    .about .wrap {
+      max-width: 680px;
+    }
+    .about p {
+      font-size: 17px;
+      color: var(--text-soft);
+      line-height: 1.7;
+      max-width: 680px;
+    }
+    .about p + p { margin-top: 16px; }
+    .about .highlight {
+      display: inline-block;
+      padding: 2px 8px;
+      background: var(--gold-tint);
+      color: var(--gold-dark);
+      border-radius: 4px;
+      font-weight: 600;
+    }
+
+    /* ─── Feature grid ───────────────────────────────────── */
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 20px;
+    }
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border-soft);
+      border-radius: 14px;
+      padding: 24px;
+      box-shadow: var(--shadow-card);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .card__icon {
+      width: 44px; height: 44px;
+      border-radius: 12px;
+      background: var(--scarlet-light);
+      color: var(--scarlet);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 8px;
+    }
+    .card__icon svg { width: 22px; height: 22px; }
+    .card h3 {
+      font-family: var(--serif);
+      font-size: 18px;
+      font-weight: 700;
+      margin: 0;
+      color: var(--text);
+    }
+    .card p {
+      margin: 0;
+      font-size: 14.5px;
+      color: var(--text-muted);
+      line-height: 1.55;
+    }
+    .card.gold .card__icon { background: var(--gold-tint); color: var(--gold-dark); }
+    .card.success .card__icon { background: #E1ECE3; color: var(--success); }
+
+    /* ─── Screens showcase ───────────────────────────────── */
+    .screens {
+      background:
+        radial-gradient(ellipse at top, rgba(176, 32, 44, .04), transparent 70%),
+        var(--cream);
+    }
+    .mobile-mockups {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 36px;
+      margin-top: 32px;
+      max-width: 920px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    @media (min-width: 720px) {
+      .mobile-mockups {
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 28px;
+      }
+    }
+    .mobile-mockups figure {
+      margin: 0;
+      transition: transform .25s ease;
+    }
+    .mobile-mockups figure:hover { transform: translateY(-4px); }
+    .mobile-mockups figcaption {
+      font-size: 12px;
+      color: var(--text-muted);
+      text-align: center;
+      margin-top: 12px;
+      font-weight: 600;
+      letter-spacing: 0.4px;
+      text-transform: uppercase;
+    }
+
+    /* Phone mockup component.
+     * aspect-ratio enforces iPhone proportions; mp-screen flex:1 fills
+     * the phone so the tab bar always anchors at the bottom. Content
+     * inside .mp-page packs at the top via flex column; any unused
+     * vertical space sits between the content and the tab bar which is
+     * how real iPhone apps look when a page is short. */
+    .mp-phone {
+      background: #1F1A14;
+      padding: 6px;
+      border-radius: 28px;
+      width: 100%;
+      max-width: 280px;
+      margin: 0 auto;
+      aspect-ratio: 9 / 17;
+      display: flex;
+      box-shadow: 0 18px 36px rgba(31, 26, 20, .18);
+    }
+    .mp-screen {
+      flex: 1;
+      position: relative;
+      background: var(--cream);
+      border-radius: 20px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+    .mp-island {
+      position: absolute;
+      top: 5px; left: 50%;
+      transform: translateX(-50%);
+      width: 48px; height: 13px;
+      background: #1F1A14;
+      border-radius: 8px;
+      z-index: 3;
+    }
+    .mp-statusbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 14px 2px;
+      font-size: 8.5px;
+      font-weight: 700;
+      color: var(--text);
+    }
+    .mp-statusbar__icons { display: inline-flex; align-items: center; gap: 3px; opacity: .85; }
+    .mp-statusbar__icons svg { display: block; }
+    .mp-page {
+      flex: 1;
+      padding: 6px 9px 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      overflow: hidden;
+    }
+    .mp-title {
+      font-family: var(--serif);
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--text);
+      letter-spacing: -0.3px;
+      line-height: 1.05;
+      margin-top: 2px;
+    }
+    .mp-subtitle {
+      font-size: 8px;
+      color: var(--text-muted);
+      margin-top: 1px;
+    }
+    .mp-section-label {
+      font-size: 6.5px;
+      font-weight: 700;
+      color: var(--text-muted);
+      letter-spacing: 1.1px;
+      text-transform: uppercase;
+      margin-top: 3px;
+    }
+    .mp-card {
+      background: var(--surface);
+      border-radius: 5px;
+      border: 1px solid var(--border-soft);
+      padding: 5px 7px 5px 10px;
+      position: relative;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      overflow: hidden;
+    }
+    .mp-card__bar {
+      position: absolute;
+      left: 0; top: 0;
+      bottom: 0;
+      width: 3px;
+    }
+    .mp-bar--scarlet { background: var(--scarlet); }
+    .mp-bar--gold { background: var(--gold); }
+    .mp-bar--success { background: var(--success); }
+    .mp-card__body { flex: 1; min-width: 0; }
+    .mp-card__title {
+      font-family: var(--serif);
+      font-size: 9.5px;
+      font-weight: 700;
+      color: var(--text);
+      line-height: 1.15;
+    }
+    .mp-card__meta {
+      font-size: 7px;
+      color: var(--text-muted);
+      margin-top: 1px;
+    }
+    .mp-pill {
+      display: inline-block;
+      padding: 1.5px 6px;
+      border-radius: 999px;
+      font-size: 6.5px;
+      font-weight: 700;
+      letter-spacing: 0.4px;
+      text-transform: uppercase;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    .mp-pill--scarlet { background: var(--scarlet-light); color: var(--scarlet-dark); }
+    .mp-pill--gold { background: var(--gold-tint); color: var(--gold-dark); }
+    .mp-pill--success { background: var(--success-tint); color: var(--success); }
+    .mp-pill--solid-success { background: var(--success); color: #fff; }
+    .mp-pill--outline-scarlet { background: transparent; color: var(--scarlet); border: 1px solid var(--scarlet); }
+
+    .mp-avatar {
+      width: 18px; height: 18px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--serif);
+      font-size: 8px;
+      font-weight: 700;
+      color: #fff;
+      flex-shrink: 0;
+    }
+    .mp-avatar--scarlet { background: var(--scarlet); }
+    .mp-avatar--gold { background: var(--gold); }
+
+    /* Calendar mini */
+    .mp-cal {
+      background: var(--surface);
+      border: 1px solid var(--border-soft);
+      border-radius: 5px;
+      padding: 4px 5px;
+    }
+    .mp-cal__head { text-align: center; font-size: 8px; font-weight: 700; color: var(--text); margin-bottom: 2px; }
+    .mp-cal__row { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; text-align: center; font-size: 6.5px; }
+    .mp-cal__weekday {
+      color: var(--text-muted);
+      font-weight: 700;
+      font-size: 5.5px;
+      letter-spacing: 0.4px;
+      padding: 1px 0;
+    }
+    .mp-cal__day {
+      color: var(--text);
+      position: relative;
+      padding: 3px 0;
+    }
+    /* Today is a fixed-size scarlet circle around the number, never the
+     * full grid cell - that way it doesn't balloon when the calendar is
+     * rendered at a wider mobile width. */
+    .mp-cal__day--today {
+      display: inline-flex;
+      width: 16px;
+      height: 16px;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      background: var(--scarlet);
+      color: #fff;
+      font-weight: 700;
+      padding: 0;
+    }
+    .mp-cal__day--dot-scarlet::after,
+    .mp-cal__day--dot-gold::after,
+    .mp-cal__day--dot-blue::after {
+      content: "";
+      position: absolute;
+      bottom: -1px; left: 50%;
+      transform: translateX(-50%);
+      width: 3px; height: 3px;
+      border-radius: 50%;
+    }
+    .mp-cal__day--dot-scarlet::after { background: var(--scarlet); }
+    .mp-cal__day--dot-gold::after { background: var(--gold); }
+    .mp-cal__day--dot-blue::after { background: var(--blue); }
+
+    /* Search input mini */
+    .mp-search {
+      background: var(--surface);
+      border: 1px solid var(--border-soft);
+      border-radius: 5px;
+      padding: 3px 6px;
+      font-size: 7px;
+      color: var(--text-muted);
+    }
+    .mp-lang-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 2px;
+      background: var(--cream-soft);
+      padding: 2px;
+      border-radius: 999px;
+    }
+    .mp-lang {
+      text-align: center;
+      padding: 3px 4px;
+      font-size: 7px;
+      font-weight: 700;
+      color: var(--text-muted);
+      border-radius: 999px;
+    }
+    .mp-lang--active { background: var(--scarlet); color: #fff; }
+
+    .mp-tabbar {
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      padding: 5px 4px 9px;
+      flex-shrink: 0;
+    }
+    .mp-tab {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+      font-size: 7px;
+      font-weight: 600;
+      color: var(--text-muted);
+      letter-spacing: 0.1px;
+      white-space: nowrap;
+      overflow: hidden;
+    }
+    .mp-tab__icon {
+      width: 13px; height: 13px;
+      border: 1.4px solid currentColor;
+      border-radius: 3px;
+    }
+    .mp-tab--active { color: var(--scarlet); }
+    .mp-tab--active .mp-tab__icon { background: currentColor; }
+    /* iOS home indicator pill - small dark bar sitting below the tab bar.
+     * Makes each phone read instantly as a modern iPhone rather than a
+     * generic mobile frame. */
+    .mp-home-indicator {
+      width: 92px;
+      height: 4px;
+      border-radius: 2px;
+      background: #1F1A14;
+      margin: 4px auto 6px;
+      opacity: 0.92;
+    }
+
+    /* Admin browser mockup */
+    .admin-mockup {
+      margin: 64px auto 0;
+      max-width: 920px;
+      border-radius: 14px;
+      overflow: hidden;
+      background: var(--surface);
+      border: 1px solid var(--border-soft);
+      box-shadow: 0 24px 60px rgba(31, 26, 20, .12);
+    }
+    .ad-bar {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 14px;
+      background: var(--surface-alt);
+      border-bottom: 1px solid var(--border-soft);
+    }
+    .ad-bar__dots { display: flex; gap: 5px; }
+    .ad-bar__dots span { width: 10px; height: 10px; border-radius: 50%; }
+    .ad-bar__url {
+      flex: 1;
+      max-width: 360px;
+      margin: 0 auto;
+      background: var(--surface);
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 11px;
+      color: var(--text-muted);
+      text-align: center;
+      font-family: monospace;
+    }
+    .ad-body {
+      display: grid;
+      grid-template-columns: 180px 1fr;
+      min-height: 320px;
+    }
+    .ad-side {
+      background: var(--surface);
+      border-right: 1px solid var(--border-soft);
+      padding: 14px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .ad-brand {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 4px 0 12px;
+    }
+    .ad-brand__mark {
+      width: 28px; height: 28px;
+      background: var(--scarlet);
+      border-radius: 6px;
+      display: flex; align-items: center; justify-content: center;
+      color: #fff;
+      font-family: var(--serif);
+      font-size: 11px;
+      font-weight: 700;
+    }
+    .ad-brand__text {
+      font-family: var(--serif);
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text);
+    }
+    .ad-brand__text small { display: block; font-size: 9px; color: var(--text-muted); font-family: var(--sans); font-weight: 500; letter-spacing: 0.4px; }
+    .ad-nav { display: flex; flex-direction: column; gap: 2px; }
+    .ad-nav__item {
+      font-size: 11px;
+      padding: 6px 8px;
+      border-radius: 6px;
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+    .ad-nav__item--active {
+      background: var(--scarlet-light);
+      color: var(--scarlet);
+      font-weight: 700;
+    }
+    .ad-main {
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      background: var(--cream-soft);
+    }
+    .ad-main__title {
+      font-family: var(--serif);
+      font-size: 20px;
+      font-weight: 600;
+      color: var(--text);
+    }
+    .ad-main__subtitle {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-top: -10px;
+    }
+    .ad-kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+      gap: 10px;
+    }
+    .ad-kpi {
+      background: var(--surface);
+      border: 1px solid var(--border-soft);
+      border-radius: 8px;
+      padding: 10px 12px;
+    }
+    .ad-kpi__label {
+      font-size: 9px;
+      font-weight: 700;
+      color: var(--text-muted);
+      letter-spacing: 1.1px;
+      text-transform: uppercase;
+    }
+    .ad-kpi__value {
+      font-family: var(--serif);
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--text);
+      margin-top: 2px;
+    }
+    .ad-kpi__delta {
+      font-size: 10px;
+      color: var(--success);
+      font-weight: 600;
+      margin-top: 4px;
+    }
+    .ad-activity {
+      background: var(--surface);
+      border: 1px solid var(--border-soft);
+      border-radius: 8px;
+      padding: 12px 14px;
+    }
+    .ad-activity__label {
+      font-size: 9px;
+      font-weight: 700;
+      color: var(--text-muted);
+      letter-spacing: 1.1px;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+    .ad-activity__row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 4px 0;
+      font-size: 11px;
+      color: var(--text-soft);
+    }
+    .ad-activity__dot {
+      width: 5px; height: 5px;
+      border-radius: 50%;
+      background: var(--scarlet);
+      flex-shrink: 0;
+    }
+    .ad-activity__time {
+      margin-left: auto;
+      font-size: 10px;
+      color: var(--text-muted);
+    }
+    .admin-mockup__caption {
+      padding: 14px 20px;
+      text-align: center;
+      font-size: 13px;
+      color: var(--text-muted);
+      font-style: italic;
+      border-top: 1px solid var(--border-soft);
+      background: var(--surface-alt);
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .mobile-mockups figure { transition: none; }
+      .mobile-mockups figure:hover { transform: none; }
+    }
+
+    /* ─── Donate section ─────────────────────────────────── */
+    .donate {
+      background: var(--cream-soft);
+      text-align: center;
+    }
+    .donate-form {
+      display: inline-block;
+      margin: 32px auto 14px;
+      text-align: left;
+      background: var(--surface);
+      border: 1px solid var(--border-soft);
+      border-radius: 16px;
+      padding: 28px 32px;
+      box-shadow: var(--shadow-card);
+      min-width: 280px;
+    }
+    .donate-form label {
+      display: block;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+    }
+    .donate-form input[type="number"] {
+      width: 100%;
+      padding: 12px 16px;
+      font-size: 22px;
+      font-weight: 600;
+      border: 1.5px solid var(--border);
+      border-radius: 10px;
+      background: var(--cream);
+      color: var(--text);
+      margin-bottom: 20px;
+      font-family: var(--sans);
+      -webkit-appearance: none;
+      appearance: none;
+    }
+    .donate-form input[type="number"]:focus {
+      outline: none;
+      border-color: var(--scarlet);
+    }
+    .donate-form__submit {
+      display: block;
+      text-align: center;
+    }
+    .donate-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      background: var(--scarlet);
+      color: #FFFFFF;
+      border: none;
+      cursor: pointer;
+      padding: 18px 36px;
+      border-radius: 999px;
+      font-weight: 700;
+      font-size: 17px;
+      letter-spacing: 0.2px;
+      box-shadow: 0 10px 28px rgba(176, 32, 44, .28);
+      transition: transform .15s ease, box-shadow .15s ease;
+      font-family: var(--sans);
+    }
+    .donate-btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 14px 34px rgba(176, 32, 44, .34);
+    }
+    .donate-btn svg {
+      width: 20px; height: 20px;
+      fill: currentColor;
+    }
+    .donate-methods {
+      text-align: center;
+      max-width: 520px;
+      margin: 0 auto;
+      font-size: 12.5px;
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
+    .donate-methods strong {
+      color: var(--text-soft);
+      font-weight: 700;
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .donate-btn { transition: none; }
+      .donate-btn:hover { transform: none; }
+    }
+
+    /* ─── Status / availability ──────────────────────────── */
+    .status-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      max-width: 720px;
+    }
+    .status-item {
+      display: flex;
+      align-items: stretch;
+      gap: 20px;
+      padding: 20px;
+      background: var(--surface);
+      border: 1px solid var(--border-soft);
+      border-radius: 14px;
+      box-shadow: var(--shadow-card);
+    }
+    .status-visual {
+      flex-shrink: 0;
+      width: 88px;
+      align-self: stretch;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--scarlet-light);
+    }
+    .status-visual--soon { background: var(--scarlet-light); }
+    .status-visual--progress { background: var(--gold-tint); }
+    .status-visual svg { width: 100%; height: 100%; padding: 14px; }
+    .status-content { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+    .status-pill {
+      align-self: flex-start;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.4px;
+      text-transform: uppercase;
+    }
+    .pill-progress {
+      background: var(--gold-tint);
+      color: var(--gold-dark);
+    }
+    .pill-soon {
+      background: var(--scarlet-light);
+      color: var(--scarlet-dark);
+    }
+    .status-item h4 {
+      font-family: var(--serif);
+      font-size: 16px;
+      margin: 0 0 4px;
+      color: var(--text);
+      font-weight: 700;
+    }
+    .status-item p {
+      margin: 0;
+      font-size: 14px;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+
+    /* ─── CTA ────────────────────────────────────────────── */
+    .cta {
+      background: var(--scarlet);
+      color: #fff;
+      padding: 56px 24px;
+      text-align: center;
+    }
+    .cta h2 {
+      color: #fff;
+      font-size: clamp(24px, 4vw, 32px);
+    }
+    .cta p {
+      color: rgba(255, 255, 255, .85);
+      max-width: 540px;
+      margin: 0 auto 24px;
+    }
+    .cta a {
+      display: inline-block;
+      padding: 14px 28px;
+      background: #fff;
+      color: var(--scarlet);
+      text-decoration: none;
+      font-weight: 700;
+      border-radius: 999px;
+      letter-spacing: 0.2px;
+      transition: transform .15s ease;
+    }
+    .cta a:hover { transform: translateY(-1px); }
+
+    /* ─── Footer ─────────────────────────────────────────── */
+    footer {
+      text-align: center;
+      padding: 32px 24px;
+      color: var(--text-muted);
+      font-size: 13px;
+      background: var(--cream-soft);
+    }
+    footer p { margin: 4px 0; }
+    footer a { color: var(--scarlet); text-decoration: none; }
+    footer a:hover { text-decoration: underline; }
+
+    /* ─── Small screens ──────────────────────────────────── */
+    @media (max-width: 640px) {
+      .hero { padding: 56px 20px 40px; }
+      section { padding: 40px 0; }
+      .wrap { padding: 0 20px; }
+    }
+
+  </style>
+</head>
+<body>
+
+  <!-- ─── Hero ────────────────────────────────────────────── -->
+  <header class="hero">
+    <div class="logo">
+      <img src="icon.png" alt="ChurchFlow logo">
+    </div>
+    <h1>ChurchFlow</h1>
+    <p class="tagline">Stay connected to your church family.</p>
+    <div class="store-badges">
+      <a class="store-badge" role="link" aria-disabled="true" tabindex="-1"
+         aria-label="ChurchFlow coming soon to the App Store">
+        <svg class="store-badge__logo" viewBox="0 0 24 24" fill="#FFFFFF" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+          <path d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z"/>
+        </svg>
+        <span class="store-badge__text">
+          <span class="store-badge__small">Available soon on the</span>
+          <span class="store-badge__large">App Store</span>
+        </span>
+        <span class="store-badge__ribbon">Coming soon</span>
+      </a>
+      <a class="store-badge" role="link" aria-disabled="true" tabindex="-1"
+         aria-label="ChurchFlow coming soon to Google Play">
+        <svg class="store-badge__logo" viewBox="0 0 24 24" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+          <polygon points="4,2.5 4,12 14,12" fill="#00C6FF"/>
+          <polygon points="4,12 4,21.5 14,12" fill="#00DE7A"/>
+          <polygon points="4,2.5 14,12 20,8" fill="#FFCE00"/>
+          <polygon points="4,21.5 14,12 20,16" fill="#FF3C00"/>
+        </svg>
+        <span class="store-badge__text">
+          <span class="store-badge__small">Get it on</span>
+          <span class="store-badge__large">Google Play</span>
+        </span>
+        <span class="store-badge__ribbon">Coming soon</span>
+      </a>
+    </div>
+  </header>
+
+  <!-- ─── About ───────────────────────────────────────────── -->
+  <section class="about">
+    <div class="wrap">
+      <h2>Built for Methodist churches.</h2>
+      <p>
+        ChurchFlow brings your class groups, volunteer schedules, weekly verses,
+        and family programmes into one calm, beautifully designed app. It's
+        being built specifically for <span class="highlight">Methodist churches</span>
+        - leaders, volunteers, parents, and members all in one place.
+      </p>
+      <p>
+        Privacy and safety first. Children's information is handled with explicit
+        parental consent, an audit log, and full subject-access rights -
+        compliant with South Africa's POPIA from day one.
+      </p>
+    </div>
+  </section>
+
+  <!-- ─── Features ────────────────────────────────────────── -->
+  <section>
+    <div class="wrap">
+      <h2>What you'll be able to do.</h2>
+      <p class="section-lead">Everything members, volunteers, and leaders need - in one app.</p>
+
+      <div class="grid">
+
+        <div class="card">
+          <div class="card__icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></div>
+          <h3>Schedule &amp; roster</h3>
+          <p>Class meetings, volunteer slots, and birthdays on one shared calendar. One tap to accept or decline.</p>
+        </div>
+
+        <div class="card">
+          <div class="card__icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2zM22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg></div>
+          <h3>Verse of the week</h3>
+          <p>Leaders share a Bible verse for the week in KJV, ESV, NIV, or NLT, with a daily reading plan that travels with you.</p>
+        </div>
+
+        <div class="card">
+          <div class="card__icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="7" r="4"/><path d="M3 21v-2a4 4 0 014-4h4a4 4 0 014 4v2M17 11l2 2 4-4"/></svg></div>
+          <h3>Groups &amp; leaders</h3>
+          <p>Find your class, see who's leading, and join the volunteer teams you serve on - in person, online, or both.</p>
+        </div>
+
+        <div class="card gold">
+          <div class="card__icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><path d="M9 22V12h6v10"/></svg></div>
+          <h3>Family &amp; children's programmes</h3>
+          <p>Register children for youth, Sunday school, and holiday clubs. Allergies and emergency contacts kept safe under POPIA.</p>
+        </div>
+
+        <div class="card">
+          <div class="card__icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16a2 2 0 012 2v12a2 2 0 01-2 2H4z"/><path d="M8 8h8M8 12h8M8 16h5"/></svg></div>
+          <h3>Church news &amp; newsletters</h3>
+          <p>Every newsletter, archived and searchable. Catch up on what you missed in seconds.</p>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── Screens showcase ───────────────────────────────── -->
+  <section class="screens">
+    <div class="wrap">
+      <h2>See it in action.</h2>
+      <p class="section-lead">A glimpse of the app, and the desktop portal coming soon for staff.</p>
+
+      <div class="mobile-mockups">
+
+        <!-- Schedule -->
+        <figure>
+          <div class="mp-phone" role="img" aria-label="Schedule screen mockup">
+            <div class="mp-screen">
+              <div class="mp-island"></div>
+              <div class="mp-statusbar">
+                <span>9:41</span>
+                <span class="mp-statusbar__icons">
+                  <svg width="11" height="8" viewBox="0 0 14 10" fill="currentColor"><rect x="0" y="7" width="2" height="3" rx=".5"/><rect x="3" y="5" width="2" height="5" rx=".5"/><rect x="6" y="3" width="2" height="7" rx=".5"/><rect x="9" y="1" width="2" height="9" rx=".5"/></svg>
+                  <svg width="10" height="8" viewBox="0 0 14 10" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"><path d="M2 4.5c1.5-1.4 3.2-2 5-2s3.5.6 5 2"/><path d="M4 6.5c.9-.8 1.9-1.2 3-1.2s2.1.4 3 1.2"/><circle cx="7" cy="8.5" r=".7" fill="currentColor"/></svg>
+                  <svg width="14" height="8" viewBox="0 0 18 10" fill="none" stroke="currentColor" stroke-width="1"><rect x=".5" y="1.5" width="14" height="7" rx="1.4"/><rect x="2" y="3" width="9" height="4" fill="currentColor"/><rect x="15.2" y="3.6" width="1.6" height="2.8" rx=".3" fill="currentColor"/></svg>
+                </span>
+              </div>
+              <div class="mp-page">
+                <div class="mp-title">Schedule</div>
+                <div class="mp-subtitle">Sunday 09:00 service</div>
+                <div class="mp-cal">
+                  <div class="mp-cal__head">May 2026</div>
+                  <div class="mp-cal__row">
+                    <span class="mp-cal__weekday">S</span>
+                    <span class="mp-cal__weekday">M</span>
+                    <span class="mp-cal__weekday">T</span>
+                    <span class="mp-cal__weekday">W</span>
+                    <span class="mp-cal__weekday">T</span>
+                    <span class="mp-cal__weekday">F</span>
+                    <span class="mp-cal__weekday">S</span>
+                  </div>
+                  <div class="mp-cal__row">
+                    <span class="mp-cal__day mp-cal__day--dot-gold">10</span>
+                    <span class="mp-cal__day">11</span>
+                    <span class="mp-cal__day">12</span>
+                    <span class="mp-cal__day">13</span>
+                    <span class="mp-cal__day mp-cal__day--today">14</span>
+                    <span class="mp-cal__day">15</span>
+                    <span class="mp-cal__day">16</span>
+                  </div>
+                  <div class="mp-cal__row">
+                    <span class="mp-cal__day mp-cal__day--dot-gold">17</span>
+                    <span class="mp-cal__day">18</span>
+                    <span class="mp-cal__day">19</span>
+                    <span class="mp-cal__day">20</span>
+                    <span class="mp-cal__day mp-cal__day--dot-blue">21</span>
+                    <span class="mp-cal__day">22</span>
+                    <span class="mp-cal__day">23</span>
+                  </div>
+                </div>
+                <div class="mp-section-label">Birthdays this month</div>
+                <div class="mp-card">
+                  <div class="mp-avatar mp-avatar--gold">TM</div>
+                  <div class="mp-card__body">
+                    <div class="mp-card__title">Thandi Mokoena</div>
+                    <div class="mp-card__meta">Sun 18 May</div>
+                  </div>
+                </div>
+                <div class="mp-section-label">Upcoming</div>
+                <div class="mp-card">
+                  <div class="mp-card__bar mp-bar--scarlet"></div>
+                  <div class="mp-card__body">
+                    <div class="mp-card__meta">17 May · 09:00</div>
+                    <div class="mp-card__title">Children's Church</div>
+                  </div>
+                  <span class="mp-pill mp-pill--solid-success">Accept</span>
+                </div>
+                <div class="mp-card">
+                  <div class="mp-card__bar mp-bar--gold"></div>
+                  <div class="mp-card__body">
+                    <div class="mp-card__meta">24 May · 09:00</div>
+                    <div class="mp-card__title">Welcome Team</div>
+                  </div>
+                  <span class="mp-pill mp-pill--solid-success">Accept</span>
+                </div>
+                <div class="mp-card">
+                  <div class="mp-card__bar mp-bar--scarlet"></div>
+                  <div class="mp-card__body">
+                    <div class="mp-card__meta">31 May · 09:00</div>
+                    <div class="mp-card__title">Sunday School</div>
+                  </div>
+                  <span class="mp-pill mp-pill--solid-success">Accept</span>
+                </div>
+              </div>
+              <div class="mp-tabbar">
+                <span class="mp-tab"><span class="mp-tab__icon"></span>Week</span>
+                <span class="mp-tab mp-tab--active"><span class="mp-tab__icon"></span>Schedule</span>
+                <span class="mp-tab"><span class="mp-tab__icon"></span>Groups</span>
+                <span class="mp-tab"><span class="mp-tab__icon"></span>Family</span>
+                <span class="mp-tab"><span class="mp-tab__icon"></span>News</span>
+                <span class="mp-tab"><span class="mp-tab__icon"></span>Profile</span>
+              </div>
+              <div class="mp-home-indicator"></div>
+            </div>
+          </div>
+          <figcaption>Schedule</figcaption>
+        </figure>
+
+        <!-- Groups -->
+        <figure>
+          <div class="mp-phone" role="img" aria-label="Groups screen mockup">
+            <div class="mp-screen">
+              <div class="mp-island"></div>
+              <div class="mp-statusbar">
+                <span>9:41</span>
+                <span class="mp-statusbar__icons">
+                  <svg width="11" height="8" viewBox="0 0 14 10" fill="currentColor"><rect x="0" y="7" width="2" height="3" rx=".5"/><rect x="3" y="5" width="2" height="5" rx=".5"/><rect x="6" y="3" width="2" height="7" rx=".5"/><rect x="9" y="1" width="2" height="9" rx=".5"/></svg>
+                  <svg width="10" height="8" viewBox="0 0 14 10" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"><path d="M2 4.5c1.5-1.4 3.2-2 5-2s3.5.6 5 2"/><path d="M4 6.5c.9-.8 1.9-1.2 3-1.2s2.1.4 3 1.2"/><circle cx="7" cy="8.5" r=".7" fill="currentColor"/></svg>
+                  <svg width="14" height="8" viewBox="0 0 18 10" fill="none" stroke="currentColor" stroke-width="1"><rect x=".5" y="1.5" width="14" height="7" rx="1.4"/><rect x="2" y="3" width="9" height="4" fill="currentColor"/><rect x="15.2" y="3.6" width="1.6" height="2.8" rx=".3" fill="currentColor"/></svg>
+                </span>
+              </div>
+              <div class="mp-page">
+                <div class="mp-title">Groups</div>
+                <div class="mp-section-label">My groups</div>
+                <div class="mp-card">
+                  <div class="mp-card__bar mp-bar--scarlet"></div>
+                  <div class="mp-card__body">
+                    <div class="mp-card__title">Class 38</div>
+                    <div class="mp-card__meta">Jane Doe · Tue 19:00</div>
+                  </div>
+                  <span class="mp-pill mp-pill--scarlet">Class</span>
+                </div>
+                <div class="mp-card">
+                  <div class="mp-card__bar mp-bar--gold"></div>
+                  <div class="mp-card__body">
+                    <div class="mp-card__title">Sunday Volunteers</div>
+                    <div class="mp-card__meta">Sun 09:00 · Sanctuary</div>
+                  </div>
+                  <span class="mp-pill mp-pill--gold">Volunteer</span>
+                </div>
+                <div class="mp-section-label">All classes</div>
+                <div class="mp-card">
+                  <div class="mp-card__body">
+                    <div class="mp-card__title">Class 12</div>
+                    <div class="mp-card__meta">Mike Smith · 12 members</div>
+                  </div>
+                </div>
+                <div class="mp-card">
+                  <div class="mp-card__body">
+                    <div class="mp-card__title">Class 41</div>
+                    <div class="mp-card__meta">Peter Ndlovu · 10 members</div>
+                  </div>
+                </div>
+                <div class="mp-card">
+                  <div class="mp-card__body">
+                    <div class="mp-card__title">Class 56</div>
+                    <div class="mp-card__meta">Lerato Mokoena · 9 members</div>
+                  </div>
+                </div>
+                <div class="mp-card">
+                  <div class="mp-card__body">
+                    <div class="mp-card__title">Class 7</div>
+                    <div class="mp-card__meta">Sipho Khoza · 14 members</div>
+                  </div>
+                </div>
+              </div>
+              <div class="mp-tabbar">
+                <span class="mp-tab"><span class="mp-tab__icon"></span>Week</span>
+                <span class="mp-tab"><span class="mp-tab__icon"></span>Schedule</span>
+                <span class="mp-tab mp-tab--active"><span class="mp-tab__icon"></span>Groups</span>
+                <span class="mp-tab"><span class="mp-tab__icon"></span>Family</span>
+                <span class="mp-tab"><span class="mp-tab__icon"></span>News</span>
+                <span class="mp-tab"><span class="mp-tab__icon"></span>Profile</span>
+              </div>
+              <div class="mp-home-indicator"></div>
+            </div>
+          </div>
+          <figcaption>Groups</figcaption>
+        </figure>
+
+        <!-- Family -->
+        <figure>
+          <div class="mp-phone" role="img" aria-label="Family screen mockup">
+            <div class="mp-screen">
+              <div class="mp-island"></div>
+              <div class="mp-statusbar">
+                <span>9:41</span>
+                <span class="mp-statusbar__icons">
+                  <svg width="11" height="8" viewBox="0 0 14 10" fill="currentColor"><rect x="0" y="7" width="2" height="3" rx=".5"/><rect x="3" y="5" width="2" height="5" rx=".5"/><rect x="6" y="3" width="2" height="7" rx=".5"/><rect x="9" y="1" width="2" height="9" rx=".5"/></svg>
+                  <svg width="10" height="8" viewBox="0 0 14 10" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"><path d="M2 4.5c1.5-1.4 3.2-2 5-2s3.5.6 5 2"/><path d="M4 6.5c.9-.8 1.9-1.2 3-1.2s2.1.4 3 1.2"/><circle cx="7" cy="8.5" r=".7" fill="currentColor"/></svg>
+                  <svg width="14" height="8" viewBox="0 0 18 10" fill="none" stroke="currentColor" stroke-width="1"><rect x=".5" y="1.5" width="14" height="7" rx="1.4"/><rect x="2" y="3" width="9" height="4" fill="currentColor"/><rect x="15.2" y="3.6" width="1.6" height="2.8" rx=".3" fill="currentColor"/></svg>
+                </span>
+              </div>
+              <div class="mp-page">
+                <div class="mp-title">Family</div>
+                <div class="mp-subtitle">Children's programmes</div>
+                <div class="mp-section-label">My children</div>
+                <div class="mp-card">
+                  <div class="mp-avatar mp-avatar--gold">E</div>
+                  <div class="mp-card__body">
+                    <div class="mp-card__title">Emma</div>
+                    <div class="mp-card__meta">Age 8 · Children's Church</div>
+                  </div>
+                  <span class="mp-pill mp-pill--success">Health</span>
+                </div>
+                <div class="mp-card">
+                  <div class="mp-avatar mp-avatar--scarlet">L</div>
+                  <div class="mp-card__body">
+                    <div class="mp-card__title">Liam</div>
+                    <div class="mp-card__meta">Age 16 · Youth</div>
+                  </div>
+                  <span class="mp-pill mp-pill--success">Health</span>
+                </div>
+                <div class="mp-section-label">Available programmes</div>
+                <div class="mp-card">
+                  <div class="mp-card__bar mp-bar--success"></div>
+                  <div class="mp-card__body">
+                    <div class="mp-card__title">Holiday Club</div>
+                    <div class="mp-card__meta">Ages 5–12 · 24–28 June</div>
+                  </div>
+                </div>
+                <div class="mp-card">
+                  <div class="mp-card__bar mp-bar--scarlet"></div>
+                  <div class="mp-card__body">
+                    <div class="mp-card__title">Youth Confirmation</div>
+                    <div class="mp-card__meta">Ages 13–18 · Sat 09:00</div>
+                  </div>
+                </div>
+              </div>
+              <div class="mp-tabbar">
+                <span class="mp-tab"><span class="mp-tab__icon"></span>Week</span>
+                <span class="mp-tab"><span class="mp-tab__icon"></span>Schedule</span>
+                <span class="mp-tab"><span class="mp-tab__icon"></span>Groups</span>
+                <span class="mp-tab mp-tab--active"><span class="mp-tab__icon"></span>Family</span>
+                <span class="mp-tab"><span class="mp-tab__icon"></span>News</span>
+                <span class="mp-tab"><span class="mp-tab__icon"></span>Profile</span>
+              </div>
+              <div class="mp-home-indicator"></div>
+            </div>
+          </div>
+          <figcaption>Family</figcaption>
+        </figure>
+
+      </div>
+
+      <!-- Admin web portal -->
+      <figure class="admin-mockup">
+        <div role="img" aria-label="Admin web portal dashboard mockup">
+          <div class="ad-bar">
+            <div class="ad-bar__dots">
+              <span style="background:#FF5F57"></span>
+              <span style="background:#FEBC2E"></span>
+              <span style="background:#28C840"></span>
+            </div>
+            <div class="ad-bar__url">churchflow.app/admin</div>
+          </div>
+          <div class="ad-body">
+            <aside class="ad-side">
+              <div class="ad-brand">
+                <div class="ad-brand__mark">CF</div>
+                <div class="ad-brand__text">ChurchFlow<small>Admin Portal</small></div>
+              </div>
+              <nav class="ad-nav">
+                <span class="ad-nav__item ad-nav__item--active">Dashboard</span>
+                <span class="ad-nav__item">Groups</span>
+                <span class="ad-nav__item">Members</span>
+                <span class="ad-nav__item">Programmes</span>
+                <span class="ad-nav__item">Announcements</span>
+                <span class="ad-nav__item">Reports</span>
+                <span class="ad-nav__item">Settings</span>
+              </nav>
+            </aside>
+            <main class="ad-main">
+              <div>
+                <div class="ad-main__title">Good morning, Joseph</div>
+                <div class="ad-main__subtitle">Wednesday, 14 May 2026</div>
+              </div>
+              <div class="ad-kpi-grid">
+                <div class="ad-kpi">
+                  <div class="ad-kpi__label">Members</div>
+                  <div class="ad-kpi__value">487</div>
+                  <div class="ad-kpi__delta">+12 this week</div>
+                </div>
+                <div class="ad-kpi">
+                  <div class="ad-kpi__label">Open slots</div>
+                  <div class="ad-kpi__value">9</div>
+                  <div class="ad-kpi__delta">Next 4 weeks</div>
+                </div>
+                <div class="ad-kpi">
+                  <div class="ad-kpi__label">Class groups</div>
+                  <div class="ad-kpi__value">14</div>
+                  <div class="ad-kpi__delta">+2 since April</div>
+                </div>
+                <div class="ad-kpi">
+                  <div class="ad-kpi__label">Children</div>
+                  <div class="ad-kpi__value">62</div>
+                  <div class="ad-kpi__delta">+5 this week</div>
+                </div>
+              </div>
+              <div class="ad-activity">
+                <div class="ad-activity__label">Recent activity</div>
+                <div class="ad-activity__row"><span class="ad-activity__dot"></span>Jane Doe accepted Sunday 09:00<span class="ad-activity__time">12m ago</span></div>
+                <div class="ad-activity__row"><span class="ad-activity__dot"></span>Class 38 - Peter promoted to leader<span class="ad-activity__time">1h ago</span></div>
+                <div class="ad-activity__row"><span class="ad-activity__dot"></span>Holiday Club - 4 new registrations<span class="ad-activity__time">3h ago</span></div>
+              </div>
+            </main>
+          </div>
+        </div>
+        <div class="admin-mockup__caption">The admin web portal, coming soon for church staff.</div>
+      </figure>
+    </div>
+  </section>
+
+  <!-- ─── Status ──────────────────────────────────────────── -->
+  <section>
+    <div class="wrap">
+      <h2>Where we are.</h2>
+      <p class="section-lead">A quick look at what's done, what's coming, and what's still in negotiation.</p>
+
+      <ul class="status-list">
+
+        <li class="status-item">
+          <div class="status-visual status-visual--soon" aria-hidden="true">
+            <svg viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg" fill="none">
+              <rect x="24" y="6" width="32" height="68" rx="7" fill="#FFFFFF" stroke="#B0202C" stroke-width="2"/>
+              <rect x="28" y="13" width="24" height="54" rx="3" fill="#B0202C"/>
+              <rect x="34" y="22" width="12" height="12" rx="2.5" fill="#FAF6EC"/>
+              <path d="M40 24v8M36 28h8" stroke="#B0202C" stroke-width="1.6" stroke-linecap="round"/>
+              <rect x="30" y="38" width="20" height="1.6" rx="0.8" fill="#FAF6EC" opacity="0.55"/>
+              <rect x="30" y="42" width="16" height="1.6" rx="0.8" fill="#FAF6EC" opacity="0.55"/>
+              <rect x="30" y="46" width="18" height="1.6" rx="0.8" fill="#FAF6EC" opacity="0.55"/>
+              <rect x="28" y="55" width="24" height="9" fill="#8E1924"/>
+              <circle cx="33" cy="59.5" r="1.2" fill="#FAF6EC"/>
+              <circle cx="40" cy="59.5" r="1.2" fill="#FAF6EC"/>
+              <circle cx="47" cy="59.5" r="1.2" fill="#FAF6EC"/>
+              <rect x="36" y="70" width="8" height="1.5" rx="0.75" fill="#B0202C" opacity="0.4"/>
+            </svg>
+          </div>
+          <div class="status-content">
+            <span class="status-pill pill-soon">Coming soon</span>
+            <h4>iOS App Store &amp; Google Play</h4>
+            <p>The app is built and tested. We're working through Apple and Google's review processes ahead of launch.</p>
+          </div>
+        </li>
+
+        <li class="status-item">
+          <div class="status-visual status-visual--soon" aria-hidden="true">
+            <svg viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg" fill="none">
+              <rect x="6" y="16" width="68" height="50" rx="5" fill="#FFFFFF" stroke="#B0202C" stroke-width="1.6"/>
+              <path d="M6 16 H74 V26 H6 Z" fill="#B0202C"/>
+              <circle cx="12" cy="21" r="1.6" fill="#FAF6EC"/>
+              <circle cx="17.5" cy="21" r="1.6" fill="#FAF6EC"/>
+              <circle cx="23" cy="21" r="1.6" fill="#FAF6EC"/>
+              <rect x="32" y="18.5" width="36" height="5" rx="2.5" fill="#FAF6EC" opacity="0.25"/>
+              <rect x="6" y="26" width="18" height="40" fill="#F2D9DC"/>
+              <rect x="9" y="30" width="12" height="2" rx="1" fill="#B0202C"/>
+              <rect x="9" y="35" width="12" height="2" rx="1" fill="#B0202C" opacity="0.45"/>
+              <rect x="9" y="40" width="12" height="2" rx="1" fill="#B0202C" opacity="0.45"/>
+              <rect x="9" y="45" width="12" height="2" rx="1" fill="#B0202C" opacity="0.45"/>
+              <rect x="28" y="30" width="20" height="15" rx="2" fill="#FAF6EC" stroke="#E5DDD0" stroke-width="0.6"/>
+              <rect x="30" y="33" width="9" height="2" rx="1" fill="#7A7164"/>
+              <rect x="30" y="37" width="7" height="5" rx="0.5" fill="#1F1A14"/>
+              <rect x="51" y="30" width="20" height="15" rx="2" fill="#FAF6EC" stroke="#E5DDD0" stroke-width="0.6"/>
+              <rect x="53" y="33" width="9" height="2" rx="1" fill="#7A7164"/>
+              <rect x="53" y="37" width="7" height="5" rx="0.5" fill="#C89441"/>
+              <rect x="28" y="49" width="43" height="2" rx="1" fill="#B0202C" opacity="0.3"/>
+              <rect x="28" y="54" width="36" height="2" rx="1" fill="#B0202C" opacity="0.3"/>
+              <rect x="28" y="59" width="40" height="2" rx="1" fill="#B0202C" opacity="0.3"/>
+            </svg>
+          </div>
+          <div class="status-content">
+            <span class="status-pill pill-soon">Coming soon</span>
+            <h4>Admin web portal</h4>
+            <p>A desktop dashboard for church staff to manage groups, programmes, and announcements without needing the mobile app.</p>
+          </div>
+        </li>
+
+      </ul>
+    </div>
+  </section>
+
+  <!-- ─── Donate ──────────────────────────────────────────── -->
+  <section class="donate">
+    <div class="wrap">
+      <h2>Support the work.</h2>
+      <p class="section-lead" style="max-width: 580px; margin-left: auto; margin-right: auto;">
+        ChurchFlow is built by a small team, on personal time and at personal
+        cost, so it can stay <strong>free for every church</strong>.
+        Your gift helps us cover build and hosting costs, keeping ChurchFlow
+        free for every church.
+      </p>
+      <form name="PayFastPayNowForm" class="donate-form" action="https://payment.payfast.io/eng/process" method="post">
+        <input required type="hidden" name="cmd" value="_paynow">
+        <input required type="hidden" name="receiver" value="18164611">
+        <input type="hidden" name="return_url" value="https://www.churchflowonline.co.za">
+        <input required type="hidden" name="item_name" maxlength="255" value="Churchflow Donations">
+        <input type="hidden" name="item_description" maxlength="255" value="Supporting free tech for South African churches">
+        <label for="PayFastAmount">Amount (ZAR)</label>
+        <input required id="PayFastAmount" type="number" step=".01" name="amount" min="5.00" placeholder="Enter amount (e.g. 10.00)">
+        <div class="donate-form__submit">
+          <button type="submit" class="donate-btn">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+            Donate
+          </button>
+        </div>
+      </form>
+      <p class="donate-methods">
+        Secure payment via <strong>PayFast</strong>.
+      </p>
+    </div>
+  </section>
+
+  <!-- ─── CTA ─────────────────────────────────────────────── -->
+  <section class="cta">
+    <h2>Want to know when it launches?</h2>
+    <p>Drop us a line and we'll let you know the moment ChurchFlow hits the App Store and Google Play.</p>
+    <a href="mailto:contact@sibahledigital.co.za?subject=ChurchFlow%20enquiry">Get notified</a>
+  </section>
+
+  <!-- ─── Footer ──────────────────────────────────────────── -->
+  <footer>
+    <p>ChurchFlow · Designed for Methodist churches</p>
+    <p>POPIA-compliant · Built with care · &copy; <span id="year">2026</span></p>
+  </footer>
+
+  <script>
+    // Tiny non-essential touch: keep the copyright year fresh without needing
+    // a build step. Pure progressive enhancement - if JS is off, the static
+    // "2026" still reads sensibly.
+    document.getElementById('year').textContent = new Date().getFullYear();
+  </script>
+
+</body>
+</html>

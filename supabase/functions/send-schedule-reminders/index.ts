@@ -42,7 +42,7 @@ Deno.serve(async (_req) => {
   const supabase = createClient(url, serviceKey);
 
   // Tomorrow in UTC. Slot dates are stored as date (no time zone), so this is
-  // close enough for a daily reminder — a slot dated 2026-05-15 in any zone
+  // close enough for a daily reminder - a slot dated 2026-05-15 in any zone
   // becomes "tomorrow" once UTC clock crosses midnight before May 15.
   const now = new Date();
   now.setUTCDate(now.getUTCDate() + 1);
@@ -104,7 +104,7 @@ Deno.serve(async (_req) => {
     for (const row of tokens ?? []) {
       messages.push({
         to: row.expo_push_token,
-        title: "ChurchFlow — Tomorrow's schedule",
+        title: "ChurchFlow - Tomorrow's schedule",
         body: `You're ${what}${timeBit} tomorrow.`,
         data: {
           slot_id: slot.id,

@@ -1,7 +1,7 @@
 -- POPIA-compliant child records.
 --
 -- South Africa's Protection of Personal Information Act treats health and
--- safety details about minors as "special personal information" — collection
+-- safety details about minors as "special personal information" - collection
 -- and processing requires explicit, recorded consent, plus appropriate
 -- technical and organisational controls (lawful basis, least privilege,
 -- audit log, retention limits, subject access).
@@ -10,11 +10,11 @@
 --   * Health and emergency-contact columns on family_members.
 --   * A consent-tracking pair (timestamp + version of consent text).
 --   * A CHECK constraint that refuses to store any health field without a
---     recorded consent — fails closed.
+--     recorded consent - fails closed.
 --   * An immutable audit log of every insert / update / delete (the
 --     application also writes 'export' rows from the subject-access RPC).
 --   * An RLS policy that lets group leaders read a child's row only while
---     the child has an active program_registration — access auto-revokes
+--     the child has an active program_registration - access auto-revokes
 --     when the registration is cancelled or the programme ends.
 --
 -- Not encrypted at the column level: pgsodium Transparent Column Encryption
@@ -37,7 +37,7 @@ alter table public.family_members
   add column if not exists consent_given_at           timestamptz,
   add column if not exists consent_version            text;
 
--- Length sanity for free-text. Phones intentionally loose — international
+-- Length sanity for free-text. Phones intentionally loose - international
 -- numbers vary; we just bound the column so it can't store unreasonably
 -- long input.
 alter table public.family_members
@@ -65,7 +65,7 @@ alter table public.family_members
        check (emergency_contact_2_phone is null or length(emergency_contact_2_phone) between 4 and 40);
 
 -- Consent gate: any health / emergency field requires recorded consent.
--- "Fails closed" — a row can't carry sensitive data without a timestamp +
+-- "Fails closed" - a row can't carry sensitive data without a timestamp +
 -- version, so the audit log can always tie data back to a consent record.
 alter table public.family_members
   drop constraint if exists family_members_consent_required;
@@ -115,7 +115,7 @@ create index if not exists family_member_audits_created_idx
 alter table public.family_member_audits enable row level security;
 
 -- Parents can read audit rows for their own children. Admins can read all.
--- Nobody can write to the audit log directly — it's populated by the trigger
+-- Nobody can write to the audit log directly - it's populated by the trigger
 -- below and by the subject-access RPC running as security definer.
 drop policy if exists family_member_audits_read on public.family_member_audits;
 create policy family_member_audits_read on public.family_member_audits
@@ -155,7 +155,7 @@ begin
 
   elsif tg_op = 'UPDATE' then
     changed := array[]::text[];
-    -- parent_user_id changes are a child-transfer event — always log.
+    -- parent_user_id changes are a child-transfer event - always log.
     if new.parent_user_id is distinct from old.parent_user_id then changed := changed || 'parent_user_id'; end if;
     if new.name is distinct from old.name then changed := changed || 'name'; end if;
     if new.birth_year is distinct from old.birth_year then changed := changed || 'birth_year'; end if;
@@ -205,12 +205,12 @@ create trigger log_family_member_change
 
 -- ─── 4. RLS: parent + active-registration leader reads ─────────────────────
 -- Migration 0001 is expected to grant parents full access to their own
--- children. The parent policy here is idempotent — if 0001 already created
+-- children. The parent policy here is idempotent - if 0001 already created
 -- it under a different name, this one is harmless additional permission.
 --
 -- The leaders policy grants role='leader' in *any* group read access while
 -- the child has at least one active program_registration. This is broader
--- than ideal — the schema has no programme-leader link, so we can't scope
+-- than ideal - the schema has no programme-leader link, so we can't scope
 -- by programme. Tighten this when programme-leader assignments land
 -- (insert a join from program_registrations -> programme-leader table here).
 -- Admins always bypass via the OR clause.
