@@ -1,23 +1,27 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  ChurchFlow Android adaptive-icon foreground.
-  Transparent background — the scarlet comes from
-  app.json > expo.android.adaptiveIcon.backgroundColor.
-  Foreground content fits inside the inner 66% (672×672) so
-  Android's mask circle never crops the book.
+  ChurchFlow Android adaptive-icon foreground — cross & flow.
+  The scarlet badge disc sits on a transparent field so Android's launcher
+  mask (circle / squircle / rounded square) crops cleanly. The expo
+  android.adaptiveIcon.backgroundColor (#B0202C) shows through behind it.
 -->
 <svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
-  <g transform="translate(512 482) scale(0.82)">
-    <path d="M -280 -180 L -20 -200 L -20 180 L -280 160 Z" fill="#FAF6EC"/>
-    <path d="M 20 -200 L 280 -180 L 280 160 L 20 180 Z" fill="#FAF6EC"/>
-    <rect x="-240" y="-130" width="180" height="16" rx="8" fill="#B0202C" opacity="0.85"/>
-    <rect x="-240" y="-80"  width="200" height="14" rx="7" fill="#B0202C" opacity="0.45"/>
-    <rect x="-240" y="-40"  width="200" height="14" rx="7" fill="#B0202C" opacity="0.45"/>
-    <rect x="-240" y="0"    width="160" height="14" rx="7" fill="#B0202C" opacity="0.45"/>
-    <rect x="60"   y="-130" width="180" height="14" rx="7" fill="#B0202C" opacity="0.45"/>
-    <rect x="60"   y="-80"  width="200" height="14" rx="7" fill="#B0202C" opacity="0.45"/>
-    <rect x="60"   y="-40"  width="200" height="14" rx="7" fill="#B0202C" opacity="0.45"/>
-    <rect x="60"   y="0"    width="160" height="14" rx="7" fill="#B0202C" opacity="0.45"/>
-    <path d="M -30 160 L -30 330 L 0 290 L 30 330 L 30 160 Z" fill="#C89441"/>
+  <!-- Scarlet badge disc -->
+  <circle cx="512" cy="512" r="496" fill="#B0202C"/>
+
+  <!-- Double gold ring -->
+  <circle cx="512" cy="512" r="470" fill="none" stroke="#C89441" stroke-width="6"/>
+  <circle cx="512" cy="512" r="446" fill="none" stroke="#C89441" stroke-width="4"/>
+
+  <!-- Cross (cream) -->
+  <g fill="#FAF6EC">
+    <rect x="471" y="250" width="82" height="268" rx="8"/>
+    <rect x="364" y="316" width="296" height="82" rx="8"/>
+  </g>
+
+  <!-- Flow: two interwoven waves (cream + gold) -->
+  <g fill="none" stroke-width="24" stroke-linecap="round">
+    <path stroke="#C89441" d="M 230 700 C 350 640 432 640 512 692 C 592 744 674 744 794 686"/>
+    <path stroke="#FAF6EC" d="M 230 662 C 350 722 432 722 512 670 C 592 618 674 618 794 676"/>
   </g>
 </svg>
