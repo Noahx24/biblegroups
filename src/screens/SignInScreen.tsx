@@ -377,7 +377,7 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
   inner: { paddingHorizontal: spacing.xl, paddingVertical: spacing.xxl, gap: spacing.sm + 2 },
   brand: { alignItems: 'center', marginBottom: spacing.md, gap: spacing.xs },
-  title: { fontSize: 34, fontWeight: '800', textAlign: 'center', color: colors.primary, letterSpacing: 0.5 },
+  title: { fontSize: 34, fontWeight: '700', textAlign: 'center', color: colors.primary, letterSpacing: -0.5 },
   tagline: { fontSize: 12, color: colors.accentDark, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 1 },
   subtitle: { fontSize: 15, textAlign: 'center', color: colors.textMuted, marginBottom: spacing.lg },
   infoBox: {
@@ -428,7 +428,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     marginBottom: spacing.md,
   },
-  modalTitle: { fontSize: 18, fontWeight: '700', color: colors.text },
+  modalTitle: { fontSize: 18, fontWeight: '600', color: colors.text, letterSpacing: -0.2 },
   modalList: { gap: spacing.xs },
   churchRow: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',

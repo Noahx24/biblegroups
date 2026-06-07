@@ -1327,8 +1327,8 @@ const styles = StyleSheet.create({
   flex1: { flex: 1 },
 
   sectionHeader: { paddingHorizontal: spacing.xl, paddingTop: spacing.sm, paddingBottom: spacing.lg },
-  pageTitle: { fontFamily: fonts.serif, fontSize: 32, fontWeight: '600', color: colors.text, letterSpacing: -0.4, lineHeight: 34 },
-  pageSubtitle: { fontSize: 13.5, color: colors.textMuted, marginTop: 4 },
+  pageTitle: { fontFamily: fonts.sans, fontSize: 32, fontWeight: '700', color: colors.text, letterSpacing: -0.6, lineHeight: 38 },
+  pageSubtitle: { fontSize: 14, color: colors.textMuted, lineHeight: 20, marginTop: 4 },
 
   calendarCard: {
     backgroundColor: colors.surface, borderRadius: radius.lg, marginHorizontal: spacing.lg,
@@ -1348,7 +1348,7 @@ const styles = StyleSheet.create({
   cakeEmoji: { fontSize: 12 },
 
   sectionTitle: {
-    fontSize: 11, fontWeight: '700', letterSpacing: 1.6, color: colors.textMuted,
+    fontSize: 12, fontWeight: '600', letterSpacing: 0.8, color: colors.textMuted,
     textTransform: 'uppercase', marginTop: 24, marginBottom: 10, paddingHorizontal: spacing.xl,
   },
   card: {
@@ -1360,7 +1360,7 @@ const styles = StyleSheet.create({
   rowDivider: { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.borderSoft },
   cakeBubble: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#C26A7C1A', alignItems: 'center', justifyContent: 'center' },
   cakeBubbleText: { fontSize: 18 },
-  birthdayName: { fontFamily: fonts.serif, fontSize: 16, fontWeight: '600', color: colors.text, letterSpacing: -0.1, lineHeight: 20 },
+  birthdayName: { fontFamily: fonts.sans, fontSize: 16, fontWeight: '600', color: colors.text, letterSpacing: -0.1, lineHeight: 20 },
   birthdayDate: { fontSize: 12.5, color: colors.textMuted, marginTop: 2 },
   chevron: { fontSize: 20, color: colors.textMutedSoft, lineHeight: 22 },
 
@@ -1372,7 +1372,7 @@ const styles = StyleSheet.create({
   },
   upcomingBar: { width: 8, height: 38, borderRadius: 4, flexShrink: 0 },
   upcomingDateLabel: { fontSize: 12, color: colors.textMuted, fontWeight: '600', letterSpacing: 0.2, marginBottom: 2 },
-  upcomingLeader: { fontFamily: fonts.serif, fontSize: 17, fontWeight: '600', color: colors.text, letterSpacing: -0.1 },
+  upcomingLeader: { fontFamily: fonts.sans, fontSize: 17, fontWeight: '600', color: colors.text, letterSpacing: -0.1 },
   upcomingLeaderMine: { color: colors.primaryDark },
   upcomingProgramme: { fontSize: 12.5, color: colors.textMuted, marginTop: 2, fontStyle: 'italic' },
   upcomingTag: { fontSize: 11.5, fontWeight: '700', letterSpacing: 0.4, textTransform: 'uppercase' },
@@ -1407,20 +1407,20 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border,
     backgroundColor: colors.surface,
   },
-  modalTitle: { fontFamily: fonts.serif, fontSize: 18, fontWeight: '700', color: colors.text },
+  modalTitle: { fontFamily: fonts.sans, fontSize: 18, fontWeight: '600', color: colors.text, letterSpacing: -0.2 },
   modalCancel: { fontSize: 15, color: colors.textMuted, minWidth: 60 },
   modalAction: { fontSize: 15, color: colors.primary, fontWeight: '700', minWidth: 60, textAlign: 'right' },
   modalBody: { padding: spacing.lg, gap: spacing.sm },
 
   fieldLabel: {
-    fontSize: 11.5, fontWeight: '700', letterSpacing: 1.2,
+    fontSize: 12, fontWeight: '600', letterSpacing: 0.8,
     color: colors.textMuted, textTransform: 'uppercase', marginTop: spacing.sm,
   },
   textInput: {
     backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border,
     borderRadius: radius.md, paddingHorizontal: spacing.md,
     paddingVertical: Platform.OS === 'ios' ? spacing.md : spacing.sm,
-    fontSize: 15, color: colors.text,
+    fontSize: 16, color: colors.text,
   },
   notesInput: { minHeight: 72, textAlignVertical: 'top' },
 

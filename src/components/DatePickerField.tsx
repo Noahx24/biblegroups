@@ -92,7 +92,7 @@ export function DatePickerField({
 
 const styles = StyleSheet.create({
   fieldLabel: {
-    fontSize: 11.5, fontWeight: '700', letterSpacing: 1.2,
+    fontSize: 12, fontWeight: '600', letterSpacing: 0.8,
     color: colors.textMuted, textTransform: 'uppercase', marginTop: spacing.sm,
   },
   row: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },

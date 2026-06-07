@@ -7,7 +7,7 @@ import { EventsScreen } from '@/screens/EventsScreen';
 import { ScheduleScreen } from '@/screens/ScheduleScreen';
 import { AnnouncementsScreen } from '@/screens/AnnouncementsScreen';
 import { TabBarIcon } from '@/components/TabBarIcon';
-import { colors } from '@/theme';
+import { colors, typography } from '@/theme';
 import type { AppStackParamList } from '@/navigation/RootNavigator';
 
 export type ClassTabsParamList = {
@@ -33,8 +33,10 @@ const sharedTabOptions = {
     backgroundColor: 'rgba(247,241,229,0.96)',
     borderTopColor: colors.border,
     borderTopWidth: StyleSheet.hairlineWidth,
+    paddingTop: 6,
   },
-  tabBarLabelStyle: { fontSize: 10.5, fontWeight: '600' as const, letterSpacing: 0.1 },
+  tabBarLabelStyle: typography.navLabel,
+  tabBarIconStyle: { marginBottom: -2 },
 };
 
 type Props = NativeStackScreenProps<AppStackParamList, 'GroupDetail'>;

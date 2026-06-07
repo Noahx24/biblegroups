@@ -57,7 +57,7 @@ const styles = StyleSheet.create({
     padding: spacing.xl,
     gap: spacing.md,
   },
-  title: { fontSize: 22, fontWeight: '800', color: colors.primary },
+  title: { fontSize: 22, fontWeight: '700', color: colors.primary, letterSpacing: -0.3 },
   message: { fontSize: 15, color: colors.text, textAlign: 'center' },
   detail: { fontSize: 12, color: colors.textMuted, textAlign: 'center' },
   retry: {

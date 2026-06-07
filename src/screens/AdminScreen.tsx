@@ -158,11 +158,11 @@ export function AdminScreen() {
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.background },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.lg, paddingTop: spacing.md, paddingBottom: spacing.md, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border },
-  title: { fontFamily: fonts.serif, fontSize: 18, fontWeight: '700', color: colors.text },
+  title: { fontFamily: fonts.sans, fontSize: 18, fontWeight: '600', color: colors.text, letterSpacing: -0.2 },
   content: { padding: spacing.lg, gap: spacing.md, paddingBottom: spacing.xxl },
-  sectionLabel: { fontSize: 11, fontWeight: '700', letterSpacing: 1.6, color: colors.textMuted, textTransform: 'uppercase', marginTop: spacing.md },
+  sectionLabel: { fontSize: 12, fontWeight: '600', letterSpacing: 0.8, color: colors.textMuted, textTransform: 'uppercase', marginTop: spacing.md },
   card: { backgroundColor: colors.surface, borderRadius: radius.lg, padding: spacing.lg, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.borderSoft, ...shadow.card, gap: spacing.md },
-  instructions: { fontSize: 13.5, color: colors.textSoft, lineHeight: 20 },
+  instructions: { fontSize: 14, color: colors.textSoft, lineHeight: 20 },
 
   searchRow: {
     flexDirection: 'row',

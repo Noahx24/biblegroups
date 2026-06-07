@@ -115,7 +115,7 @@ export function SelectChurchScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
   header: { paddingHorizontal: spacing.xl, paddingTop: spacing.xl, paddingBottom: spacing.md, gap: spacing.xs },
-  title: { fontFamily: fonts.serif, fontSize: 28, fontWeight: '700', color: colors.text, letterSpacing: -0.3 },
+  title: { fontFamily: fonts.sans, fontSize: 28, fontWeight: '700', color: colors.text, letterSpacing: -0.3 },
   subtitle: { fontSize: 14, color: colors.textMuted, lineHeight: 20 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   list: { paddingHorizontal: spacing.lg, paddingVertical: spacing.sm, gap: spacing.sm },
