@@ -49,9 +49,9 @@ export const spacing = {
 export const shadow = {
   card: {
     shadowColor: '#1F1A14',
-    shadowOpacity: 0.07,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.06,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 3 },
     elevation: 2,
   },
 };
