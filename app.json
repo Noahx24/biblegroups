@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "ChurchFlow",
-    "slug": "churchflow",
+    "slug": "biblegroups",
     "scheme": "churchflow",
     "version": "0.2.0",
     "orientation": "portrait",
