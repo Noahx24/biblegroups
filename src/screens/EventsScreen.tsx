@@ -15,7 +15,8 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
-import { format, parse } from 'date-fns';
+import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker';
+import { format } from 'date-fns';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
 import { useGroup } from '@/context/GroupContext';
@@ -146,7 +147,7 @@ export function EventsScreen() {
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
+      <SafeAreaView style={styles.container} edges={['left', 'right']}>
         <View style={styles.sectionHeader}>
           <View>
             <Text style={styles.pageTitle}>Events</Text>
@@ -159,7 +160,7 @@ export function EventsScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
+    <SafeAreaView style={styles.container} edges={['left', 'right']}>
       <FlatList
         data={events}
         keyExtractor={e => e.id}
@@ -315,46 +316,55 @@ function EventModal({
   const [title, setTitle] = useState('');
   const [location, setLocation] = useState('');
   const [description, setDescription] = useState('');
-  const [whenISO, setWhenISO] = useState('');
+  const [whenDate, setWhenDate] = useState<Date | null>(null);
+  const [showDate, setShowDate] = useState(false);
+  const [showTime, setShowTime] = useState(false);
   const [saving, setSaving] = useState(false);
 
   const populate = (ev: GroupEvent | null) => {
+    setShowDate(false);
+    setShowTime(false);
     if (ev) {
       setTitle(ev.title);
       setLocation(ev.location ?? '');
       setDescription(ev.description ?? '');
-      setWhenISO(format(new Date(ev.starts_at), 'yyyy-MM-dd HH:mm'));
+      setWhenDate(new Date(ev.starts_at));
     } else {
-      setTitle(''); setLocation(''); setDescription(''); setWhenISO('');
+      setTitle(''); setLocation(''); setDescription(''); setWhenDate(null);
     }
   };
 
+  // Merge only the date part (or time part) of a picker result into whenDate,
+  // keeping the other half intact so picking a date then a time composes.
+  const mergeDate = (sel: Date) =>
+    setWhenDate(prev => {
+      const d = new Date(prev ?? new Date());
+      d.setFullYear(sel.getFullYear(), sel.getMonth(), sel.getDate());
+      if (!prev) d.setSeconds(0, 0);
+      return d;
+    });
+  const mergeTime = (sel: Date) =>
+    setWhenDate(prev => {
+      const d = new Date(prev ?? new Date());
+      d.setHours(sel.getHours(), sel.getMinutes(), 0, 0);
+      return d;
+    });
+
+  const onChangeDate = (e: DateTimePickerEvent, sel?: Date) => {
+    if (Platform.OS === 'android') { setShowDate(false); if (e.type === 'set' && sel) mergeDate(sel); }
+    else if (sel) mergeDate(sel);
+  };
+  const onChangeTime = (e: DateTimePickerEvent, sel?: Date) => {
+    if (Platform.OS === 'android') { setShowTime(false); if (e.type === 'set' && sel) mergeTime(sel); }
+    else if (sel) mergeTime(sel);
+  };
+
   const save = async () => {
-    if (!title.trim() || !whenISO) {
+    if (!title.trim() || !whenDate) {
       Alert.alert('Missing info', 'Title and date/time are required.');
       return;
     }
-    const trimmed = whenISO.trim();
-    const parsed = parse(trimmed, 'yyyy-MM-dd HH:mm', new Date());
-    if (Number.isNaN(parsed.getTime())) {
-      Alert.alert('Bad date', 'Use format YYYY-MM-DD HH:MM (e.g. 2026-06-01 19:00)');
-      return;
-    }
-    // Catch overflow dates like Feb 30 or month 13 — date-fns rolls them forward silently
-    const [datePart, timePart] = trimmed.split(' ');
-    const [y, mo, d] = (datePart ?? '').split('-').map(Number);
-    const [h, mi] = (timePart ?? '').split(':').map(Number);
-    if (
-      parsed.getFullYear() !== y ||
-      parsed.getMonth() + 1 !== mo ||
-      parsed.getDate() !== d ||
-      parsed.getHours() !== h ||
-      parsed.getMinutes() !== mi
-    ) {
-      Alert.alert('Bad date', 'Invalid date — check day, month and time values.');
-      return;
-    }
-    if (parsed <= new Date()) {
+    if (whenDate <= new Date()) {
       Alert.alert('Past date', 'Events must be scheduled in the future.');
       return;
     }
@@ -363,7 +373,7 @@ function EventModal({
       title: title.trim(),
       location: location.trim() || null,
       description: description.trim() || null,
-      starts_at: parsed.toISOString(),
+      starts_at: whenDate.toISOString(),
     };
     if (editing) {
       const { data: updated, error } = await supabase
@@ -410,7 +420,48 @@ function EventModal({
           </View>
           <View style={styles.form}>
             <TextInput placeholder="Title" placeholderTextColor={colors.textMuted} value={title} onChangeText={setTitle} style={styles.input} />
-            <TextInput placeholder="When (YYYY-MM-DD HH:MM)" placeholderTextColor={colors.textMuted} value={whenISO} onChangeText={setWhenISO} autoCapitalize="none" style={styles.input} />
+
+            <View style={styles.whenRow}>
+              <Pressable
+                style={[styles.input, styles.whenField]}
+                onPress={() => { setShowDate(v => !v); setShowTime(false); }}
+                accessibilityRole="button"
+              >
+                <Ionicons name="calendar-outline" size={16} color={colors.textMuted} />
+                <Text style={whenDate ? styles.whenText : styles.whenPlaceholder}>
+                  {whenDate ? format(whenDate, 'EEE, d MMM yyyy') : 'Date'}
+                </Text>
+              </Pressable>
+              <Pressable
+                style={[styles.input, styles.whenField, styles.whenTimeField]}
+                onPress={() => { setShowTime(v => !v); setShowDate(false); }}
+                accessibilityRole="button"
+              >
+                <Ionicons name="time-outline" size={16} color={colors.textMuted} />
+                <Text style={whenDate ? styles.whenText : styles.whenPlaceholder}>
+                  {whenDate ? format(whenDate, 'HH:mm') : 'Time'}
+                </Text>
+              </Pressable>
+            </View>
+            {showDate && (
+              <DateTimePicker
+                mode="date"
+                value={whenDate ?? new Date()}
+                minimumDate={new Date()}
+                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                onChange={onChangeDate}
+              />
+            )}
+            {showTime && (
+              <DateTimePicker
+                mode="time"
+                value={whenDate ?? new Date()}
+                is24Hour
+                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                onChange={onChangeTime}
+              />
+            )}
+
             <TextInput placeholder="Location (optional)" placeholderTextColor={colors.textMuted} value={location} onChangeText={setLocation} style={styles.input} />
             <TextInput placeholder="Description (optional)" placeholderTextColor={colors.textMuted} value={description} onChangeText={setDescription} multiline style={[styles.input, styles.multiline]} />
           </View>
@@ -495,4 +546,9 @@ const styles = StyleSheet.create({
   form: { padding: spacing.lg, gap: spacing.md },
   input: { borderWidth: 1, borderColor: colors.border, borderRadius: radius.md, padding: spacing.md, fontSize: 16, backgroundColor: colors.surface, color: colors.text },
   multiline: { minHeight: 100, textAlignVertical: 'top' },
+  whenRow: { flexDirection: 'row', gap: spacing.md },
+  whenField: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  whenTimeField: { flex: 0, minWidth: 110 },
+  whenText: { fontSize: 16, color: colors.text },
+  whenPlaceholder: { fontSize: 16, color: colors.textMuted },
 });

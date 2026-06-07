@@ -1,0 +1,41 @@
+<!--
+  ChurchFlow — Auth email template: "Reauthentication"
+  Paste into Supabase → Authentication → Templates → Reauthentication.
+  Subject: Your ChurchFlow verification code
+  Note: this flow uses an OTP code only (no link) — {{ .Token }}.
+-->
+<!DOCTYPE html>
+<html lang="en">
+  <body style="margin:0;padding:0;background-color:#FAF6EC;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#1F1A14;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#FAF6EC;padding:32px 16px;">
+      <tr>
+        <td align="center">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background-color:#FFFFFF;border:1px solid #E5DDD0;border-radius:14px;overflow:hidden;">
+            <tr>
+              <td style="background-color:#B0202C;padding:28px 32px;text-align:center;">
+                <span style="font-family:Georgia,'Times New Roman',serif;font-size:24px;font-weight:700;color:#FFFFFF;letter-spacing:0.3px;">ChurchFlow</span>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:36px 32px 28px;">
+                <h1 style="margin:0 0 16px;font-family:Georgia,'Times New Roman',serif;font-size:22px;font-weight:700;color:#1F1A14;">Confirm it's you</h1>
+                <p style="margin:0 0 24px;font-size:15px;line-height:1.6;color:#3D352B;">
+                  Enter this code in the app to verify your identity and continue with your requested action.
+                </p>
+                <p style="margin:0 0 24px;font-family:Georgia,serif;font-size:32px;font-weight:700;letter-spacing:8px;color:#B0202C;text-align:center;">{{ .Token }}</p>
+                <p style="margin:0;font-size:13px;line-height:1.6;color:#9A917F;">
+                  If you didn't request this, you can safely ignore this email. Don't share this code with anyone.
+                </p>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:20px 32px;border-top:1px solid #EFE7D8;text-align:center;">
+                <p style="margin:0;font-size:12px;color:#9A917F;">ChurchFlow · Your church community, organised.</p>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>

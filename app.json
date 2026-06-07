@@ -38,6 +38,14 @@
           "icon": "./assets/adaptive-icon.png",
           "color": "#B0202C"
         }
+      ],
+      [
+        "@sentry/react-native/expo",
+        {
+          "url": "https://sentry.io/",
+          "project": "YOUR_PROJECT_SLUG",
+          "organization": "YOUR_ORG_SLUG"
+        }
       ]
     ],
     "notification": {

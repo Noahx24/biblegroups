@@ -12,12 +12,25 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
-import { addDays, format, isToday, isTomorrow, parseISO } from 'date-fns';
+import { addDays, format, isToday, isTomorrow, parseISO, startOfWeek } from 'date-fns';
 import type { ComponentProps } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
 import { useRealtime } from '@/hooks/useRealtime';
+import { toSuperscript } from '@/lib/bible';
 import { colors, fonts, radius, shadow, spacing } from '@/theme';
+
+const SUPERSCRIPT_RE = /[⁰¹²³⁴⁵⁶⁷⁸⁹]/;
+
+// Verse text fetched via bible.ts already carries unicode superscript verse
+// numbers. This is a render-time safety net for legacy reading rows stored
+// before that conversion: if the text has no superscripts yet, promote
+// standalone 1–3 digit tokens (verse markers) to superscript. Numbers attached
+// to words ("1,000", "5th") are left alone.
+function withVerseSuperscripts(text: string): string {
+  if (SUPERSCRIPT_RE.test(text)) return text;
+  return text.replace(/(^|\s)(\d{1,3})(?=\s|$)/g, (_m, pre: string, n: string) => `${pre}${toSuperscript(n)}`);
+}
 import type { GroupType, ProgramType, SlotStatus } from '@/types';
 
 type IoniconsName = ComponentProps<typeof Ionicons>['name'];
@@ -55,30 +68,34 @@ const KIND_LABEL: Record<string, string> = {
   slot: 'Schedule',
   event: 'Event',
   program: 'Programme',
+  reading: 'Reading',
 };
 
 const KIND_BG: Record<string, string> = {
   slot: colors.primaryLight,
   event: colors.openSoft,
   program: colors.accentTint,
+  reading: colors.accentTint,
 };
 
 const KIND_COLOR: Record<string, string> = {
   slot: colors.primary,
   event: colors.open,
   program: colors.accent,
+  reading: colors.accent,
 };
 
 // ─── types ───────────────────────────────────────────────────────────────────
 
 type WeekItem = {
   id: string;
-  kind: 'slot' | 'event' | 'program';
+  kind: 'slot' | 'event' | 'program' | 'reading';
   date: string;
   sortKey: string;
   timeLabel: string | null;
   label: string;
   sublabel: string | null;
+  body?: string | null;   // expandable full text (e.g. the reading's verse text)
   location: string | null;
   color: string;
   icon: IoniconsName;
@@ -237,11 +254,11 @@ export function MyWeekScreen() {
 
   const listRef = useRef<SectionList<WeekItem, Section>>(null);
 
-  // Build 14-day chip list once sections are loaded
+  // Build a 7-day chip list for the calendar week (Sunday → Saturday)
   const days = useMemo<DayChip[]>(() => {
-    const now = new Date();
-    return Array.from({ length: 14 }, (_, i) => {
-      const d = addDays(now, i);
+    const start = startOfWeek(new Date(), { weekStartsOn: 0 });
+    return Array.from({ length: 7 }, (_, i) => {
+      const d = addDays(start, i);
       const isoDate = format(d, 'yyyy-MM-dd');
       return {
         isoDate,
@@ -272,10 +289,11 @@ export function MyWeekScreen() {
     if (!userId) return;
 
     const now = new Date();
-    const today = format(now, 'yyyy-MM-dd');
-    const windowEnd = format(addDays(now, 13), 'yyyy-MM-dd');
-    const nowIso = now.toISOString();
-    const windowEndIso = addDays(now, 14).toISOString();
+    const weekStartDate = startOfWeek(now, { weekStartsOn: 0 });
+    const winStart = format(weekStartDate, 'yyyy-MM-dd');
+    const winEnd = format(addDays(weekStartDate, 6), 'yyyy-MM-dd');
+    const winStartIso = weekStartDate.toISOString();
+    const winEndIso = addDays(weekStartDate, 7).toISOString();
 
     const { data: memberRows, error: memberErr } = await supabase
       .from('group_members')
@@ -301,23 +319,27 @@ export function MyWeekScreen() {
     }
     setHasGroups(groupIds.length > 0);
 
-    const [slotsRes, eventsRes, regsRes] = await Promise.all([
-      supabase
-        .from('schedule')
-        .select('id, slot_date, slot_time, group_id, status, volunteer_programmes(name)')
-        .eq('assignee_id', userId)
-        .gte('slot_date', today)
-        .lte('slot_date', windowEnd)
-        .in('status', ['accepted', 'pending'])
-        .order('slot_date', { ascending: true }),
+    const [slotsRes, eventsRes, regsRes, readingsRes] = await Promise.all([
+      // Show every scheduled session for the groups the user belongs to —
+      // not just the slots assigned to them — so members see their group's
+      // meetings, and leaders see who's covering each one.
+      groupIds.length > 0
+        ? supabase
+            .from('schedule')
+            .select('id, slot_date, slot_time, group_id, status, assignee_id, assignee:profiles!assignee_id(display_name), volunteer_programmes(name)')
+            .in('group_id', groupIds)
+            .gte('slot_date', winStart)
+            .lte('slot_date', winEnd)
+            .order('slot_date', { ascending: true })
+        : Promise.resolve({ data: [], error: null }),
 
       groupIds.length > 0
         ? supabase
             .from('events')
             .select('id, title, starts_at, location, group_id')
             .in('group_id', groupIds)
-            .gte('starts_at', nowIso)
-            .lt('starts_at', windowEndIso)
+            .gte('starts_at', winStartIso)
+            .lt('starts_at', winEndIso)
             .order('starts_at', { ascending: true })
             .limit(50)
         : Promise.resolve({
@@ -330,11 +352,22 @@ export function MyWeekScreen() {
         .select('id, family_member_id, family_members(name), youth_programs(id, name, type, start_date, end_date)')
         .eq('registered_by', userId)
         .eq('status', 'active'),
+
+      // The day's reading/verse for the user's groups.
+      groupIds.length > 0
+        ? supabase
+            .from('reading_plan')
+            .select('id, reading_date, reference, text, note, group_id')
+            .in('group_id', groupIds)
+            .gte('reading_date', winStart)
+            .lte('reading_date', winEnd)
+        : Promise.resolve({ data: [], error: null }),
     ]);
 
     if (slotsRes.error) console.warn('MyWeek: slots load failed', slotsRes.error);
     if (eventsRes.error) console.warn('MyWeek: events load failed', eventsRes.error);
     if (regsRes.error) console.warn('MyWeek: registrations load failed', regsRes.error);
+    if (readingsRes.error) console.warn('MyWeek: readings load failed', readingsRes.error);
 
     const items: WeekItem[] = [];
 
@@ -344,18 +377,39 @@ export function MyWeekScreen() {
       slot_time: string | null;
       group_id: string;
       status: string;
+      assignee_id: string | null;
+      assignee: { display_name: string | null } | null;
       volunteer_programmes: { name: string } | null;
     };
     for (const raw of ((slotsRes.data ?? []) as unknown as SlotJoin[])) {
       const group = groupMap[raw.group_id];
       const prog = raw.volunteer_programmes;
       const timeLabel = raw.slot_time ? raw.slot_time.slice(0, 5) : null;
-      const label =
-        group?.type === 'class'
-          ? `Leading ${group.name}`
+      const mine = !!raw.assignee_id && raw.assignee_id === userId;
+      const assigneeName = raw.assignee?.display_name ?? null;
+
+      let label: string;
+      let sublabel: string | null;
+      if (group?.type === 'class') {
+        label = group?.name ? `${group.name} meeting` : 'Group meeting';
+        sublabel = mine
+          ? 'You are leading'
+          : assigneeName
+          ? `Led by ${assigneeName}`
+          : 'No leader assigned yet';
+      } else {
+        label = mine
+          ? prog?.name
+            ? `Volunteering — ${prog.name}`
+            : 'Volunteering'
+          : assigneeName
+          ? `${assigneeName}${prog?.name ? ` — ${prog.name}` : ''}`
           : prog?.name
-          ? `Volunteering — ${prog.name}`
-          : `Volunteering for ${group?.name ?? 'group'}`;
+          ? `${prog.name} — open slot`
+          : 'Open slot';
+        sublabel = group?.name ?? null;
+      }
+
       items.push({
         id: `slot-${raw.id}`,
         kind: 'slot',
@@ -363,11 +417,38 @@ export function MyWeekScreen() {
         sortKey: timeLabel ?? '99:99',
         timeLabel,
         label,
-        sublabel: group?.name ?? null,
+        sublabel,
         location: null,
         color: groupColor(raw.group_id),
         icon: slotIcon(group?.type ?? 'class'),
-        slotStatus: raw.status as SlotStatus,
+        // Only surface the accept/pending status dot for the user's own slots.
+        slotStatus: mine ? (raw.status as SlotStatus) : undefined,
+      });
+    }
+
+    type ReadingRow = {
+      id: string;
+      reading_date: string;
+      reference: string | null;
+      text: string | null;
+      note: string | null;
+      group_id: string;
+    };
+    for (const r of ((readingsRes.data ?? []) as unknown as ReadingRow[])) {
+      if (!r.reference && !r.note) continue;
+      const group = groupMap[r.group_id];
+      items.push({
+        id: `reading-${r.id}`,
+        kind: 'reading',
+        date: r.reading_date,
+        sortKey: '00:00', // readings sit at the top of their day
+        timeLabel: null,
+        label: r.reference ?? 'Reading',
+        sublabel: [group?.name, r.note].filter(Boolean).join(' · ') || null,
+        body: r.text,
+        location: null,
+        color: groupColor(r.group_id),
+        icon: 'book',
       });
     }
 
@@ -413,7 +494,7 @@ export function MyWeekScreen() {
       if (!prog || !child) continue;
       const color = PROGRAM_COLOR[prog.type] ?? colors.accent;
 
-      if (prog.start_date && prog.start_date >= today && prog.start_date <= windowEnd) {
+      if (prog.start_date && prog.start_date >= winStart && prog.start_date <= winEnd) {
         items.push({
           id: `reg-${reg.id}-start`,
           kind: 'program',
@@ -427,7 +508,7 @@ export function MyWeekScreen() {
           icon: 'star',
         });
       }
-      if (prog.end_date && prog.end_date >= today && prog.end_date <= windowEnd) {
+      if (prog.end_date && prog.end_date >= winStart && prog.end_date <= winEnd) {
         items.push({
           id: `reg-${reg.id}-end`,
           kind: 'program',
@@ -472,6 +553,7 @@ export function MyWeekScreen() {
 
   useRealtime('schedule', load);
   useRealtime('events', load);
+  useRealtime('reading_plan', load);
   useRealtime('program_registrations', load, `registered_by=eq.${userId}`);
 
   const onRefresh = async () => {
@@ -488,8 +570,8 @@ export function MyWeekScreen() {
     );
   }
 
-  const now = new Date();
-  const windowLabel = `${format(now, 'MMM d')} – ${format(addDays(now, 13), 'MMM d')}`;
+  const weekStartDate = startOfWeek(new Date(), { weekStartsOn: 0 });
+  const windowLabel = `${format(weekStartDate, 'MMM d')} – ${format(addDays(weekStartDate, 6), 'MMM d')}`;
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
@@ -527,7 +609,7 @@ export function MyWeekScreen() {
               <>
                 <Text style={styles.emptyTitle}>All clear</Text>
                 <Text style={styles.emptyBody}>
-                  Nothing scheduled in the next two weeks — enjoy the break!
+                  Nothing scheduled this week — enjoy the break!
                 </Text>
               </>
             )}
@@ -536,9 +618,6 @@ export function MyWeekScreen() {
         renderSectionHeader={({ section }) => (
           <View style={styles.sectionHeaderRow}>
             <Text style={styles.dayHeader}>{section.title}</Text>
-            <View style={styles.countBadge}>
-              <Text style={styles.countBadgeText}>{section.data.length}</Text>
-            </View>
           </View>
         )}
         renderItem={({ item }) => <WeekCard item={item} />}
@@ -553,12 +632,14 @@ function WeekCard({ item }: { item: WeekItem }) {
   const kindBg = KIND_BG[item.kind] ?? colors.primaryLight;
   const kindColor = KIND_COLOR[item.kind] ?? colors.primary;
   const kindLabel = KIND_LABEL[item.kind] ?? item.kind;
+  const hasBody = !!item.body;
+  const [expanded, setExpanded] = useState(false);
 
-  return (
-    <View style={[styles.card, { borderLeftColor: item.color }]}>
+  const row = (
+    <View style={styles.cardRow}>
       {/* Icon circle */}
-      <View style={[styles.iconCircle, { backgroundColor: item.color + '22' }]}>
-        <Ionicons name={item.icon} size={16} color={item.color} />
+      <View style={[styles.iconCircle, { backgroundColor: kindBg }]}>
+        <Ionicons name={item.icon} size={18} color={kindColor} />
       </View>
 
       {/* Text column */}
@@ -592,7 +673,29 @@ function WeekCard({ item }: { item: WeekItem }) {
           <Text style={styles.timeBadgeText}>{item.timeLabel}</Text>
         </View>
       )}
+      {hasBody && (
+        <Ionicons
+          name={expanded ? 'chevron-up' : 'chevron-down'}
+          size={16}
+          color={colors.textMuted}
+        />
+      )}
     </View>
+  );
+
+  if (!hasBody) {
+    return <View style={styles.card}>{row}</View>;
+  }
+
+  return (
+    <Pressable
+      style={({ pressed }) => [styles.card, pressed && { opacity: 0.9 }]}
+      onPress={() => setExpanded(v => !v)}
+      accessibilityRole="button"
+    >
+      {row}
+      {expanded && <Text style={styles.cardBody}>{withVerseSuperscripts(item.body!)}</Text>}
+    </Pressable>
   );
 }
 
@@ -661,26 +764,30 @@ const styles = StyleSheet.create({
   },
 
   card: {
-    flexDirection: 'row',
-    alignItems: 'center',
     backgroundColor: colors.surface,
     borderRadius: radius.lg,
     marginHorizontal: spacing.lg,
     marginBottom: spacing.md,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.borderSoft,
-    borderLeftWidth: 4,
-    paddingVertical: spacing.md,
-    paddingRight: spacing.md,
-    paddingLeft: spacing.sm,
-    gap: spacing.sm,
+    padding: spacing.md,
     ...shadow.card,
+  },
+  cardRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+  },
+  cardBody: {
+    marginTop: spacing.sm,
+    fontFamily: fonts.serif,
+    fontSize: 15,
+    lineHeight: 22,
+    color: colors.textSoft,
   },
 
   iconCircle: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
     flexShrink: 0,
@@ -710,10 +817,11 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   cardLabel: {
-    fontSize: 14.5,
-    fontWeight: '600',
+    fontSize: 15.5,
+    fontWeight: '700',
     color: colors.text,
-    lineHeight: 20,
+    lineHeight: 21,
+    letterSpacing: -0.2,
   },
   cardSublabel: {
     fontSize: 12,
@@ -732,17 +840,18 @@ const styles = StyleSheet.create({
   },
 
   timeBadge: {
-    backgroundColor: colors.backgroundSoft,
-    borderRadius: radius.sm,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 3,
+    backgroundColor: colors.primaryLight,
+    borderRadius: radius.md,
+    paddingHorizontal: spacing.sm + 2,
+    paddingVertical: 5,
     flexShrink: 0,
   },
   timeBadgeText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: colors.textSoft,
+    fontSize: 13,
+    fontWeight: '800',
+    color: colors.primary,
     fontVariant: ['tabular-nums'],
+    letterSpacing: 0.2,
   },
 
   emptyBox: {

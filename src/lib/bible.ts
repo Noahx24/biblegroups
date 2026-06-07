@@ -1,23 +1,21 @@
 /**
  * Bible provider abstraction.
  *
- * Public API
- *   fetchVerse(reference, translation) — cache → YouVersion API → bible-api.com → offline
+ * Backed solely by the YouVersion Platform API (https://api.youversion.com).
+ * Your single App Key is the only secret required; translations are selected by
+ * YouVersion's public numeric version IDs (KJV = 1, NIV = 111, …), not per-key.
  *
- * Backends
- *   YouVersionBibleBackend — api.scripture.api.bible (requires EXPO_PUBLIC_BIBLE_API_KEY)
- *   OnlineBibleBackend    — bible-api.com (free, KJV public-domain, no key needed)
- *   OfflineBibleBackend   — hardcoded KJV seed for zero-network fallback
+ * Public API
+ *   fetchVerse(reference, translation) — cache → YouVersion API
  *
  * Environment variables (add to .env):
- *   EXPO_PUBLIC_BIBLE_API_KEY      — API key from your YouVersion / api.bible developer portal
- *   EXPO_PUBLIC_BIBLE_ID_KJV       — api.bible Bible ID for KJV  (default: de4e12af7f28f599-01)
- *   EXPO_PUBLIC_BIBLE_ID_ESV       — api.bible Bible ID for ESV
- *   EXPO_PUBLIC_BIBLE_ID_NIV       — api.bible Bible ID for NIV
- *   EXPO_PUBLIC_BIBLE_ID_NLT       — api.bible Bible ID for NLT
+ *   EXPO_PUBLIC_BIBLE_API_KEY — YouVersion Platform App Key (developers.youversion.com)
+ *
+ * Note: each App Key only has the translations you enabled in the YouVersion
+ * Platform dashboard. Enable the versions you query (e.g. KJV) there first.
  *
  * Cache
- *   AsyncStorage key: @churchflow/bible_cache_v1
+ *   AsyncStorage key: @churchflow/bible_cache_v2
  *   Up to CACHE_MAX_SIZE entries; oldest entries are evicted first.
  */
 
@@ -37,7 +35,9 @@ export interface BibleProvider {
 
 // ─── cache ────────────────────────────────────────────────────────────────────
 
-const CACHE_KEY = '@churchflow/bible_cache_v1';
+// v2: verse-number parsing was fixed (see htmlToTextWithVerseNumbers); bumping
+// the key discards entries cached with the old parser (e.g. "16For God…").
+const CACHE_KEY = '@churchflow/bible_cache_v2';
 const CACHE_MAX_SIZE = 50;
 
 type CacheEntry = {
@@ -173,20 +173,29 @@ function toOsisId(reference: string): string | null {
   if (verseStart && parseInt(verseStart, 10) < 1) return null;
   if (!verseStart) return `${bookId}.${chapter}`;
   if (!verseEnd) return `${bookId}.${chapter}.${verseStart}`;
-  return `${bookId}.${chapter}.${verseStart}-${bookId}.${chapter}.${verseEnd}`;
+  // YouVersion USFM uses the short range form "GEN.3.1-3" (not the api.bible
+  // "GEN.3.1-GEN.3.3" form) — the long form 404s on the platform API.
+  return `${bookId}.${chapter}.${verseStart}-${verseEnd}`;
 }
 
 // ─── env / configuration ──────────────────────────────────────────────────────
 
+// YouVersion Platform App Key — the only secret required.
 const BIBLE_API_KEY = process.env.EXPO_PUBLIC_BIBLE_API_KEY ?? '';
-const BIBLE_API_BASE = 'https://api.scripture.api.bible/v1';
+const BIBLE_API_BASE = 'https://api.youversion.com/v1';
 
-// Bible IDs from your api.bible portal. Default KJV ID is the public ABS edition.
+// YouVersion public numeric version IDs (bible.com). These are not secret —
+// they only select the translation. Enable the ones you use in your Platform
+// dashboard, or your App Key will not be authorised to read them.
 const BIBLE_IDS: Record<string, string> = {
-  kjv: process.env.EXPO_PUBLIC_BIBLE_ID_KJV ?? 'de4e12af7f28f599-01',
-  esv: process.env.EXPO_PUBLIC_BIBLE_ID_ESV ?? '',
-  niv: process.env.EXPO_PUBLIC_BIBLE_ID_NIV ?? '',
-  nlt: process.env.EXPO_PUBLIC_BIBLE_ID_NLT ?? '',
+  kjv: '1',
+  esv: '59',
+  niv: '111',
+  nlt: '116',
+  nkjv: '114',
+  nasb: '100',
+  amp: '1588',
+  msg: '97',
 };
 
 const TRANSLATION_NAMES: Record<string, string> = {
@@ -194,21 +203,74 @@ const TRANSLATION_NAMES: Record<string, string> = {
   esv: 'English Standard Version',
   niv: 'New International Version',
   nlt: 'New Living Translation',
+  nkjv: 'New King James Version',
+  nasb: 'New American Standard Bible',
+  amp: 'Amplified Bible',
+  msg: 'The Message',
 };
 
 // ─── timeout ──────────────────────────────────────────────────────────────────
 
 const FETCH_TIMEOUT_MS = 10_000;
 
+// ─── html → text with verse numbers ───────────────────────────────────────────
+// YouVersion's `format=text` strips verse numbers; `format=html` keeps them in
+// markup. We pull the verse-number labels out as inline superscripts, then strip
+// the remaining tags so the stored text reads e.g. "¹ For the director… ² …".
+
+const SUPERSCRIPTS = ['⁰', '¹', '²', '³', '⁴', '⁵', '⁶', '⁷', '⁸', '⁹'];
+
+export function toSuperscript(num: string): string {
+  return num.replace(/\d/g, d => SUPERSCRIPTS[Number(d)]);
+}
+
+function htmlToTextWithVerseNumbers(html: string): string {
+  // Non-breaking space keeps a verse-number superscript glued to its word.
+  const nbsp = ' ';
+  return html
+    // Verse-number labels. YouVersion marks these with a class like "label" or
+    // "vn"/"verse-num"; match any small inline element carrying such a class,
+    // tolerating single/double quotes and nested markup inside the label. We
+    // only superscript when the label resolves to a bare number, so the outer
+    // verse wrapper (e.g. class="verse v16") is left untouched.
+    .replace(
+      /<(span|sup|b|i)\b[^>]*\bclass\s*=\s*["'][^"']*\b(?:label|vn|verse-?num(?:ber)?)\b[^"']*["'][^>]*>([\s\S]*?)<\/\1>/gi,
+      (_match, _tag: string, inner: string) => {
+        const n = inner.replace(/<[^>]+>/g, '').trim();
+        return /^\d+$/.test(n) ? ` ${toSuperscript(n)}${nbsp}` : '';
+      },
+    )
+    // Plain <sup>12</sup> verse numbers without a recognised class.
+    .replace(/<sup\b[^>]*>\s*(\d+)\s*<\/sup>/gi, (_m, n: string) => ` ${toSuperscript(n)}${nbsp}`)
+    // Drop footnote / cross-reference content so it doesn't bleed into the text.
+    .replace(/<span[^>]*class=["'][^"']*\b(?:note|cross|fr|ft)\b[^"']*["'][^>]*>[\s\S]*?<\/span>/gi, '')
+    // Strip remaining tags and collapse whitespace.
+    .replace(/<[^>]+>/g, '')
+    .replace(/[ \t]*\n[ \t]*/g, ' ')
+    .replace(/[ \t]{2,}/g, ' ')
+    .trim()
+    // Safety net: a leading verse number left stuck to the first word, e.g.
+    // "16For God…" on a single-verse passage. Pull it off as a superscript.
+    .replace(/^(\d{1,3})(?=["'“”]?[A-Za-z])/, (_m, n: string) => `${toSuperscript(n)}${nbsp}`)
+    .trim();
+}
+
 // ─── YouVersion / api.bible backend ──────────────────────────────────────────
 
 const YouVersionBibleBackend: BibleProvider = {
   async fetch(reference, translation) {
+    if (!BIBLE_API_KEY) {
+      throw new Error(
+        'No YouVersion App Key configured. Set EXPO_PUBLIC_BIBLE_API_KEY in your .env ' +
+        '(get one at developers.youversion.com).',
+      );
+    }
+
     const bibleId = BIBLE_IDS[translation.toLowerCase()];
     if (!bibleId) {
       throw new Error(
-        `No Bible ID configured for "${translation}". ` +
-        `Add EXPO_PUBLIC_BIBLE_ID_${translation.toUpperCase()} to your .env.`,
+        `No YouVersion version ID configured for "${translation}". ` +
+        `Add it to BIBLE_IDS in bible.ts.`,
       );
     }
 
@@ -217,14 +279,9 @@ const YouVersionBibleBackend: BibleProvider = {
       throw new Error(`Could not parse reference "${reference}". Try "John 3:16" or "Psalm 23".`);
     }
 
-    const params = new URLSearchParams({
-      'content-type': 'text',
-      'include-notes': 'false',
-      'include-titles': 'false',
-      'include-chapter-numbers': 'false',
-      'include-verse-numbers': 'false',
-      'include-verse-spans': 'false',
-    });
+    // format=html keeps verse-number markup, which we convert to inline
+    // superscripts (format=text would drop the numbers entirely).
+    const params = new URLSearchParams({ format: 'html' });
     const url = `${BIBLE_API_BASE}/bibles/${bibleId}/passages/${encodeURIComponent(passageId)}?${params}`;
 
     const controller = new AbortController();
@@ -232,7 +289,7 @@ const YouVersionBibleBackend: BibleProvider = {
     let res: Response;
     try {
       res = await fetch(url, {
-        headers: { 'api-key': BIBLE_API_KEY },
+        headers: { 'X-YVP-App-Key': BIBLE_API_KEY },
         signal: controller.signal,
       });
     } catch (e) {
@@ -245,129 +302,35 @@ const YouVersionBibleBackend: BibleProvider = {
     }
 
     if (!res.ok) {
-      throw new Error(`Could not find passage "${reference}" (HTTP ${res.status})`);
+      // 401/403 mean the request reached the API but the key isn't allowed to
+      // read this version — almost always the App Key doesn't have this
+      // translation enabled, rather than the passage being missing.
+      if (res.status === 401 || res.status === 403) {
+        throw new Error(
+          `Your Bible API key isn't authorised for ${translation.toUpperCase()} (HTTP ${res.status}). ` +
+          `Enable that translation for your key, or pick one your licence covers.`,
+        );
+      }
+      if (res.status === 404) {
+        throw new Error(`Couldn't find "${reference}". Check the book, chapter, and verse.`);
+      }
+      throw new Error(`Couldn't fetch "${reference}" right now (HTTP ${res.status}). Please try again.`);
     }
 
-    const json = (await res.json()) as {
-      data: { reference: string; content: string };
-    };
+    // YouVersion returns the passage fields at the top level (no `data` wrapper).
+    const json = (await res.json()) as { reference: string; content: string };
 
-    const rawText = json.data?.content ?? '';
+    const rawText = json.content ?? '';
     if (!rawText) {
       throw new Error(`Could not find passage "${reference}" — empty response from API.`);
     }
-    // Strip any residual markup and collapse whitespace
-    const cleanText = rawText.replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim();
+    // Convert verse-number markup to inline superscripts, then strip the rest.
+    const cleanText = htmlToTextWithVerseNumbers(rawText);
 
-    return {
-      reference: json.data.reference,
-      text: cleanText,
-      translation: TRANSLATION_NAMES[translation.toLowerCase()] ?? translation.toUpperCase(),
-    };
-  },
-};
-
-// ─── free online backend (KJV fallback, no API key required) ─────────────────
-
-const OnlineBibleBackend: BibleProvider = {
-  async fetch(reference, translation) {
-    const encoded = encodeURIComponent(reference.trim());
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
-    let res: Response;
-    try {
-      res = await fetch(`https://bible-api.com/${encoded}?translation=${translation}`, {
-        signal: controller.signal,
-      });
-    } catch (e) {
-      if (e instanceof Error && e.name === 'AbortError') {
-        throw new Error('Verse lookup timed out. Check your connection and try again.');
-      }
-      throw e;
-    } finally {
-      clearTimeout(timer);
-    }
-    if (!res.ok) {
-      throw new Error(`Could not find passage "${reference}"`);
-    }
-    const json = (await res.json()) as {
-      reference: string;
-      text: string;
-      translation_name?: string;
-    };
     return {
       reference: json.reference,
-      text: json.text.trim(),
-      translation: json.translation_name ?? translation.toUpperCase(),
-    };
-  },
-};
-
-// ─── offline backend ──────────────────────────────────────────────────────────
-
-type OfflineVerse = { text: string; fullRef: string; translationName: string };
-
-const OFFLINE_KJV: Record<string, OfflineVerse> = {
-  'john 3:16': {
-    fullRef: 'John 3:16',
-    translationName: 'King James Version',
-    text: 'For God so loved the world, that he gave his only begotten Son, that whosoever believeth in him should not perish, but have everlasting life.',
-  },
-  'psalm 23:1': {
-    fullRef: 'Psalm 23:1',
-    translationName: 'King James Version',
-    text: 'The LORD is my shepherd; I shall not want.',
-  },
-  'psalm 23': {
-    fullRef: 'Psalm 23',
-    translationName: 'King James Version',
-    text: "The LORD is my shepherd; I shall not want. He maketh me to lie down in green pastures: he leadeth me beside the still waters. He restoreth my soul: he leadeth me in the paths of righteousness for his name's sake. Yea, though I walk through the valley of the shadow of death, I will fear no evil: for thou art with me; thy rod and thy staff they comfort me. Thou preparest a table before me in the presence of mine enemies: thou anointest my head with oil; my cup runneth over. Surely goodness and mercy shall follow me all the days of my life: and I will dwell in the house of the LORD for ever.",
-  },
-  'romans 8:28': {
-    fullRef: 'Romans 8:28',
-    translationName: 'King James Version',
-    text: 'And we know that all things work together for good to them that love God, to them who are the called according to his purpose.',
-  },
-  'philippians 4:13': {
-    fullRef: 'Philippians 4:13',
-    translationName: 'King James Version',
-    text: 'I can do all things through Christ which strengtheneth me.',
-  },
-  'proverbs 3:5': {
-    fullRef: 'Proverbs 3:5',
-    translationName: 'King James Version',
-    text: 'Trust in the LORD with all thine heart; and lean not unto thine own understanding.',
-  },
-  'jeremiah 29:11': {
-    fullRef: 'Jeremiah 29:11',
-    translationName: 'King James Version',
-    text: 'For I know the thoughts that I think toward you, saith the LORD, thoughts of peace, and not of evil, to give you an expected end.',
-  },
-  'isaiah 40:31': {
-    fullRef: 'Isaiah 40:31',
-    translationName: 'King James Version',
-    text: 'But they that wait upon the LORD shall renew their strength; they shall mount up with wings as eagles; they shall run, and not be weary; and they shall walk, and not faint.',
-  },
-};
-
-const OFFLINE_BY_TRANSLATION: Record<string, Record<string, OfflineVerse>> = {
-  kjv: OFFLINE_KJV,
-};
-
-const OfflineBibleBackend: BibleProvider = {
-  async fetch(reference, translation) {
-    const key = reference.trim().toLowerCase();
-    const lookup = OFFLINE_BY_TRANSLATION[translation.toLowerCase()] ?? OFFLINE_KJV;
-    const verse = lookup[key];
-    if (!verse) {
-      throw new Error(
-        `"${reference}" is not available offline. Connect to the internet to look up this verse.`,
-      );
-    }
-    return {
-      reference: verse.fullRef,
-      text: verse.text,
-      translation: verse.translationName,
+      text: cleanText,
+      translation: TRANSLATION_NAMES[translation.toLowerCase()] ?? translation.toUpperCase(),
     };
   },
 };
@@ -375,32 +338,19 @@ const OfflineBibleBackend: BibleProvider = {
 // ─── public API ───────────────────────────────────────────────────────────────
 
 /**
- * Fetch a Bible verse: cache → YouVersion API (if key set) → bible-api.com → offline fallback.
+ * Fetch a Bible verse: cache → YouVersion Platform API.
+ * Throws if the App Key is missing, the reference is unparseable, or the network fails.
  */
 export async function fetchVerse(
   reference: string,
-  translation = 'kjv',
+  translation = 'niv',
 ): Promise<VerseFetch> {
   const cached = await cacheGet(reference, translation);
   if (cached) {
     return { reference: cached.reference, text: cached.text, translation: cached.translation };
   }
 
-  const backend = BIBLE_API_KEY ? YouVersionBibleBackend : OnlineBibleBackend;
-  try {
-    const verse = await backend.fetch(reference, translation);
-    await cachePut(verse);
-    return verse;
-  } catch (onlineErr) {
-    const isNetworkError =
-      onlineErr instanceof Error &&
-      (onlineErr.message.includes('timed out') ||
-        onlineErr.message.includes('Network request failed') ||
-        onlineErr.name === 'AbortError');
-
-    if (isNetworkError) {
-      return OfflineBibleBackend.fetch(reference, translation);
-    }
-    throw onlineErr;
-  }
+  const verse = await YouVersionBibleBackend.fetch(reference, translation);
+  await cachePut(verse);
+  return verse;
 }

@@ -7,23 +7,30 @@
  *
  * Deployment
  *   supabase functions deploy send-schedule-reminders --no-verify-jwt
+ *   (--no-verify-jwt makes this cron-only function invokable WITHOUT any auth
+ *   header, which is why the cron call below needs no key.)
  *
- * Schedule (Supabase Dashboard → Database → Cron, requires pg_cron extension):
+ * Schedule (Supabase Dashboard → Database → Cron, requires pg_cron + pg_net):
  *   select cron.schedule(
  *     'send-schedule-reminders',
  *     '0 18 * * *',           -- 18:00 UTC daily (20:00 SAST)
  *     $$select net.http_post(
- *        url := '<PROJECT_URL>/functions/v1/send-schedule-reminders',
- *        headers := jsonb_build_object(
- *          'Authorization', 'Bearer <SERVICE_ROLE_KEY>',
- *          'Content-Type', 'application/json'
- *        )
+ *        url     := 'https://<PROJECT_REF>.supabase.co/functions/v1/send-schedule-reminders',
+ *        headers := jsonb_build_object('Content-Type', 'application/json'),
+ *        body    := '{}'::jsonb
  *     )$$
  *   );
  *
- * The function uses the service role key (set by Supabase as
- * SUPABASE_SERVICE_ROLE_KEY env var on edge functions automatically) so it
- * bypasses RLS when reading slots / tokens.
+ *   If you instead deploy WITH JWT verification (no --no-verify-jwt), the caller
+ *   must authenticate: on the new API keys, add a SECRET key in the apikey header
+ *   ('apikey', '<sb_secret_…>') — secret keys must NOT be sent as
+ *   'Authorization: Bearer'. Prefer reading it from Vault over inlining.
+ *
+ * Either way, the function authenticates to Postgres itself using the
+ * service-role-equivalent key auto-injected by Supabase — it reads
+ * SUPABASE_SECRET_KEYS (new) and falls back to SUPABASE_SERVICE_ROLE_KEY
+ * (deprecated) via resolveServiceKey(), so it bypasses RLS when reading slots /
+ * tokens. That key is never passed by the caller.
  */
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.4";
@@ -33,9 +40,28 @@ const EXPO_PUSH_URL = "https://exp.host/--/api/v2/push/send";
 // deno-lint-ignore no-explicit-any
 type ExpoMessage = { to: string; title: string; body: string; data?: any };
 
+// Resolve a service-role-equivalent key. Prefers the new JSON `SUPABASE_SECRET_KEYS`
+// dictionary (keyed by name — "default" is the standard one), falling back to the
+// deprecated single `SUPABASE_SERVICE_ROLE_KEY`. Both bypass RLS.
+function resolveServiceKey(): string | null {
+  const raw = Deno.env.get("SUPABASE_SECRET_KEYS");
+  if (raw) {
+    try {
+      const dict = JSON.parse(raw) as Record<string, unknown>;
+      if (typeof dict.default === "string" && dict.default) return dict.default;
+      for (const v of Object.values(dict)) {
+        if (typeof v === "string" && v) return v;
+      }
+    } catch (e) {
+      console.warn("failed to parse SUPABASE_SECRET_KEYS", e);
+    }
+  }
+  return Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? null;
+}
+
 Deno.serve(async (_req) => {
   const url = Deno.env.get("SUPABASE_URL");
-  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  const serviceKey = resolveServiceKey();
   if (!url || !serviceKey) {
     return new Response("missing supabase env", { status: 500 });
   }

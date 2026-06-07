@@ -25,6 +25,9 @@ import { useAuth } from '@/hooks/useAuth';
 import { useGroup } from '@/context/GroupContext';
 import { useRealtime } from '@/hooks/useRealtime';
 import { formatWeek, weekStart } from '@/lib/week';
+import { formatMeeting } from '@/lib/meeting';
+import { notifyAssignment } from '@/lib/notify';
+import { DatePickerField } from '@/components/DatePickerField';
 import { colors, fonts, radius, shadow, spacing } from '@/theme';
 import type { ScheduleSlot, VolunteerProgramme } from '@/types';
 
@@ -89,77 +92,6 @@ async function checkConflict(
       ],
     );
   });
-}
-
-// ─── DatePickerField ──────────────────────────────────────────────────────────
-
-function DatePickerField({
-  label,
-  value,
-  minimumDate,
-  onChange,
-}: {
-  label: string;
-  value: Date | null;
-  minimumDate?: Date;
-  onChange: (date: Date) => void;
-}) {
-  const [showing, setShowing] = useState(false);
-
-  const handleChange = (_event: DateTimePickerEvent, selected?: Date) => {
-    if (Platform.OS === 'android') {
-      setShowing(false);
-      if (_event.type === 'set' && selected) onChange(selected);
-    } else {
-      if (selected) onChange(selected);
-    }
-  };
-
-  return (
-    <View>
-      <Text style={styles.fieldLabel}>{label}</Text>
-      <Pressable
-        style={styles.pickerField}
-        onPress={() => setShowing(v => !v)}
-        accessibilityRole="button"
-        accessibilityLabel={value ? format(value, 'EEEE d MMMM yyyy') : 'Select date'}
-      >
-        <Ionicons name="calendar-outline" size={15} color={colors.textMuted} />
-        <Text style={[styles.pickerFieldText, !value && styles.pickerFieldPlaceholder]}>
-          {value ? format(value, 'EEE, d MMMM yyyy') : 'Tap to select date'}
-        </Text>
-        <Ionicons
-          name={showing && Platform.OS === 'ios' ? 'chevron-up' : 'chevron-down'}
-          size={14}
-          color={colors.textMuted}
-        />
-      </Pressable>
-      {showing && Platform.OS === 'ios' && (
-        <View style={styles.inlinePicker}>
-          <DateTimePicker
-            mode="date"
-            value={value ?? new Date()}
-            minimumDate={minimumDate}
-            onChange={handleChange}
-            display="spinner"
-            style={{ height: 180 }}
-          />
-          <Pressable style={styles.inlinePickerDone} onPress={() => setShowing(false)}>
-            <Text style={styles.inlinePickerDoneText}>Done</Text>
-          </Pressable>
-        </View>
-      )}
-      {showing && Platform.OS === 'android' && (
-        <DateTimePicker
-          mode="date"
-          value={value ?? new Date()}
-          minimumDate={minimumDate}
-          onChange={handleChange}
-          display="default"
-        />
-      )}
-    </View>
-  );
 }
 
 // ─── TimePickerField ──────────────────────────────────────────────────────────
@@ -351,7 +283,7 @@ function EditSlotModal({
   slot,
   groupId,
   isClass,
-  isAdmin,
+  canAssign,
   programmes,
   onClose,
   onSaved,
@@ -360,11 +292,12 @@ function EditSlotModal({
   slot: ScheduleSlot | null;
   groupId: string;
   isClass: boolean;
-  isAdmin: boolean;
+  canAssign: boolean;
   programmes: VolunteerProgramme[];
   onClose: () => void;
   onSaved: () => void;
 }) {
+  const { session } = useAuth();
   const minDate = useMemo(() => {
     const [y, m, d] = weekStart().split('-').map(Number);
     return new Date(y, m - 1, d);
@@ -389,9 +322,9 @@ function EditSlotModal({
     setNotes(slot.notes ?? '');
   }, [visible, slot]);
 
-  // Load members for the assignee picker (only needed by admins)
+  // Load members for the assignee picker (admins and leaders can assign)
   useEffect(() => {
-    if (!visible || !isAdmin) return;
+    if (!visible || !canAssign) return;
     let cancelled = false;
     (async () => {
       const { data } = await supabase
@@ -409,7 +342,7 @@ function EditSlotModal({
       if (!cancelled) setMembers(rows);
     })();
     return () => { cancelled = true; };
-  }, [visible, isAdmin, groupId]);
+  }, [visible, canAssign, groupId]);
 
   const save = async () => {
     if (!slot || !date) return;
@@ -445,6 +378,10 @@ function EditSlotModal({
       .eq('id', slot.id);
     setSaving(false);
     if (error) { Alert.alert('Could not save', error.message); return; }
+    // Notify a newly-assigned person (never the person doing the assigning).
+    if (assigneeId && assigneeChanged && assigneeId !== session?.user.id) {
+      notifyAssignment(slot.id);
+    }
     onSaved();
   };
 
@@ -459,8 +396,15 @@ function EditSlotModal({
           text: 'Remove', style: 'destructive',
           onPress: async () => {
             const { error } = await supabase.from('schedule').delete().eq('id', slot.id);
-            if (error) Alert.alert('Error', error.message);
-            else onSaved();
+            if (error) { Alert.alert('Could not remove', error.message); return; }
+            // The week's verse is keyed by the slot's date — remove it too so a
+            // verse doesn't linger with no meeting (matches the warning above).
+            await supabase
+              .from('weekly_verses')
+              .delete()
+              .eq('group_id', groupId)
+              .eq('week_start', slot.slot_date);
+            onSaved();
           },
         },
       ],
@@ -521,7 +465,7 @@ function EditSlotModal({
             </>
           )}
 
-          {isAdmin && members.length > 0 && (
+          {canAssign && members.length > 0 && (
             <>
               <Text style={styles.fieldLabel}>Assigned to</Text>
               <FlatList
@@ -591,6 +535,7 @@ function AssignSlotModal({
   onClose: () => void;
   onSaved: () => void;
 }) {
+  const { session } = useAuth();
   const minDate = useMemo(() => {
     const [y, m, d] = weekStart().split('-').map(Number);
     return new Date(y, m - 1, d);
@@ -650,14 +595,14 @@ function AssignSlotModal({
     if (!ok) return;
 
     setSaving(true);
-    const { error } = await supabase.from('schedule').insert({
+    const { data, error } = await supabase.from('schedule').insert({
       group_id: groupId,
       slot_date: isoDate,
       slot_time: time ?? null,
       programme_id: programmeId,
       assignee_id: pickedUserId,
       status: 'pending',
-    });
+    }).select('id').single();
     setSaving(false);
     if (error) {
       Alert.alert(
@@ -665,6 +610,10 @@ function AssignSlotModal({
         error.code === '23505' ? 'A slot already exists at that date and time.' : error.message,
       );
       return;
+    }
+    // Notify the assigned volunteer (unless an admin assigned themselves).
+    if (data?.id && pickedUserId !== session?.user.id) {
+      notifyAssignment(data.id);
     }
     onSaved();
   };
@@ -893,7 +842,7 @@ export function ScheduleScreen() {
     const [scheduleRes, profileRes, programmesRes] = await Promise.all([
       supabase
         .from('schedule')
-        .select('*, assignee:profiles(id, display_name, avatar_url), programme:volunteer_programmes(id, name, default_time)')
+        .select('*, assignee:profiles!assignee_id(id, display_name, avatar_url), programme:volunteer_programmes(id, name, default_time)')
         .eq('group_id', group.id)
         .gte('slot_date', weekStart())
         .order('slot_date', { ascending: true })
@@ -1040,7 +989,8 @@ export function ScheduleScreen() {
       const buttons: Array<{ text: string; style?: 'cancel' | 'destructive'; onPress?: () => void }> = [
         { text: 'Close', style: 'cancel' },
       ];
-      if (open && isLeader) buttons.push({ text: "I'll lead", onPress: () => claim(slot.id) });
+      // Any member of a class group can take an open slot — no leader approval.
+      if (open) buttons.push({ text: "I'll lead", onPress: () => claim(slot.id) });
       if (mine) buttons.push({ text: 'Release', style: 'destructive', onPress: () => release(slot.id) });
       if (someoneElse && isAdmin) {
         buttons.push({
@@ -1097,18 +1047,39 @@ export function ScheduleScreen() {
     },
   };
 
+  // Mark birthdays on the calendar for whatever month is in view (they recur
+  // annually, so we match on month and place them in the displayed year).
+  const dispMonthNum = Number(displayMonth.slice(5, 7));
+  const markedAll: Marked = { ...markedWithToday };
+  for (const b of birthdays) {
+    if (b.birth_month !== dispMonthNum) continue;
+    const iso = `${displayMonth}-${String(b.birth_day).padStart(2, '0')}`;
+    const prev = markedAll[iso];
+    const prevStyles = (prev?.customStyles ?? {}) as { container?: object; text?: object };
+    markedAll[iso] = {
+      ...(prev ?? {}),
+      marked: true,
+      dotColor: colors.rose,
+      customStyles: {
+        ...prevStyles,
+        container: { ...(prevStyles.container ?? {}), backgroundColor: colors.rose + '22', borderRadius: radius.sm },
+        text: { ...(prevStyles.text ?? {}), color: colors.rose, fontWeight: '700' },
+      },
+    };
+  }
+
   const minMonth = weekStart().slice(0, 7);
   const disableArrowLeft = displayMonth <= minMonth;
 
   return (
-    <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
+    <SafeAreaView style={styles.container} edges={['left', 'right']}>
       <ScrollView
         contentContainerStyle={styles.scroll}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
       >
         <View style={styles.sectionHeader}>
           <Text style={styles.pageTitle}>Schedule</Text>
-          {group.meeting_time ? <Text style={styles.pageSubtitle}>{group.meeting_time}</Text> : null}
+          {formatMeeting(group) ? <Text style={styles.pageSubtitle}>{formatMeeting(group)}</Text> : null}
           {!isClass && isAdmin && (
             <View style={styles.adminActions}>
               <Pressable style={styles.adminBtn} onPress={() => setShowAssign({})}>
@@ -1127,7 +1098,7 @@ export function ScheduleScreen() {
           <Calendar
             minDate={weekStart()}
             markingType="custom"
-            markedDates={markedWithToday}
+            markedDates={markedAll}
             onDayPress={onDayPress}
             onMonthChange={m => setDisplayMonth(`${m.year}-${String(m.month).padStart(2, '0')}`)}
             disableArrowLeft={disableArrowLeft}
@@ -1199,13 +1170,21 @@ export function ScheduleScreen() {
               const timeShort = s.slot_time ? String(s.slot_time).slice(0, 5) : null;
               const programmeName = s.programme?.name ?? null;
               const canEdit = isAdmin || isLeader;
+              // Plain members can take an open class slot straight from the list.
+              const canClaim = isClass && open && !canEdit;
+              const rowPressable = canEdit || canClaim;
+              const onRowPress = canEdit
+                ? () => setEditingSlot(s)
+                : canClaim
+                ? () => claim(s.id)
+                : undefined;
 
               return (
                 <Pressable
                   key={s.id}
-                  style={({ pressed }) => [styles.upcomingRow, pressed && canEdit && { opacity: 0.85 }]}
-                  onPress={canEdit ? () => setEditingSlot(s) : undefined}
-                  accessibilityRole={canEdit ? 'button' : undefined}
+                  style={({ pressed }) => [styles.upcomingRow, pressed && rowPressable && { opacity: 0.85 }]}
+                  onPress={onRowPress}
+                  accessibilityRole={rowPressable ? 'button' : undefined}
                 >
                   <View style={[styles.upcomingBar, { backgroundColor: barColor }]} />
                   <View style={styles.flex1}>
@@ -1319,7 +1298,7 @@ export function ScheduleScreen() {
         slot={editingSlot}
         groupId={group.id}
         isClass={isClass}
-        isAdmin={isAdmin}
+        canAssign={isAdmin || isLeader}
         programmes={programmes}
         onClose={() => setEditingSlot(null)}
         onSaved={() => { setEditingSlot(null); load(); }}
