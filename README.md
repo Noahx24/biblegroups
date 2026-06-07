@@ -1,6 +1,6 @@
 # ChurchFlow
 
-A mobile app for church communities — manage class and volunteer groups, rosters, events, family program registrations, and more.
+A mobile app for church communities — manage class and volunteer groups, rosters, events, family programme registrations, and more.
 
 **Expo 54 (React Native) · TypeScript · Supabase** — runs on iOS and Android from one codebase.
 
@@ -12,7 +12,7 @@ A mobile app for church communities — manage class and volunteer groups, roste
 Bottom tabs
 ├── Groups        — browse all groups; tap your group to enter it
 ├── News          — BMC In Touch newsletter (Mailchimp RSS)
-├── Family        — children and program registrations
+├── Family        — children and programme registrations
 └── Profile       — user details, avatar, sign-out; Admin Panel link for admins
 
 Group detail (class group)
@@ -82,15 +82,15 @@ Pulls the latest BMC *In Touch* newsletter from the Mailchimp RSS feed. Each iss
 
 ### Family
 
-Parents manage their children and register them for church programs.
+Parents manage their children and register them for church programmes.
 
 - **Add a child** — name and birth year (validated: must be under 18).
-- **Programs** — three types with default age ranges:
+- **Programmes** — three types with default age ranges:
   - **Youth** — ages 13–18
   - **Children's Church** — ages 4–12
   - **Holiday Club** — open age (no default restriction)
-- When registering a child, programs outside the child's age range are shown greyed-out with an "not age-eligible" label so parents can't accidentally enroll a 5-year-old in Youth.
-- Admins create and manage programs (name, type, age range, location, dates).
+- When registering a child, programmes outside the child's age range are shown greyed-out with an "not age-eligible" label so parents can't accidentally enroll a 5-year-old in Youth.
+- Admins create and manage programmes (name, type, age range, location, dates).
 
 ### Admin Panel
 
@@ -117,9 +117,9 @@ The one-class-group constraint is enforced per row — a clear error is shown if
 
 | Role | How granted | Permissions |
 |---|---|---|
-| **Member** | Sign up | Read all group content · RSVP events · Claim open schedule slots · Edit own profile · Register children for programs |
+| **Member** | Sign up | Read all group content · RSVP events · Claim open schedule slots · Edit own profile · Register children for programmes |
 | **Leader** | Admin assigns via CSV or DB | All member permissions + add schedule dates · Post/delete own announcements · Create/edit/delete events · Post verse of the week (when leading) |
-| **Admin** | SQL bootstrap | All leader permissions + create groups · run CSV import · create and manage youth programs |
+| **Admin** | SQL bootstrap | All leader permissions + create groups · run CSV import · create and manage youth programmes |
 | **Super Admin** | SQL bootstrap | All admin permissions; `is_super_admin` also required to change another user's super-admin flag |
 
 A `BEFORE UPDATE` trigger on `profiles` prevents privilege escalation: only an existing admin can set `is_admin`; only an existing super admin can set `is_super_admin`.
@@ -237,7 +237,7 @@ src/
     AnnouncementsScreen.tsx   Group notice board
     ChurchNewsScreen.tsx      BMC newsletter card feed
     ProfileScreen.tsx         Profile edit + avatar upload + admin link
-    FamilyScreen.tsx          Children + program registration
+    FamilyScreen.tsx          Children + programme registration
     AdminScreen.tsx           CSV member import
 supabase/
   migrations/

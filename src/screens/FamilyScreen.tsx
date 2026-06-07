@@ -72,7 +72,7 @@ export function FamilyScreen() {
   useRealtime('program_registrations', load, `registered_by=eq.${userId}`);
 
   const deregister = (reg: ProgramRegistration) => {
-    Alert.alert('Remove registration?', `${reg.family_member?.name ?? 'Child'} from ${reg.program?.name ?? 'program'}`, [
+    Alert.alert('Remove registration?', `${reg.family_member?.name ?? 'Child'} from ${reg.program?.name ?? 'programme'}`, [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Remove', style: 'destructive',
@@ -106,7 +106,7 @@ export function FamilyScreen() {
         <View style={styles.header}>
           <View>
             <Text style={styles.title}>Family</Text>
-            <Text style={styles.subtitle}>Children's programs & registration</Text>
+            <Text style={styles.subtitle}>Children's programmes & registration</Text>
           </View>
           <TouchableOpacity style={styles.addBtn} onPress={() => setEditorChild('new')}>
             <Ionicons name="add" size={20} color={colors.surface} />
@@ -163,7 +163,7 @@ export function FamilyScreen() {
                       <Pressable key={r.id} onPress={() => deregister(r)}>
                         <View style={[styles.regPill, { backgroundColor: PROGRAM_TYPE_COLOR[r.program?.type ?? 'youth'] + '22' }]}>
                           <Text style={[styles.regPillText, { color: PROGRAM_TYPE_COLOR[r.program?.type ?? 'youth'] }]}>
-                            {r.program?.name ?? 'Program'}
+                            {r.program?.name ?? 'Programme'}
                           </Text>
                         </View>
                       </Pressable>
@@ -180,16 +180,16 @@ export function FamilyScreen() {
 
         {/* Programs */}
         <View style={styles.programsHeader}>
-          <Text style={styles.sectionLabel}>Available Programs</Text>
+          <Text style={styles.sectionLabel}>Available Programmes</Text>
           {isAdmin && (
             <TouchableOpacity onPress={() => setShowCreateProgram(true)}>
-              <Text style={styles.addProgramLink}>+ Add program</Text>
+              <Text style={styles.addProgramLink}>+ Add programme</Text>
             </TouchableOpacity>
           )}
         </View>
 
         {programs.length === 0 ? (
-          <Text style={styles.noProgramsText}>No active programs at this time.</Text>
+          <Text style={styles.noProgramsText}>No active programmes at this time.</Text>
         ) : (
           programs.map(p => {
             const dateRange = p.start_date && p.end_date
@@ -611,7 +611,7 @@ function RegisterModal({ visible, child, programs, existingRegs, userId, onClose
         </View>
         {programs.length === 0 ? (
           <View style={styles.center}>
-            <Text style={styles.emptyText}>No active programs available.</Text>
+            <Text style={styles.emptyText}>No active programmes available.</Text>
           </View>
         ) : (
           <FlatList
@@ -745,13 +745,13 @@ function CreateProgramModal({ visible, userId, onClose, onSaved }: {
       <SafeAreaView style={styles.modalSafe}>
         <View style={styles.modalHeader}>
           <Pressable onPress={onClose}><Text style={styles.modalCancel}>Cancel</Text></Pressable>
-          <Text style={styles.modalTitle}>New Program</Text>
+          <Text style={styles.modalTitle}>New Programme</Text>
           <Pressable onPress={save} disabled={saving}>
             <Text style={[styles.modalAction, saving && { opacity: 0.5 }]}>{saving ? '…' : 'Create'}</Text>
           </Pressable>
         </View>
         <ScrollView contentContainerStyle={styles.modalBody}>
-          <Text style={styles.fieldLabel}>Program name *</Text>
+          <Text style={styles.fieldLabel}>Programme name *</Text>
           <TextInput style={styles.textInput} value={name} onChangeText={setName}
             placeholder="e.g. Sunday School" placeholderTextColor={colors.textMuted} />
 
