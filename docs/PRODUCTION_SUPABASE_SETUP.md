@@ -89,16 +89,60 @@ You should see (non-exhaustive): `profiles`, `churches`, `groups`,
 `event_rsvps`, `announcements`, `family_members`, `youth_programs`,
 `program_registrations`, `volunteer_programmes`, `device_push_tokens`.
 
-> **Auth schema note:** `supabase db dump` covers the `public` schema. The
-> `auth`/`storage` system schemas are managed by Supabase and recreated with the
-> project — you do **not** copy them. Triggers the app installs on `auth.users`
-> (e.g. `on_auth_user_created` → `handle_new_user`) live in `public` functions
-> referenced from `auth`; confirm they came across:
-> ```bash
-> psql "$(supabase db url --linked)" -c "select tgname from pg_trigger where tgrelid = 'auth.users'::regclass;"
-> ```
-> If the auth-user trigger is missing (some dumps skip cross-schema triggers),
-> re-create it from your SOURCE: dump it explicitly and apply to PROD.
+### 2c. Re-create the cross-schema `auth.users` triggers (required)
+
+`supabase db dump` **excludes the managed `auth` and `storage` schemas by
+default** ([CLI ref](https://supabase.com/docs/reference/cli/supabase-db-dump)).
+The trigger functions themselves (`handle_new_user`, `sync_profile_email`) live
+in `public` and **are** captured by `schema.sql`, but the **triggers on
+`auth.users` that fire them are not** — they live in the `auth` schema. Without
+them, a new sign-up never gets a `public.profiles` row, and because the app only
+ever *updates* an existing profile after sign-in, the user silently ends up with
+no profile (broken church selection, no display name, etc.).
+
+So this step is **not optional**. First check whether the dump happened to carry
+them over:
+
+```bash
+psql "$(supabase db url --linked)" -c \
+  "select tgname from pg_trigger where tgrelid = 'auth.users'::regclass and not tgisinternal;"
+```
+
+You want to see `on_auth_user_created` and `on_auth_user_email_change`. If either
+is missing, re-create them on PROD. The most reliable way is to copy the exact
+definitions from SOURCE (in case yours have diverged), dumping just the `auth`
+schema and cherry-picking the trigger statements:
+
+```bash
+supabase link --project-ref <SOURCE_REF>
+supabase db dump --linked --schema auth -f auth.sql
+# Open auth.sql and copy out ONLY the `create trigger … on auth.users …`
+# statements (do NOT bulk-restore the whole auth schema into PROD — it conflicts
+# with Supabase's managed auth objects). Then apply those statements to PROD.
+```
+
+If your SOURCE matches the app's stock schema, this is the exact SQL to run on
+PROD (safe and idempotent — the functions arrived via `schema.sql`):
+
+```sql
+-- Creates a profiles row for every new auth user (display name from OAuth metadata).
+create trigger on_auth_user_created
+  after insert on auth.users
+  for each row execute function public.handle_new_user();
+
+-- Keeps profiles.email in sync when the auth email changes.
+create trigger on_auth_user_email_change
+  after insert or update of email on auth.users
+  for each row execute function public.sync_profile_email();
+```
+
+> If `psql` reports the trigger functions are missing too (`function
+> public.handle_new_user() does not exist`), then `schema.sql` didn't apply
+> cleanly — re-run §2b before creating the triggers.
+
+> **Storage schema:** likewise excluded by the default dump. The `avatars`
+> bucket and its `storage.objects` RLS policies are set up explicitly in §3 — no
+> separate restore needed.
 
 ---
 
