@@ -43,8 +43,8 @@
         "@sentry/react-native/expo",
         {
           "url": "https://sentry.io/",
-          "project": "YOUR_PROJECT_SLUG",
-          "organization": "YOUR_ORG_SLUG"
+          "project": "react-native",
+          "organization": "sibahle-digital"
         }
       ]
     ],
