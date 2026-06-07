@@ -26,11 +26,9 @@ import type { AppStackParamList } from '@/navigation/RootNavigator';
 type Nav = NativeStackNavigationProp<AppStackParamList>;
 
 export function ProfileScreen() {
-  const { session, signOut, isAdmin, isSuperAdmin, deleteAccount } = useAuth();
+  const { session, signOut, isAdmin, isSuperAdmin } = useAuth();
   const navigation = useNavigation<Nav>();
   const userId = session?.user.id;
-
-  const [deleting, setDeleting] = useState(false);
 
   const [displayName, setDisplayName] = useState('');
   const [favoriteVerse, setFavoriteVerse] = useState('');
@@ -161,43 +159,6 @@ export function ProfileScreen() {
     return () => clearTimeout(t);
   }, [savedAt]);
 
-  // POPIA right to erasure. Two-step confirmation because the deletion is
-  // immediate and irreversible — it erases the account and all cascading
-  // personal data (profile, group memberships, family records, push tokens).
-  const runDelete = async () => {
-    setDeleting(true);
-    try {
-      await deleteAccount();
-      // Session is now gone; AuthProvider routes back to the sign-in screen.
-    } catch (e) {
-      setDeleting(false);
-      Alert.alert('Could not delete account', e instanceof Error ? e.message : String(e));
-    }
-  };
-
-  const confirmDelete = () => {
-    Alert.alert(
-      'Delete account',
-      'This action cannot be undone. All your personal data will be permanently erased from ChurchFlow.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Continue',
-          style: 'destructive',
-          onPress: () =>
-            Alert.alert(
-              'Are you absolutely sure?',
-              'Your profile, group memberships and family records will be erased immediately.',
-              [
-                { text: 'Keep my account', style: 'cancel' },
-                { text: 'Delete permanently', style: 'destructive', onPress: runDelete },
-              ],
-            ),
-        },
-      ],
-    );
-  };
-
   if (loading) {
     return (
       <View style={styles.center}>
@@ -319,26 +280,16 @@ export function ProfileScreen() {
             <Text style={styles.signOutText}>Sign out</Text>
           </Pressable>
 
-          <Pressable
-            onPress={confirmDelete}
-            disabled={deleting}
-            style={({ pressed }) => [styles.deleteBtn, deleting && styles.disabled, pressed && styles.pressed]}
+          <TouchableOpacity
+            style={styles.deleteLink}
+            onPress={() => navigation.navigate('DeleteAccount')}
             accessibilityRole="button"
             accessibilityLabel="Delete account"
-            accessibilityState={{ busy: deleting, disabled: deleting }}
           >
-            {deleting ? (
-              <ActivityIndicator size="small" color={colors.danger} />
-            ) : (
-              <View style={styles.deleteBtnContent}>
-                <Ionicons name="trash-outline" size={16} color={colors.danger} />
-                <Text style={styles.deleteText}>Delete account</Text>
-              </View>
-            )}
-          </Pressable>
-          <Text style={styles.deleteHint}>
-            Permanently erases your account and personal data (POPIA).
-          </Text>
+            <Ionicons name="trash-outline" size={16} color={colors.danger} />
+            <Text style={styles.deleteLinkText}>Delete account</Text>
+            <Ionicons name="chevron-forward" size={14} color={colors.textMuted} />
+          </TouchableOpacity>
 
           <Text style={styles.versionText}>ChurchFlow · v0.2.0</Text>
         </ScrollView>
@@ -416,17 +367,7 @@ const styles = StyleSheet.create({
   adminLinkText: { flex: 1, fontSize: 15, color: colors.primary, fontWeight: '600' },
   signOutBtn: { marginTop: spacing.xl, padding: spacing.md, alignItems: 'center' },
   signOutText: { color: colors.primary, fontWeight: '600', fontSize: 15, letterSpacing: 0.1 },
-  deleteBtn: {
-    marginTop: spacing.xs,
-    marginHorizontal: spacing.lg,
-    padding: spacing.md,
-    alignItems: 'center',
-    borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: colors.danger,
-  },
-  deleteBtnContent: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm - 2 },
-  deleteText: { color: colors.danger, fontWeight: '600', fontSize: 15, letterSpacing: 0.1 },
-  deleteHint: { textAlign: 'center', fontSize: 11, color: colors.textMutedSoft, marginTop: spacing.sm, marginBottom: spacing.lg, paddingHorizontal: spacing.lg },
+  deleteLink: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginHorizontal: spacing.lg, marginTop: spacing.xs, marginBottom: spacing.lg, padding: spacing.md, backgroundColor: colors.surface, borderRadius: radius.md, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border },
+  deleteLinkText: { flex: 1, fontSize: 15, color: colors.danger, fontWeight: '600' },
   versionText: { textAlign: 'center', fontSize: 11, color: colors.textMutedSoft, paddingBottom: 4 },
 });
