@@ -20,6 +20,7 @@ import { format } from 'date-fns';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
 import { useRealtime } from '@/hooks/useRealtime';
+import { DatePickerField } from '@/components/DatePickerField';
 import { colors, fonts, radius, shadow, spacing } from '@/theme';
 import type { FamilyMember, ProgramRegistration, YouthProgram } from '@/types';
 import { CHILD_CONSENT_TEXT, CHILD_CONSENT_VERSION } from '@/types';
@@ -200,7 +201,6 @@ export function FamilyScreen() {
 
             return (
               <View key={p.id} style={styles.programCard}>
-                <View style={[styles.programAccent, { backgroundColor: PROGRAM_TYPE_COLOR[p.type] }]} />
                 <View style={styles.programBody}>
                   <View style={styles.programTop}>
                     <Text style={styles.programName}>{p.name}</Text>
@@ -335,6 +335,14 @@ function ChildEditorModal({ visible, userId, existing, onClose, onSaved }: {
       }
     }
 
+    if (!ec1Name.trim() || !ec1Phone.trim()) {
+      Alert.alert(
+        'Emergency contact required',
+        'Please provide at least one emergency contact (name and phone) for this child.',
+      );
+      return;
+    }
+
     if (hasHealthInfo && !consented) {
       Alert.alert(
         'Consent needed',
@@ -465,14 +473,14 @@ function ChildEditorModal({ visible, userId, existing, onClose, onSaved }: {
 
           <View style={styles.sectionDivider}>
             <Ionicons name="call-outline" size={14} color={colors.textMuted} />
-            <Text style={styles.sectionDividerText}>Emergency contacts (optional)</Text>
+            <Text style={styles.sectionDividerText}>Emergency contacts</Text>
           </View>
 
-          <Text style={styles.fieldLabel}>Contact 1 — name</Text>
+          <Text style={styles.fieldLabel}>Contact 1 — name *</Text>
           <TextInput style={styles.textInput} value={ec1Name} onChangeText={setEc1Name}
             placeholder="e.g. Mum — Sarah" placeholderTextColor={colors.textMuted} autoCapitalize="words" />
 
-          <Text style={styles.fieldLabel}>Contact 1 — phone</Text>
+          <Text style={styles.fieldLabel}>Contact 1 — phone *</Text>
           <TextInput style={styles.textInput} value={ec1Phone} onChangeText={setEc1Phone}
             placeholder="+27 …" placeholderTextColor={colors.textMuted} keyboardType="phone-pad" />
 
@@ -619,7 +627,6 @@ function RegisterModal({ visible, child, programs, existingRegs, userId, onClose
                 : p.age_max != null ? `Up to age ${p.age_max}` : null;
               return (
                 <View style={[styles.programRow, !eligible && styles.programRowIneligible]}>
-                  <View style={[styles.programRowAccent, { backgroundColor: PROGRAM_TYPE_COLOR[p.type] }]} />
                   <View style={styles.flex1}>
                     <Text style={[styles.programRowName, !eligible && styles.textMuted]}>{p.name}</Text>
                     <Text style={styles.programRowType}>
@@ -695,8 +702,8 @@ function CreateProgramModal({ visible, userId, onClose, onSaved }: {
     setAgeMax(next.ageMax);
   };
   const [location, setLocation] = useState('');
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
+  const [startDate, setStartDate] = useState<Date | null>(null);
+  const [endDate, setEndDate] = useState<Date | null>(null);
   const [saving, setSaving] = useState(false);
 
   const save = async () => {
@@ -705,6 +712,9 @@ function CreateProgramModal({ visible, userId, onClose, onSaved }: {
     const parsedMax = ageMax.trim() ? parseInt(ageMax, 10) : null;
     if (parsedMin !== null && parsedMax !== null && parsedMin > parsedMax) {
       Alert.alert('Invalid age range', 'Minimum age cannot exceed maximum age.'); return;
+    }
+    if (startDate && endDate && endDate < startDate) {
+      Alert.alert('Invalid dates', 'End date cannot be before the start date.'); return;
     }
     setSaving(true);
     // "other" is UI-only — store as holiday_club (the open-age enum value)
@@ -715,8 +725,8 @@ function CreateProgramModal({ visible, userId, onClose, onSaved }: {
       age_min: parsedMin,
       age_max: parsedMax,
       location: location.trim() || null,
-      start_date: startDate.trim() || null,
-      end_date: endDate.trim() || null,
+      start_date: startDate ? format(startDate, 'yyyy-MM-dd') : null,
+      end_date: endDate ? format(endDate, 'yyyy-MM-dd') : null,
       created_by: userId,
     });
     setSaving(false);
@@ -726,7 +736,7 @@ function CreateProgramModal({ visible, userId, onClose, onSaved }: {
     setDesc('');
     setAgeMin(PRESET_DEFAULTS.youth.ageMin);
     setAgeMax(PRESET_DEFAULTS.youth.ageMax);
-    setLocation(''); setStartDate(''); setEndDate('');
+    setLocation(''); setStartDate(null); setEndDate(null);
     onSaved();
   };
 
@@ -783,18 +793,21 @@ function CreateProgramModal({ visible, userId, onClose, onSaved }: {
           <TextInput style={styles.textInput} value={location} onChangeText={setLocation}
             placeholder="e.g. Church Hall" placeholderTextColor={colors.textMuted} />
 
-          <View style={styles.row}>
-            <View style={styles.flex1}>
-              <Text style={styles.fieldLabel}>Start date</Text>
-              <TextInput style={styles.textInput} value={startDate} onChangeText={setStartDate}
-                placeholder="YYYY-MM-DD" placeholderTextColor={colors.textMuted} autoCapitalize="none" />
-            </View>
-            <View style={styles.flex1}>
-              <Text style={styles.fieldLabel}>End date</Text>
-              <TextInput style={styles.textInput} value={endDate} onChangeText={setEndDate}
-                placeholder="YYYY-MM-DD" placeholderTextColor={colors.textMuted} autoCapitalize="none" />
-            </View>
-          </View>
+          <DatePickerField
+            label="Start date (optional)"
+            value={startDate}
+            placeholder="Tap to set start date"
+            onChange={setStartDate}
+            onClear={() => setStartDate(null)}
+          />
+          <DatePickerField
+            label="End date (optional)"
+            value={endDate}
+            minimumDate={startDate ?? undefined}
+            placeholder="Tap to set end date"
+            onChange={setEndDate}
+            onClear={() => setEndDate(null)}
+          />
         </ScrollView>
       </SafeAreaView>
     </Modal>
@@ -846,7 +859,7 @@ const styles = StyleSheet.create({
   modalTitle: { fontFamily: fonts.serif, fontSize: 17, fontWeight: '700', color: colors.text },
   modalCancel: { fontSize: 16, color: colors.textMuted, width: 60 },
   modalAction: { fontSize: 16, color: colors.primary, fontWeight: '700', width: 60, textAlign: 'right' },
-  modalBody: { padding: spacing.lg, gap: spacing.sm },
+  modalBody: { padding: spacing.lg, paddingBottom: 140, gap: spacing.sm },
   fieldLabel: { fontSize: 11.5, fontWeight: '700', letterSpacing: 1, color: colors.textMuted, textTransform: 'uppercase', marginTop: spacing.sm },
   textInput: { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: radius.md, paddingHorizontal: spacing.md, paddingVertical: Platform.OS === 'ios' ? spacing.md : spacing.sm, fontSize: 15, color: colors.text },
   typeRow: { flexDirection: 'row', gap: spacing.xs, flexWrap: 'wrap' },

@@ -53,8 +53,8 @@ export function GroupNavigator({ route }: Props) {
           })}
         >
           <ClassTabs.Screen name="This Week" component={ThisWeekScreen} />
-          <ClassTabs.Screen name="Events" component={EventsScreen} />
           <ClassTabs.Screen name="Schedule" component={ScheduleScreen} />
+          <ClassTabs.Screen name="Events" component={EventsScreen} />
           <ClassTabs.Screen name="Announcements" component={AnnouncementsScreen} />
         </ClassTabs.Navigator>
       ) : (
@@ -72,3 +72,4 @@ export function GroupNavigator({ route }: Props) {
     </GroupProvider>
   );
 }
+

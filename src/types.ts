@@ -5,6 +5,12 @@ export type RsvpStatus = 'going' | 'not_going' | 'maybe';
 export type ProgramType = 'youth' | 'childrens' | 'holiday_club';
 export type RegistrationStatus = 'active' | 'waitlisted' | 'cancelled';
 
+export type Church = {
+  id: string;
+  name: string;
+  created_at: string;
+};
+
 export type Profile = {
   id: string;
   email: string | null;
@@ -14,6 +20,7 @@ export type Profile = {
   favorite_hymn: string | null;
   birth_month: number | null;
   birth_day: number | null;
+  church_id: string | null;
   is_admin: boolean;
   is_super_admin: boolean;
   created_at: string;
@@ -76,7 +83,9 @@ export type Group = {
   name: string;
   type: GroupType;
   description: string | null;
-  meeting_time: string | null;
+  meeting_day: number | null;   // 0 = Sunday … 6 = Saturday
+  meeting_time: string | null;  // 'HH:MM' for groups using the structured picker
+  church_id: string | null;
   created_by: string | null;
   created_at: string;
 };
@@ -114,6 +123,18 @@ export type ScheduleSlot = {
   created_at: string;
   assignee?: Pick<Profile, 'id' | 'display_name' | 'avatar_url'> | null;
   programme?: Pick<VolunteerProgramme, 'id' | 'name' | 'default_time'> | null;
+};
+
+export type ReadingPlanEntry = {
+  id: string;
+  group_id: string;
+  reading_date: string;   // 'yyyy-MM-dd'
+  reference: string | null;
+  text: string | null;        // resolved scripture text (NIV)
+  translation: string | null;
+  note: string | null;
+  created_by: string | null;
+  created_at: string;
 };
 
 export type VolunteerProgramme = {

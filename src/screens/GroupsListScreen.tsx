@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Image,
@@ -16,9 +16,11 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
+import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
 import { useRealtime } from '@/hooks/useRealtime';
+import { formatMeeting, WEEKDAYS_SHORT } from '@/lib/meeting';
 import { colors, fonts, radius, shadow, spacing } from '@/theme';
 import type { Group, MemberRole, Profile } from '@/types';
 import type { AppStackParamList } from '@/navigation/RootNavigator';
@@ -44,8 +46,69 @@ function Avatar({ uri, name, size = 28 }: { uri?: string | null; name?: string |
   );
 }
 
+function MeetingTimeField({
+  value,
+  onChange,
+  onClear,
+}: {
+  value: string;
+  onChange: (t: string) => void;
+  onClear: () => void;
+}) {
+  const [showing, setShowing] = useState(false);
+
+  const pickerDate = useMemo(() => {
+    const d = new Date();
+    if (value) {
+      const [h, m] = value.split(':').map(Number);
+      if (!isNaN(h)) d.setHours(h, isNaN(m) ? 0 : m, 0, 0);
+    }
+    return d;
+  }, [value]);
+
+  const handleChange = (event: DateTimePickerEvent, selected?: Date) => {
+    const toHHMM = (d: Date) =>
+      `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+    if (Platform.OS === 'android') {
+      setShowing(false);
+      if (event.type === 'set' && selected) onChange(toHHMM(selected));
+    } else if (selected) {
+      onChange(toHHMM(selected));
+    }
+  };
+
+  return (
+    <View>
+      <View style={styles.timeFieldRow}>
+        <Pressable style={[styles.textInput, styles.timeFieldBtn]} onPress={() => setShowing(v => !v)}>
+          <Ionicons name="time-outline" size={16} color={colors.textMuted} />
+          <Text style={[styles.timeFieldText, !value && { color: colors.textMuted }]}>
+            {value || 'Tap to set time'}
+          </Text>
+        </Pressable>
+        {!!value && (
+          <Pressable onPress={onClear} hitSlop={8} style={styles.timeFieldClear}>
+            <Ionicons name="close-circle" size={18} color={colors.textMuted} />
+          </Pressable>
+        )}
+      </View>
+      {showing && Platform.OS === 'ios' && (
+        <View style={styles.inlinePicker}>
+          <DateTimePicker mode="time" value={pickerDate} onChange={handleChange} display="spinner" is24Hour style={{ height: 180 }} />
+          <Pressable style={styles.inlinePickerDone} onPress={() => setShowing(false)}>
+            <Text style={styles.inlinePickerDoneText}>Done</Text>
+          </Pressable>
+        </View>
+      )}
+      {showing && Platform.OS === 'android' && (
+        <DateTimePicker mode="time" value={pickerDate} onChange={handleChange} display="default" is24Hour />
+      )}
+    </View>
+  );
+}
+
 export function GroupsListScreen() {
-  const { session, isAdmin } = useAuth();
+  const { session, isAdmin, churchId } = useAuth();
   const navigation = useNavigation<Nav>();
   const userId = session?.user?.id ?? '';
 
@@ -57,6 +120,7 @@ export function GroupsListScreen() {
   const [newVolunteerName, setNewVolunteerName] = useState('');
   const [newType, setNewType] = useState<'class' | 'volunteer'>('class');
   const [newDesc, setNewDesc] = useState('');
+  const [newMeetingDay, setNewMeetingDay] = useState<number | null>(null);
   const [newMeetingTime, setNewMeetingTime] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -136,7 +200,9 @@ export function GroupsListScreen() {
         name: groupName,
         type: newType,
         description: newDesc.trim() || null,
+        meeting_day: newMeetingDay,
         meeting_time: newMeetingTime.trim() || null,
+        church_id: churchId,
         created_by: userId,
       })
       .select()
@@ -165,7 +231,7 @@ export function GroupsListScreen() {
     }
     setSaving(false);
     setShowCreate(false);
-    setNewClassNumber(''); setNewVolunteerName(''); setNewType('class'); setNewDesc(''); setNewMeetingTime('');
+    setNewClassNumber(''); setNewVolunteerName(''); setNewType('class'); setNewDesc(''); setNewMeetingDay(null); setNewMeetingTime('');
     load();
   };
 
@@ -177,13 +243,13 @@ export function GroupsListScreen() {
     // Volunteer groups don't surface leaders at all.
     const isClass = item.type === 'class';
     const primaryLeader = isClass ? item.leaders[0] ?? null : null;
+    const meetingText = formatMeeting(item);
     return (
       <TouchableOpacity
         style={styles.card}
         onPress={() => myVersion ? openGroup(myVersion) : undefined}
         activeOpacity={myVersion ? 0.75 : 1}
       >
-        <View style={[styles.cardAccent, { backgroundColor: TYPE_COLOR[item.type] }]} />
         <View style={styles.cardBody}>
           <View style={styles.cardTop}>
             <Text style={styles.cardName}>{item.name}</Text>
@@ -201,6 +267,9 @@ export function GroupsListScreen() {
               </Text>
             </View>
           </View>
+          {!!meetingText && (
+            <Text style={styles.cardMeeting} numberOfLines={1}>{meetingText}</Text>
+          )}
           {!!item.description && (
             <Text style={styles.cardDesc} numberOfLines={1}>{item.description}</Text>
           )}
@@ -236,6 +305,8 @@ export function GroupsListScreen() {
   const otherGroups = allGroups.filter(g => {
     if (myGroupIds.has(g.id)) return false;
     if (!isAdmin && g.type !== 'class') return false;
+    // Only show groups belonging to the user's church.
+    if (churchId && g.church_id && g.church_id !== churchId) return false;
     return true;
   });
 
@@ -264,6 +335,14 @@ export function GroupsListScreen() {
         renderItem={({ item, section }) => (
           <GroupCard item={item} isMember={(section as GroupSection).isMember} />
         )}
+        ListFooterComponent={
+          <View style={styles.groupHint}>
+            <Ionicons name="information-circle-outline" size={16} color={colors.textMuted} />
+            <Text style={styles.groupHintText}>
+              Don't see your group? Ask your group leader to contact noahxm24@gmail.com to have it added.
+            </Text>
+          </View>
+        }
         ListEmptyComponent={
           <View style={styles.center}>
             <Ionicons name="people-outline" size={48} color={colors.border} />
@@ -279,7 +358,7 @@ export function GroupsListScreen() {
             <TouchableOpacity onPress={() => {
               setShowCreate(false);
               setNewClassNumber(''); setNewVolunteerName(''); setNewType('class');
-              setNewDesc(''); setNewMeetingTime(''); setError(null);
+              setNewDesc(''); setNewMeetingDay(null); setNewMeetingTime(''); setError(null);
             }}>
               <Ionicons name="close" size={24} color={colors.text} />
             </TouchableOpacity>
@@ -329,9 +408,23 @@ export function GroupsListScreen() {
             <TextInput style={[styles.textInput, styles.textArea]} value={newDesc} onChangeText={setNewDesc}
               placeholder="Optional" placeholderTextColor={colors.textMuted} multiline numberOfLines={3} />
 
+            <Text style={styles.fieldLabel}>Meeting day</Text>
+            <View style={styles.weekdayRow}>
+              {WEEKDAYS_SHORT.map((d, i) => (
+                <Pressable
+                  key={d}
+                  style={[styles.weekdayChip, newMeetingDay === i && styles.weekdayChipActive]}
+                  onPress={() => setNewMeetingDay(newMeetingDay === i ? null : i)}
+                >
+                  <Text style={[styles.weekdayChipText, newMeetingDay === i && styles.weekdayChipTextActive]}>
+                    {d}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+
             <Text style={styles.fieldLabel}>Meeting time</Text>
-            <TextInput style={styles.textInput} value={newMeetingTime} onChangeText={setNewMeetingTime}
-              placeholder="e.g. Sundays at 9 AM" placeholderTextColor={colors.textMuted} />
+            <MeetingTimeField value={newMeetingTime} onChange={setNewMeetingTime} onClear={() => setNewMeetingTime('')} />
 
             <TouchableOpacity
               style={[styles.createBtn, (saving || (newType === 'class' ? !newClassNumber.trim() : !newVolunteerName.trim())) && styles.createBtnDisabled]}
@@ -355,12 +448,12 @@ const styles = StyleSheet.create({
   sectionHeader: { fontSize: 11, fontWeight: '700', letterSpacing: 1.6, color: colors.textMuted, textTransform: 'uppercase', paddingHorizontal: spacing.lg, paddingTop: 20, paddingBottom: 8 },
   list: { paddingHorizontal: spacing.lg, paddingBottom: spacing.xxl, gap: spacing.sm },
   card: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.surface, borderRadius: radius.lg, overflow: 'hidden', ...shadow.card, marginBottom: spacing.sm },
-  cardAccent: { width: 5, alignSelf: 'stretch' },
   cardBody: { flex: 1, padding: spacing.md },
   cardTop: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, flexWrap: 'wrap' },
   cardName: { fontFamily: fonts.serif, fontSize: 16, fontWeight: '700', color: colors.text, flex: 1 },
   typePill: { paddingHorizontal: spacing.sm, paddingVertical: 2, borderRadius: radius.pill },
   typePillText: { fontSize: 11, fontWeight: '600', letterSpacing: 0.2 },
+  cardMeeting: { fontSize: 13, color: colors.textSoft, fontWeight: '500', marginTop: 3 },
   cardDesc: { fontSize: 13, color: colors.textMuted, marginTop: 3 },
   classLeader: { flexDirection: 'row', alignItems: 'center', gap: 6, maxWidth: 180 },
   classLeaderName: { fontSize: 13, color: colors.textSoft, fontWeight: '500' },
@@ -371,6 +464,8 @@ const styles = StyleSheet.create({
   chevron: { paddingRight: spacing.md },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: spacing.md, paddingTop: 80 },
   emptyText: { fontSize: 14, color: colors.textMuted, textAlign: 'center', maxWidth: 260, lineHeight: 20 },
+  groupHint: { flexDirection: 'row', gap: spacing.sm, alignItems: 'flex-start', paddingHorizontal: spacing.md, paddingTop: spacing.lg, paddingBottom: spacing.md },
+  groupHintText: { flex: 1, fontSize: 12.5, color: colors.textMuted, lineHeight: 18 },
   // Modal
   modalSafe: { flex: 1, backgroundColor: colors.background },
   modalHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.lg, paddingTop: spacing.lg, paddingBottom: spacing.md, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border },
@@ -388,6 +483,18 @@ const styles = StyleSheet.create({
   typeOptionActive: { borderColor: colors.primary, backgroundColor: colors.primaryLight },
   typeOptionText: { fontSize: 13, fontWeight: '600', color: colors.textMuted },
   typeOptionTextActive: { color: colors.primary },
+  weekdayRow: { flexDirection: 'row', gap: 4, flexWrap: 'wrap' },
+  weekdayChip: { flex: 1, minWidth: 38, paddingVertical: spacing.sm, borderRadius: radius.md, borderWidth: 1, borderColor: colors.border, alignItems: 'center', backgroundColor: colors.surface },
+  weekdayChipActive: { borderColor: colors.primary, backgroundColor: colors.primaryLight },
+  weekdayChipText: { fontSize: 12, fontWeight: '600', color: colors.textMuted },
+  weekdayChipTextActive: { color: colors.primary },
+  timeFieldRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  timeFieldBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  timeFieldText: { fontSize: 15, color: colors.text },
+  timeFieldClear: { padding: 4 },
+  inlinePicker: { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: radius.md, marginTop: 4, overflow: 'hidden' },
+  inlinePickerDone: { alignItems: 'flex-end', paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border },
+  inlinePickerDoneText: { fontSize: 15, color: colors.primary, fontWeight: '600' },
   createBtn: { marginTop: spacing.lg, backgroundColor: colors.primary, borderRadius: radius.md, paddingVertical: spacing.md, alignItems: 'center' },
   createBtnDisabled: { opacity: 0.5 },
   createBtnText: { fontSize: 15, fontWeight: '700', color: colors.surface },

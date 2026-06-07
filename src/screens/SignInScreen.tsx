@@ -1,7 +1,8 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   Alert,
   KeyboardAvoidingView,
+  Modal,
   Platform,
   Pressable,
   ScrollView,
@@ -11,32 +12,66 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/lib/supabase';
+import { authErrorTitle, friendlyAuthError } from '@/lib/authErrors';
 import { colors, radius, spacing } from '@/theme';
+import type { Church } from '@/types';
 
 type Mode = 'signIn' | 'signUp' | 'reset';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+// Contact address shown when a church isn't listed yet.
+const SUPPORT_EMAIL = 'noahxm24@gmail.com';
+
 export function SignInScreen() {
-  const { signIn, signUp, requestPasswordReset } = useAuth();
+  const { signIn, signInWithGoogle, signUp, requestPasswordReset } = useAuth();
   const [mode, setMode] = useState<Mode>('signIn');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [displayName, setDisplayName] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [nameError, setNameError] = useState<string | null>(null);
   const [emailError, setEmailError] = useState<string | null>(null);
   const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [churchError, setChurchError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
+  const [churches, setChurches] = useState<Church[]>([]);
+  const [churchId, setChurchId] = useState<string | null>(null);
+  const [churchPickerOpen, setChurchPickerOpen] = useState(false);
   const passwordRef = useRef<TextInput>(null);
+
+  const selectedChurch = churches.find((c) => c.id === churchId) ?? null;
+
+  // Load the church list once — needed for the sign-up picker.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const { data, error } = await supabase.from('churches').select('*').order('name');
+      if (cancelled) return;
+      if (error) { console.warn('churches load failed', error); return; }
+      setChurches((data as Church[]) ?? []);
+    })();
+    return () => { cancelled = true; };
+  }, []);
 
   const submit = async () => {
     const trimEmail = email.trim();
+    const trimName = displayName.trim();
+    setNameError(null);
     setEmailError(null);
     setPasswordError(null);
+    setChurchError(null);
     setInfo(null);
 
     let invalid = false;
+    if (mode === 'signUp' && !trimName) {
+      setNameError('Enter your name.');
+      invalid = true;
+    }
     if (!trimEmail) {
       setEmailError('Enter your email address.');
       invalid = true;
@@ -53,6 +88,10 @@ export function SignInScreen() {
         invalid = true;
       }
     }
+    if (mode === 'signUp' && !churchId) {
+      setChurchError('Select your church to continue.');
+      invalid = true;
+    }
     if (invalid) return;
 
     setBusy(true);
@@ -60,15 +99,27 @@ export function SignInScreen() {
       if (mode === 'signIn') {
         await signIn(trimEmail, password);
       } else if (mode === 'signUp') {
-        await signUp(trimEmail, password, displayName);
+        await signUp(trimEmail, password, trimName, churchId ?? undefined);
         setInfo('Check your email for a confirmation link to activate your account.');
       } else {
         await requestPasswordReset(trimEmail);
         setInfo('Check your inbox for a password reset link.');
       }
     } catch (e) {
-      // Server errors are unpredictable — keep the modal alert here.
-      Alert.alert('Sign-in error', e instanceof Error ? e.message : String(e));
+      // Map raw Supabase / network errors to friendly, action-specific copy.
+      Alert.alert(authErrorTitle(mode), friendlyAuthError(e, mode));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const googleSignIn = async () => {
+    setBusy(true);
+    try {
+      await signInWithGoogle();
+      // Session arrives via the auth deep-link handler; the navigator routes in.
+    } catch (e) {
+      Alert.alert('Google sign-in failed', friendlyAuthError(e, 'signIn'));
     } finally {
       setBusy(false);
     }
@@ -77,8 +128,10 @@ export function SignInScreen() {
   const switchMode = (next: Mode) => {
     setMode(next);
     setPassword('');
+    setNameError(null);
     setEmailError(null);
     setPasswordError(null);
+    setChurchError(null);
     setInfo(null);
   };
 
@@ -115,17 +168,89 @@ export function SignInScreen() {
 
           {mode === 'signUp' && (
             <>
-              <Text style={styles.label}>Name (optional)</Text>
+              <Text style={styles.label}>Name</Text>
               <TextInput
                 value={displayName}
-                onChangeText={setDisplayName}
+                onChangeText={(t) => { setDisplayName(t); if (nameError) setNameError(null); }}
                 placeholder="Your name"
                 placeholderTextColor={colors.textMuted}
                 autoCapitalize="words"
                 autoCorrect={false}
                 returnKeyType="next"
-                style={styles.input}
+                style={[styles.input, !!nameError && styles.inputError]}
+                accessibilityLabel="Name"
               />
+              {nameError && <Text style={styles.fieldError}>{nameError}</Text>}
+
+              <Text style={styles.label}>Church</Text>
+              {churches.length === 0 ? (
+                <Text style={styles.churchHint}>
+                  No churches are listed yet. Please ask your church to get in touch at {SUPPORT_EMAIL} so we can add them.
+                </Text>
+              ) : (
+                <Pressable
+                  onPress={() => setChurchPickerOpen(true)}
+                  style={[styles.input, styles.churchField, !!churchError && styles.inputError]}
+                  accessibilityRole="button"
+                  accessibilityLabel="Select your church"
+                >
+                  <Text style={selectedChurch ? styles.churchFieldText : styles.churchFieldPlaceholder}>
+                    {selectedChurch ? selectedChurch.name : 'Select your church'}
+                  </Text>
+                  <Ionicons name="chevron-down" size={20} color={colors.textMuted} />
+                </Pressable>
+              )}
+              {churchError && <Text style={styles.fieldError}>{churchError}</Text>}
+              <Text style={styles.churchHint}>
+                Don't see your church? Ask your church to get in touch at {SUPPORT_EMAIL} so we can add them.
+              </Text>
+
+              <Modal
+                visible={churchPickerOpen}
+                animationType="slide"
+                transparent
+                onRequestClose={() => setChurchPickerOpen(false)}
+              >
+                <Pressable style={styles.modalBackdrop} onPress={() => setChurchPickerOpen(false)}>
+                  <Pressable style={styles.modalSheet} onPress={() => {}}>
+                    <View style={styles.modalHeader}>
+                      <Text style={styles.modalTitle}>Select your church</Text>
+                      <Pressable
+                        onPress={() => setChurchPickerOpen(false)}
+                        hitSlop={8}
+                        accessibilityRole="button"
+                        accessibilityLabel="Close"
+                      >
+                        <Ionicons name="close" size={24} color={colors.textMuted} />
+                      </Pressable>
+                    </View>
+                    <ScrollView contentContainerStyle={styles.modalList} keyboardShouldPersistTaps="handled">
+                      {churches.map((c) => {
+                        const active = churchId === c.id;
+                        return (
+                          <Pressable
+                            key={c.id}
+                            onPress={() => {
+                              // Tapping the selected church again clears it.
+                              setChurchId(active ? null : c.id);
+                              if (churchError) setChurchError(null);
+                              setChurchPickerOpen(false);
+                            }}
+                            style={[styles.churchRow, active && styles.churchRowActive]}
+                            accessibilityRole="button"
+                            accessibilityState={{ selected: active }}
+                          >
+                            <Text style={[styles.churchRowText, active && styles.churchRowTextActive]}>
+                              {c.name}
+                            </Text>
+                            {active && <Ionicons name="checkmark-circle" size={20} color={colors.primary} />}
+                          </Pressable>
+                        );
+                      })}
+                    </ScrollView>
+                  </Pressable>
+                </Pressable>
+              </Modal>
             </>
           )}
 
@@ -153,22 +278,37 @@ export function SignInScreen() {
           {mode !== 'reset' && (
             <>
               <Text style={styles.label}>Password</Text>
-              <TextInput
-                ref={passwordRef}
-                value={password}
-                onChangeText={(t) => { setPassword(t); if (passwordError) setPasswordError(null); }}
-                placeholder={mode === 'signUp' ? 'At least 6 characters' : '••••••••'}
-                placeholderTextColor={colors.textMuted}
-                secureTextEntry
-                autoCapitalize="none"
-                autoCorrect={false}
-                autoComplete={mode === 'signUp' ? 'password-new' : 'password'}
-                textContentType={mode === 'signUp' ? 'newPassword' : 'password'}
-                returnKeyType="send"
-                onSubmitEditing={submit}
-                style={[styles.input, !!passwordError && styles.inputError]}
-                accessibilityLabel="Password"
-              />
+              <View style={[styles.passwordWrap, !!passwordError && styles.inputError]}>
+                <TextInput
+                  ref={passwordRef}
+                  value={password}
+                  onChangeText={(t) => { setPassword(t); if (passwordError) setPasswordError(null); }}
+                  placeholder={mode === 'signUp' ? 'At least 6 characters' : '••••••••'}
+                  placeholderTextColor={colors.textMuted}
+                  secureTextEntry={!showPassword}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  autoComplete={mode === 'signUp' ? 'password-new' : 'password'}
+                  textContentType={mode === 'signUp' ? 'newPassword' : 'password'}
+                  returnKeyType="send"
+                  onSubmitEditing={submit}
+                  style={styles.passwordInput}
+                  accessibilityLabel="Password"
+                />
+                <Pressable
+                  onPress={() => setShowPassword((s) => !s)}
+                  hitSlop={8}
+                  style={styles.eyeBtn}
+                  accessibilityRole="button"
+                  accessibilityLabel={showPassword ? 'Hide password' : 'Show password'}
+                >
+                  <Ionicons
+                    name={showPassword ? 'eye-off-outline' : 'eye-outline'}
+                    size={20}
+                    color={colors.textMuted}
+                  />
+                </Pressable>
+              </View>
               {passwordError && <Text style={styles.fieldError}>{passwordError}</Text>}
             </>
           )}
@@ -183,6 +323,26 @@ export function SignInScreen() {
           >
             <Text style={styles.primaryText}>{buttonLabel}</Text>
           </Pressable>
+
+          {mode !== 'reset' && (
+            <>
+              <View style={styles.divider}>
+                <View style={styles.dividerLine} />
+                <Text style={styles.dividerText}>or</Text>
+                <View style={styles.dividerLine} />
+              </View>
+              <Pressable
+                onPress={googleSignIn}
+                disabled={busy}
+                style={({ pressed }) => [styles.googleBtn, busy && styles.disabled, pressed && styles.pressed]}
+                accessibilityRole="button"
+                accessibilityLabel="Continue with Google"
+              >
+                <Ionicons name="logo-google" size={18} color={colors.text} />
+                <Text style={styles.googleBtnText}>Continue with Google</Text>
+              </Pressable>
+            </>
+          )}
 
           <View style={styles.links}>
             {mode === 'signIn' && (
@@ -240,7 +400,46 @@ const styles = StyleSheet.create({
     color: colors.text,
   },
   inputError: { borderColor: colors.danger },
+  passwordWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radius.md,
+    backgroundColor: colors.surface,
+  },
+  passwordInput: { flex: 1, padding: spacing.md, fontSize: 16, color: colors.text },
+  eyeBtn: { paddingHorizontal: spacing.md, paddingVertical: spacing.sm },
   fieldError: { color: colors.danger, fontSize: 12.5, marginTop: -spacing.xs, fontWeight: '500' },
+  churchField: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  churchFieldText: { fontSize: 16, color: colors.text },
+  churchFieldPlaceholder: { fontSize: 16, color: colors.textMuted },
+  modalBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
+  modalSheet: {
+    backgroundColor: colors.background,
+    borderTopLeftRadius: radius.lg,
+    borderTopRightRadius: radius.lg,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.lg,
+    paddingBottom: spacing.xl,
+    maxHeight: '70%',
+  },
+  modalHeader: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    marginBottom: spacing.md,
+  },
+  modalTitle: { fontSize: 18, fontWeight: '700', color: colors.text },
+  modalList: { gap: spacing.xs },
+  churchRow: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    borderWidth: 1, borderColor: colors.border, borderRadius: radius.md,
+    paddingHorizontal: spacing.md, paddingVertical: spacing.sm + 2,
+    backgroundColor: colors.surface,
+  },
+  churchRowActive: { borderColor: colors.primary, backgroundColor: colors.primaryLight },
+  churchRowText: { fontSize: 15, color: colors.text, fontWeight: '600' },
+  churchRowTextActive: { color: colors.primaryDark },
+  churchHint: { fontSize: 12.5, color: colors.textMuted, lineHeight: 18 },
   primary: {
     backgroundColor: colors.primary,
     borderRadius: radius.md,
@@ -251,6 +450,15 @@ const styles = StyleSheet.create({
   primaryText: { color: '#fff', fontWeight: '700', fontSize: 16 },
   disabled: { opacity: 0.6 },
   pressed: { opacity: 0.85 },
+  divider: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginTop: spacing.md },
+  dividerLine: { flex: 1, height: StyleSheet.hairlineWidth, backgroundColor: colors.border },
+  dividerText: { fontSize: 12, color: colors.textMuted, fontWeight: '600' },
+  googleBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm,
+    borderWidth: 1, borderColor: colors.border, borderRadius: radius.md,
+    paddingVertical: spacing.md + 2, backgroundColor: colors.surface, marginTop: spacing.md,
+  },
+  googleBtnText: { color: colors.text, fontWeight: '700', fontSize: 15 },
   links: { gap: spacing.md, alignItems: 'center', marginTop: spacing.md },
   link: { color: colors.primary, fontSize: 14, fontWeight: '500' },
 });

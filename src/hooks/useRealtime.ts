@@ -4,6 +4,7 @@ import { supabase } from '@/lib/supabase';
 export type RealtimeTable =
   | 'schedule'
   | 'weekly_verses'
+  | 'reading_plan'
   | 'events'
   | 'event_rsvps'
   | 'profiles'

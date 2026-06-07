@@ -156,6 +156,38 @@ npm run android    # Android emulator
 npm start          # Expo Go on a physical device
 ```
 
+### 4. Google sign-in (optional)
+
+The sign-in screen has a **Continue with Google** button. It uses Supabase's
+Google provider via the system browser, redirecting back to
+`churchflow://auth-callback`. To enable it:
+
+1. **Google Cloud Console** → create an OAuth 2.0 **Web** client. Add the
+   authorized redirect URI `https://<PROJECT_REF>.supabase.co/auth/v1/callback`.
+2. **Supabase → Authentication → Providers → Google** → enable it and paste the
+   client ID + secret.
+3. **Supabase → Authentication → URL Configuration → Redirect URLs** → add
+   `churchflow://auth-callback` (and, for Expo Go testing, the `exp://…/--/auth-callback`
+   URL that `npx expo start` prints).
+
+New Google users land on the "Select your church" screen on first sign-in, the
+same as email sign-ups. (The app uses the implicit OAuth flow — tokens arrive in
+the redirect fragment; no extra native module is required.)
+
+### 5. Assignment emails (optional)
+
+The `notify-assignment` edge function emails a volunteer when they're assigned a
+slot, using SMTP. Set the function secrets (same provider you use for Auth SMTP
+is fine — Auth's SMTP config is **not** shared with edge functions):
+
+```bash
+supabase functions deploy notify-assignment
+supabase secrets set SMTP_HOST=… SMTP_PORT=587 SMTP_USER=… SMTP_PASS=… \
+  SMTP_FROM="ChurchFlow <no-reply@yourchurch.org>"
+```
+
+Without these, push notifications and the in-app banner still work; only email is skipped.
+
 
 ---
 
@@ -167,7 +199,7 @@ npm start          # Expo Go on a physical device
 | Language | TypeScript (strict) |
 | Navigation | React Navigation v7 — native stack + bottom tabs |
 | Backend | Supabase — PostgreSQL · Auth · Realtime · Storage |
-| Bible API | [bible-api.com](https://bible-api.com) — KJV, WEB, OEB, BBE (open licence) |
+| Bible API | YouVersion |
 | Calendar | react-native-calendars |
 
 ---

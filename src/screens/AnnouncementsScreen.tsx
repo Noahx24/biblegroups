@@ -8,12 +8,12 @@ import {
   Platform,
   Pressable,
   RefreshControl,
-  SafeAreaView,
   StyleSheet,
   Text,
   TextInput,
   View,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { format } from 'date-fns';
@@ -83,7 +83,7 @@ export function AnnouncementsScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.safe}>
+    <SafeAreaView style={styles.safe} edges={['left', 'right']}>
       <FlatList
         data={announcements}
         keyExtractor={a => a.id}

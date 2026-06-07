@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Modal,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -20,7 +21,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useGroup } from '@/context/GroupContext';
 import { useRealtime } from '@/hooks/useRealtime';
 import { colors, fonts, radius, shadow, spacing } from '@/theme';
-import type { ScheduleSlot, WeeklyVerse } from '@/types';
+import type { ReadingPlanEntry, ScheduleSlot, WeeklyVerse } from '@/types';
 
 function getWeekReadingDays(sundayISO: string) {
   const [y, m, d] = sundayISO.split('-').map(Number);
@@ -45,10 +46,16 @@ export function ThisWeekScreen() {
   const [verse, setVerse] = useState<WeeklyVerse | null>(null);
   const [slot, setSlot] = useState<ScheduleSlot | null>(null);
   const [nextSlot, setNextSlot] = useState<ScheduleSlot | null>(null);
+  const [readings, setReadings] = useState<Record<string, ReadingPlanEntry>>({});
+  const [editingReading, setEditingReading] = useState<{ isoDate: string; reference: string; note: string } | null>(null);
+  // Read-only reading detail (members tap a day to read the full passage text).
+  const [viewingReading, setViewingReading] = useState<{ title: string; reference: string | null; text: string | null; note: string | null } | null>(null);
+  const [savingReading, setSavingReading] = useState(false);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [reference, setReference] = useState('');
-  const [translation, setTranslation] = useState<string>('kjv');
+  // Verse lookups always use NIV11 (Biblica licence; YouVersion version id 111).
+  const translation = 'niv';
   const [saving, setSaving] = useState(false);
   const [claiming, setClaiming] = useState(false);
 
@@ -63,7 +70,7 @@ export function ThisWeekScreen() {
     const [scheduleRes, nextRes] = await Promise.all([
       supabase
         .from('schedule')
-        .select('*, assignee:profiles(id, display_name, avatar_url)')
+        .select('*, assignee:profiles!assignee_id(id, display_name, avatar_url)')
         .eq('group_id', group.id)
         .gte('slot_date', currentWeek)
         .lt('slot_date', upcomingWeek)
@@ -71,7 +78,7 @@ export function ThisWeekScreen() {
         .limit(1),
       supabase
         .from('schedule')
-        .select('*, assignee:profiles(id, display_name, avatar_url)')
+        .select('*, assignee:profiles!assignee_id(id, display_name, avatar_url)')
         .eq('group_id', group.id)
         .gte('slot_date', upcomingWeek)
         .lt('slot_date', weekAfterNext)
@@ -91,6 +98,18 @@ export function ThisWeekScreen() {
       .eq('week_start', verseDate)
       .maybeSingle();
     setVerse((verseRes.data as WeeklyVerse | null) ?? null);
+
+    // Reading plan for this week's Mon–Fri.
+    const planDays = getWeekReadingDays(currentWeek);
+    const readingRes = await supabase
+      .from('reading_plan')
+      .select('*')
+      .eq('group_id', group.id)
+      .gte('reading_date', planDays[0].isoDate)
+      .lte('reading_date', planDays[planDays.length - 1].isoDate);
+    const byDate: Record<string, ReadingPlanEntry> = {};
+    for (const r of ((readingRes.data ?? []) as ReadingPlanEntry[])) byDate[r.reading_date] = r;
+    setReadings(byDate);
   }, [group.id, currentWeek, upcomingWeek, weekAfterNext]);
 
   useEffect(() => {
@@ -103,6 +122,7 @@ export function ThisWeekScreen() {
 
   useRealtime('schedule', load, `group_id=eq.${group.id}`);
   useRealtime('weekly_verses', load, `group_id=eq.${group.id}`);
+  useRealtime('reading_plan', load, `group_id=eq.${group.id}`);
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -159,6 +179,59 @@ export function ThisWeekScreen() {
     }
   };
 
+  const saveReading = async () => {
+    if (!editingReading || !session?.user) return;
+    setSavingReading(true);
+    try {
+      const ref = editingReading.reference.trim();
+      const note = editingReading.note.trim();
+      const existing = readings[editingReading.isoDate];
+      if (!ref && !note) {
+        // Cleared both fields — remove any existing entry for the day.
+        if (existing) {
+          const { error } = await supabase.from('reading_plan').delete().eq('id', existing.id);
+          if (error) throw error;
+        }
+      } else {
+        // Resolve the verse text from NIV so members can read it directly.
+        // If the lookup fails (bad reference / offline), still save what the
+        // leader typed — just without cached text.
+        let finalRef = ref || null;
+        let vText: string | null = null;
+        let vTrans: string | null = null;
+        if (ref) {
+          try {
+            const fv = await fetchVerse(ref, 'niv');
+            finalRef = fv.reference;
+            vText = fv.text;
+            vTrans = fv.translation;
+          } catch {
+            // keep the reference as typed; leave text null
+          }
+        }
+        const { error } = await supabase.from('reading_plan').upsert(
+          {
+            group_id: group.id,
+            reading_date: editingReading.isoDate,
+            reference: finalRef,
+            text: vText,
+            translation: vTrans,
+            note: note || null,
+            created_by: session.user.id,
+          },
+          { onConflict: 'group_id,reading_date' },
+        );
+        if (error) throw error;
+      }
+      setEditingReading(null);
+      await load();
+    } catch (e) {
+      Alert.alert('Could not save reading', e instanceof Error ? e.message : String(e));
+    } finally {
+      setSavingReading(false);
+    }
+  };
+
   const weekDays = useMemo(() => getWeekReadingDays(currentWeek), [currentWeek]);
 
   if (loading) {
@@ -169,12 +242,11 @@ export function ThisWeekScreen() {
     );
   }
 
-  const showClaimButton = isLeader && !!slot && !slot.assignee_id && !leadingThisWeek;
-  const showAddDateHint = isLeader && !slot;
-  const showMemberHint = !isLeader && !slot?.assignee_id;
+  // Any member of a class group can take an open slot — no leader approval.
+  const showClaimButton = !!slot && !slot.assignee_id && !leadingThisWeek;
 
   return (
-    <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
+    <SafeAreaView style={styles.container} edges={['left', 'right']}>
       <ScrollView
         contentContainerStyle={styles.content}
         refreshControl={
@@ -214,7 +286,7 @@ export function ThisWeekScreen() {
                 autoCapitalize="words"
                 style={styles.input}
               />
-              <TranslationPicker value={translation} onChange={setTranslation} />
+              <Text style={styles.translationNote}>Translation: NIV</Text>
               <Pressable
                 onPress={saveVerse}
                 disabled={saving || !reference.trim()}
@@ -249,7 +321,7 @@ export function ThisWeekScreen() {
                 </View>
               ) : null}
             </>
-          ) : (
+          ) : slot ? (
             <>
               <Text style={styles.noLeaderTitle}>No leader assigned</Text>
               <Text style={styles.muted}>The slot is still open.</Text>
@@ -269,17 +341,15 @@ export function ThisWeekScreen() {
                 </Pressable>
               )}
             </>
-          )}
-
-          {showAddDateHint && (
-            <Text style={styles.hint}>
-              No meeting date set for this week yet. Open the Schedule tab to add one.
-            </Text>
-          )}
-          {showMemberHint && (
-            <Text style={styles.hint}>
-              A leader needs to take this week before the verse can be set.
-            </Text>
+          ) : (
+            <>
+              <Text style={styles.noLeaderTitle}>No meeting this week</Text>
+              <Text style={styles.muted}>
+                {isLeader
+                  ? "Add this week's meeting date in the Schedule tab."
+                  : 'No meeting has been scheduled for this week yet.'}
+              </Text>
+            </>
           )}
         </View>
 
@@ -326,11 +396,48 @@ export function ThisWeekScreen() {
           </View>
           {weekDays.map((day, i) => {
             const isTue = day.day === 'Tue';
-            const highlight = isTue && !!verse;
+            const reading = readings[day.isoDate];
+            const highlight = !!reading || (isTue && !!verse);
+            // Members can tap a day with content to read the full passage.
+            const classVerseDay = isTue && !!verse && !reading;
+            const hasContent = !!reading || classVerseDay;
+            const openView = () => {
+              if (reading) {
+                setViewingReading({
+                  title: readingDateLabel(day.isoDate),
+                  reference: reading.reference,
+                  text: reading.text,
+                  note: reading.note,
+                });
+              } else if (classVerseDay && verse) {
+                setViewingReading({
+                  title: readingDateLabel(day.isoDate),
+                  reference: verse.reference,
+                  text: verse.text,
+                  note: null,
+                });
+              }
+            };
             return (
-              <View
+              <Pressable
                 key={day.isoDate}
-                style={[styles.planRow, i < weekDays.length - 1 && styles.planRowBorder]}
+                disabled={!isLeader && !hasContent}
+                onPress={
+                  isLeader
+                    ? () => setEditingReading({
+                        isoDate: day.isoDate,
+                        reference: reading?.reference ?? '',
+                        note: reading?.note ?? '',
+                      })
+                    : hasContent
+                    ? openView
+                    : undefined
+                }
+                style={({ pressed }) => [
+                  styles.planRow,
+                  i < weekDays.length - 1 && styles.planRowBorder,
+                  pressed && (isLeader || hasContent) && styles.pressed,
+                ]}
               >
                 <View style={[styles.planDayBadge, highlight && styles.planDayBadgeActive]}>
                   <Text style={[styles.planDayLabel, highlight && styles.planDayLabelActive]}>
@@ -341,7 +448,14 @@ export function ThisWeekScreen() {
                   </Text>
                 </View>
                 <View style={styles.planMeta}>
-                  {isTue && verse ? (
+                  {reading ? (
+                    <>
+                      <Text style={styles.planRef} numberOfLines={1}>{reading.reference ?? day.date}</Text>
+                      <Text style={styles.planTitle} numberOfLines={2}>
+                        {reading.text ?? reading.note ?? 'Reading'}
+                      </Text>
+                    </>
+                  ) : isTue && verse ? (
                     <>
                       <Text style={styles.planRef}>{verse.reference}</Text>
                       <Text style={styles.planTitle} numberOfLines={1}>Class verse</Text>
@@ -349,47 +463,111 @@ export function ThisWeekScreen() {
                   ) : (
                     <>
                       <Text style={styles.planRef}>{day.date}</Text>
-                      <Text style={styles.planTitle}>Daily reading</Text>
+                      <Text style={styles.planTitle}>{isLeader ? 'Tap to set reading' : 'Daily reading'}</Text>
                     </>
                   )}
                 </View>
                 <ChevronRight />
-              </View>
+              </Pressable>
             );
           })}
         </View>
       </ScrollView>
+
+      <Modal
+        visible={editingReading !== null}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setEditingReading(null)}
+      >
+        <SafeAreaView style={styles.modalSafe}>
+          <View style={styles.modalHeader}>
+            <Pressable onPress={() => setEditingReading(null)}>
+              <Text style={styles.modalCancel}>Cancel</Text>
+            </Pressable>
+            <Text style={styles.modalTitle}>Daily reading</Text>
+            <Pressable onPress={saveReading} disabled={savingReading}>
+              <Text style={[styles.modalAction, savingReading && styles.disabled]}>
+                {savingReading ? '…' : 'Save'}
+              </Text>
+            </Pressable>
+          </View>
+          <ScrollView contentContainerStyle={styles.modalBody} keyboardShouldPersistTaps="handled">
+            {editingReading && (
+              <Text style={styles.modalDate}>{readingDateLabel(editingReading.isoDate)}</Text>
+            )}
+            <Text style={styles.modalFieldLabel}>Passage / reference</Text>
+            <TextInput
+              value={editingReading?.reference ?? ''}
+              onChangeText={(t) => setEditingReading(r => (r ? { ...r, reference: t } : r))}
+              placeholder="e.g. Psalm 23"
+              placeholderTextColor={colors.textMuted}
+              autoCapitalize="words"
+              style={styles.input}
+            />
+            <Text style={styles.modalFieldLabel}>Note (optional)</Text>
+            <TextInput
+              value={editingReading?.note ?? ''}
+              onChangeText={(t) => setEditingReading(r => (r ? { ...r, note: t } : r))}
+              placeholder="e.g. Focus on verses 1–4"
+              placeholderTextColor={colors.textMuted}
+              style={[styles.input, styles.modalNote]}
+              multiline
+            />
+            <Text style={styles.modalHint}>Leave both blank to clear this day's reading.</Text>
+          </ScrollView>
+        </SafeAreaView>
+      </Modal>
+
+      {/* Read-only reading detail (members) */}
+      <Modal
+        visible={viewingReading !== null}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setViewingReading(null)}
+      >
+        <SafeAreaView style={styles.modalSafe}>
+          <View style={styles.modalHeader}>
+            <Pressable onPress={() => setViewingReading(null)}>
+              <Text style={styles.modalCancel}>Close</Text>
+            </Pressable>
+            <Text style={styles.modalTitle}>Daily reading</Text>
+            <View style={{ minWidth: 60 }} />
+          </View>
+          <ScrollView contentContainerStyle={styles.modalBody}>
+            {viewingReading && (
+              <>
+                <Text style={styles.modalDate}>{viewingReading.title}</Text>
+                {!!viewingReading.reference && (
+                  <Text style={styles.verseRef}>{viewingReading.reference}</Text>
+                )}
+                {viewingReading.text ? (
+                  <Text style={styles.verseText}>{viewingReading.text}</Text>
+                ) : (
+                  <Text style={styles.muted}>
+                    {viewingReading.reference
+                      ? 'Open your Bible to read this passage.'
+                      : 'No reading set for this day.'}
+                  </Text>
+                )}
+                {!!viewingReading.note && (
+                  <View style={styles.themeBox}>
+                    <Text style={styles.themeBoxLabel}>Note</Text>
+                    <Text style={styles.themeBoxText}>{viewingReading.note}</Text>
+                  </View>
+                )}
+              </>
+            )}
+          </ScrollView>
+        </SafeAreaView>
+      </Modal>
     </SafeAreaView>
   );
 }
 
-const TRANSLATIONS: { value: string; label: string; name: string }[] = [
-  { value: 'kjv', label: 'KJV', name: 'King James Version' },
-  { value: 'esv', label: 'ESV', name: 'English Standard Version' },
-  { value: 'niv', label: 'NIV', name: 'New International Version' },
-  { value: 'nlt', label: 'NLT', name: 'New Living Translation' },
-];
-
-function TranslationPicker({ value, onChange }: { value: string; onChange: (v: string) => void }) {
-  return (
-    <View style={styles.translationRow}>
-      <Text style={styles.translationLabel}>Translation</Text>
-      <View style={styles.translationOptions}>
-        {TRANSLATIONS.map(t => (
-          <Pressable
-            key={t.value}
-            onPress={() => onChange(t.value)}
-            accessibilityLabel={t.name}
-            style={[styles.translationPill, value === t.value && styles.translationPillActive]}
-          >
-            <Text style={[styles.translationPillText, value === t.value && styles.translationPillTextActive]}>
-              {t.label}
-            </Text>
-          </Pressable>
-        ))}
-      </View>
-    </View>
-  );
+function readingDateLabel(isoDate: string): string {
+  const [y, m, d] = isoDate.split('-').map(Number);
+  return format(new Date(y, m - 1, d), 'EEEE, d MMMM');
 }
 
 function InitialsAvatar({ name, tone, size = 48 }: { name: string; tone: 'scarlet' | 'gold'; size?: number }) {
@@ -481,6 +659,7 @@ const styles = StyleSheet.create({
   pressed: { opacity: 0.85 },
   editor: { gap: spacing.sm, marginTop: spacing.sm },
   input: { borderWidth: 1, borderColor: colors.border, borderRadius: radius.md, padding: spacing.md, fontSize: 16, backgroundColor: colors.background, color: colors.text },
+  translationNote: { fontSize: 12, fontWeight: '600', color: colors.textMuted, letterSpacing: 0.3 },
   translationRow: { gap: 6 },
   translationLabel: { fontSize: 10.5, fontWeight: '700', letterSpacing: 1.2, color: colors.textMuted, textTransform: 'uppercase' },
   translationOptions: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs },
@@ -488,4 +667,19 @@ const styles = StyleSheet.create({
   translationPillActive: { backgroundColor: colors.primary, borderColor: colors.primary },
   translationPillText: { fontSize: 12, fontWeight: '700', color: colors.textMuted, letterSpacing: 0.4 },
   translationPillTextActive: { color: '#fff' },
+  modalSafe: { flex: 1, backgroundColor: colors.background },
+  modalHeader: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingHorizontal: spacing.lg, paddingVertical: spacing.md,
+    borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border,
+    backgroundColor: colors.surface,
+  },
+  modalTitle: { fontFamily: fonts.serif, fontSize: 18, fontWeight: '700', color: colors.text },
+  modalCancel: { fontSize: 15, color: colors.textMuted, minWidth: 60 },
+  modalAction: { fontSize: 15, color: colors.primary, fontWeight: '700', minWidth: 60, textAlign: 'right' },
+  modalBody: { padding: spacing.lg, gap: spacing.sm },
+  modalDate: { fontFamily: fonts.serif, fontSize: 18, fontWeight: '600', color: colors.text, marginBottom: spacing.sm },
+  modalFieldLabel: { fontSize: 11.5, fontWeight: '700', letterSpacing: 1.2, color: colors.textMuted, textTransform: 'uppercase', marginTop: spacing.sm },
+  modalNote: { minHeight: 80, textAlignVertical: 'top' },
+  modalHint: { fontSize: 12.5, color: colors.textMuted, fontStyle: 'italic', marginTop: spacing.sm },
 });
