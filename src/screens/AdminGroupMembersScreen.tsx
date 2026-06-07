@@ -704,7 +704,7 @@ const styles = StyleSheet.create({
     gap: spacing.md,
   },
   headerTextWrap: { flex: 1 },
-  headerTitle: { fontFamily: fonts.serif, fontSize: 18, fontWeight: '700', color: colors.text },
+  headerTitle: { fontFamily: fonts.sans, fontSize: 18, fontWeight: '600', color: colors.text, letterSpacing: -0.2 },
   headerSub: { fontSize: 12, color: colors.textMuted, marginTop: 1 },
   addBtn: {
     width: 36,
@@ -735,9 +735,9 @@ const styles = StyleSheet.create({
 
   content: { padding: spacing.lg, gap: spacing.md, paddingBottom: spacing.xxl },
   sectionLabel: {
-    fontSize: 11,
-    fontWeight: '700',
-    letterSpacing: 1.6,
+    fontSize: 12,
+    fontWeight: '600',
+    letterSpacing: 0.8,
     color: colors.textMuted,
     textTransform: 'uppercase',
     marginTop: spacing.sm,
@@ -802,12 +802,12 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: colors.border,
   },
-  modalTitle: { fontFamily: fonts.serif, fontSize: 18, fontWeight: '700', color: colors.text, flex: 1 },
+  modalTitle: { fontFamily: fonts.sans, fontSize: 18, fontWeight: '600', color: colors.text, letterSpacing: -0.2, flex: 1 },
   modalBody: { flex: 1, padding: spacing.lg, gap: spacing.sm },
   fieldLabel: {
-    fontSize: 11.5,
-    fontWeight: '700',
-    letterSpacing: 1.2,
+    fontSize: 12,
+    fontWeight: '600',
+    letterSpacing: 0.8,
     color: colors.textMuted,
     textTransform: 'uppercase',
     marginTop: spacing.sm,
@@ -837,7 +837,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     paddingVertical: Platform.OS === 'ios' ? spacing.md : spacing.sm,
   },
-  searchInput: { flex: 1, fontSize: 15, color: colors.text },
+  searchInput: { flex: 1, fontSize: 16, color: colors.text },
   searchHint: { fontSize: 12, color: colors.textMuted, paddingHorizontal: 4, paddingTop: spacing.sm },
 
   searchResult: {

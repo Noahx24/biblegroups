@@ -115,7 +115,7 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
   inner: { paddingHorizontal: spacing.xl, paddingVertical: spacing.xxl, gap: spacing.sm + 2 },
   brand: { alignItems: 'center', marginBottom: spacing.md, gap: spacing.xs },
-  title: { fontSize: 28, fontWeight: '800', textAlign: 'center', color: colors.primary },
+  title: { fontSize: 28, fontWeight: '700', textAlign: 'center', color: colors.primary, letterSpacing: -0.4 },
   tagline: { fontSize: 12, color: colors.accentDark, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 1 },
   subtitle: { fontSize: 14, textAlign: 'center', color: colors.textMuted, marginBottom: spacing.lg },
   label: { fontSize: 12, color: colors.textMuted, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5 },

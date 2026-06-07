@@ -154,7 +154,7 @@ const styles = StyleSheet.create({
   },
   icon: { flexShrink: 0 },
   textCol: { flex: 1 },
-  title: { color: '#fff', fontSize: 12, fontWeight: '800', letterSpacing: 0.3, textTransform: 'uppercase' },
-  body: { color: '#fff', fontSize: 13, marginTop: 1, opacity: 0.95 },
+  title: { color: '#fff', fontSize: 12, fontWeight: '600', letterSpacing: 0.6, textTransform: 'uppercase' },
+  body: { color: '#fff', fontSize: 14, lineHeight: 19, marginTop: 2, opacity: 0.95 },
   closeBtn: { flexShrink: 0, padding: 2 },
 });

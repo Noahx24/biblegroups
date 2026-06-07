@@ -718,7 +718,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   pageTitle: {
-    fontFamily: fonts.serif,
+    fontFamily: fonts.sans,
     fontSize: 32,
     fontWeight: '600',
     color: colors.text,
@@ -726,8 +726,9 @@ const styles = StyleSheet.create({
     lineHeight: 34,
   },
   pageSubtitle: {
-    fontSize: 13.5,
+    fontSize: 14,
     color: colors.textMuted,
+    lineHeight: 20,
     marginTop: 3,
   },
 
@@ -741,9 +742,9 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   dayHeader: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '700',
-    letterSpacing: 1.6,
+    letterSpacing: 0.8,
     color: colors.primary,
     textTransform: 'uppercase',
     flex: 1,
@@ -778,7 +779,7 @@ const styles = StyleSheet.create({
   },
   cardBody: {
     marginTop: spacing.sm,
-    fontFamily: fonts.serif,
+    fontFamily: fonts.sans,
     fontSize: 15,
     lineHeight: 22,
     color: colors.textSoft,
@@ -801,14 +802,14 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   kindPill: {
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: radius.sm,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: radius.pill,
   },
   kindPillText: {
-    fontSize: 9.5,
-    fontWeight: '800',
-    letterSpacing: 0.6,
+    fontSize: 11,
+    fontWeight: '600',
+    letterSpacing: 0.3,
     textTransform: 'uppercase',
   },
   statusDot: {
@@ -817,15 +818,16 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   cardLabel: {
-    fontSize: 15.5,
-    fontWeight: '700',
+    fontSize: 16,
+    fontWeight: '600',
     color: colors.text,
-    lineHeight: 21,
+    lineHeight: 22,
     letterSpacing: -0.2,
   },
   cardSublabel: {
-    fontSize: 12,
+    fontSize: 14,
     color: colors.textMuted,
+    lineHeight: 18,
   },
   locationRow: {
     flexDirection: 'row',
@@ -848,7 +850,7 @@ const styles = StyleSheet.create({
   },
   timeBadgeText: {
     fontSize: 13,
-    fontWeight: '800',
+    fontWeight: '700',
     color: colors.primary,
     fontVariant: ['tabular-nums'],
     letterSpacing: 0.2,
@@ -863,8 +865,9 @@ const styles = StyleSheet.create({
   emptyIcon: { marginBottom: spacing.md },
   emptyTitle: {
     fontSize: 18,
-    fontWeight: '700',
+    fontWeight: '600',
     color: colors.text,
+    letterSpacing: -0.2,
   },
   emptyBody: {
     fontSize: 14,

@@ -15,7 +15,7 @@ import { AdminGroupMembersScreen } from '@/screens/AdminGroupMembersScreen';
 import { FamilyScreen } from '@/screens/FamilyScreen';
 import { MyWeekScreen } from '@/screens/MyWeekScreen';
 import { AssignmentBanner } from '@/components/AssignmentBanner';
-import { colors } from '@/theme';
+import { colors, typography } from '@/theme';
 import { TabBarIcon } from '@/components/TabBarIcon';
 import type { Group, MemberRole } from '@/types';
 
@@ -54,8 +54,10 @@ function MainTabs() {
               backgroundColor: 'rgba(247,241,229,0.96)',
               borderTopColor: colors.border,
               borderTopWidth: StyleSheet.hairlineWidth,
+              paddingTop: 6,
             },
-            tabBarLabelStyle: { fontSize: 10.5, fontWeight: '600', letterSpacing: 0.1 },
+            tabBarLabelStyle: typography.navLabel,
+            tabBarIconStyle: { marginBottom: -2 },
             tabBarIcon: ({ focused }) => <TabBarIcon name={route.name} focused={focused} />,
           })}
         >
@@ -116,7 +118,7 @@ export function RootNavigator() {
           headerBackTitle: 'Groups',
           headerTintColor: colors.primary,
           headerStyle: { backgroundColor: colors.surface },
-          headerTitleStyle: { color: colors.text },
+          headerTitleStyle: { color: colors.text, fontSize: 18, fontWeight: '600' },
           animation: 'slide_from_right',
         })}
       />
