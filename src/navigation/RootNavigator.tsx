@@ -12,6 +12,7 @@ import { ProfileScreen } from '@/screens/ProfileScreen';
 import { GroupNavigator } from '@/navigation/GroupNavigator';
 import { AdminScreen } from '@/screens/AdminScreen';
 import { AdminGroupMembersScreen } from '@/screens/AdminGroupMembersScreen';
+import { DeleteAccountScreen } from '@/screens/DeleteAccountScreen';
 import { FamilyScreen } from '@/screens/FamilyScreen';
 import { MyWeekScreen } from '@/screens/MyWeekScreen';
 import { AssignmentBanner } from '@/components/AssignmentBanner';
@@ -24,6 +25,7 @@ export type AppStackParamList = {
   GroupDetail: { group: Group; myRole: MemberRole };
   Admin: undefined;
   AdminGroupMembers: { group: Group };
+  DeleteAccount: undefined;
 };
 
 export type MainTabsParamList = {
@@ -130,6 +132,11 @@ export function RootNavigator() {
       <Stack.Screen
         name="AdminGroupMembers"
         component={AdminGroupMembersScreen}
+        options={{ animation: 'slide_from_right' }}
+      />
+      <Stack.Screen
+        name="DeleteAccount"
+        component={DeleteAccountScreen}
         options={{ animation: 'slide_from_right' }}
       />
     </Stack.Navigator>
